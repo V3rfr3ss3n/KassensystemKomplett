@@ -3,6 +3,7 @@ package de.mmbbs.kassensystem.ui;
 import de.mmbbs.kassensystem.model.Bon;
 import de.mmbbs.kassensystem.model.BonPosition;
 import de.mmbbs.kassensystem.model.Produkt;
+import de.mmbbs.kassensystem.service.BonService;
 import de.mmbbs.kassensystem.service.KassenService;
 import de.mmbbs.kassensystem.service.ProduktService;
 import javafx.geometry.Insets;
@@ -17,6 +18,7 @@ public class KassenView extends VBox {
     private final ListView<BonPosition> warenkorbListe = new ListView<>();
     private final Label gesamtPreisLabel = new Label("Gesamtpreis: 0,00 €");
     private final TextField mengeField = new TextField();
+    private final TextArea bonArea = new TextArea();
     private final Label statusLabel = new Label();
 
     public KassenView(ProduktService produktService, KassenService kassenService) {
@@ -31,6 +33,15 @@ public class KassenView extends VBox {
 
         produktListe.getItems().setAll(produktService.alleProdukte());
         produktListe.setPrefHeight(160);
+        produktListe.setCellFactory(list -> new javafx.scene.control.ListCell<>() {
+            @Override
+            protected void updateItem(Produkt produkt, boolean empty) {
+                super.updateItem(produkt, empty);
+                setText(empty || produkt == null
+                        ? null
+                        : produkt.getId() + " · " + produkt.getName() + " · Lager: " + produkt.getLagerbestand() + " · " + String.format("%.2f €", produkt.getPreis()));
+            }
+        });
 
         warenkorbListe.setPrefHeight(160);
 
@@ -50,7 +61,11 @@ public class KassenView extends VBox {
         HBox controls = new HBox(10, new Label("Menge:"), mengeField, addButton, checkoutButton, clearButton);
         controls.setPadding(new Insets(0, 0, 6, 0));
 
-        getChildren().addAll(title, new Label("Produkte:"), produktListe, controls, new Label("Warenkorb:"), warenkorbListe, gesamtPreisLabel, statusLabel);
+        bonArea.setEditable(false);
+        bonArea.setPrefHeight(130);
+        bonArea.setPromptText("Der erzeugte Bon erscheint hier nach dem Kaufabschluss.");
+
+        getChildren().addAll(title, new Label("Produkte:"), produktListe, controls, new Label("Warenkorb:"), warenkorbListe, gesamtPreisLabel, bonArea, statusLabel);
         aktualisiereWarenkorb();
     }
 
@@ -82,6 +97,8 @@ public class KassenView extends VBox {
     private void abschliessen() {
         try {
             Bon bon = kassenService.kassenvorgangAbschliessen();
+            BonService bonService = new BonService();
+            bonArea.setText(bonService.formatiereBon(bon));
             aktualisiereWarenkorb();
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("Bon erstellt");

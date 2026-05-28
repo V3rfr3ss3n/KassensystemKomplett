@@ -32,6 +32,15 @@ public class MainView extends VBox {
         ListView<Produkt> produktListe = new ListView<>();
         produktListe.getItems().setAll(produktService.alleProdukte());
         produktListe.setPrefHeight(180);
+        produktListe.setCellFactory(list -> new javafx.scene.control.ListCell<>() {
+            @Override
+            protected void updateItem(Produkt produkt, boolean empty) {
+                super.updateItem(produkt, empty);
+                setText(empty || produkt == null
+                        ? null
+                        : produkt.getId() + " · " + produkt.getName() + " · Lager: " + produkt.getLagerbestand() + " · " + String.format("%.2f €", produkt.getPreis()));
+            }
+        });
 
         Button refreshButton = new Button("Produkte aktualisieren");
         refreshButton.setOnAction(event -> produktListe.getItems().setAll(produktService.alleProdukte()));
