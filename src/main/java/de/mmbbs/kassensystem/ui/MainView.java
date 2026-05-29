@@ -15,6 +15,9 @@ import javafx.scene.layout.VBox;
 public class MainView extends VBox {
     private final ProduktService produktService;
     private final Label valueLabel = new Label("Gesamtwert im Lager: 0,00 €");
+    private final Label summaryLabel = new Label("Produkte insgesamt: 0");
+    private final Label stockLabel = new Label("Gesamtbestand: 0");
+    private final TableView<Produkt> produktListe = new TableView<>();
 
     public MainView(ProduktService produktService) {
         this.produktService = produktService;
@@ -35,10 +38,9 @@ public class MainView extends VBox {
         Label hint = new Label("Die Übersicht zeigt sofort an, wie viele Produkte aktuell verfügbar sind.");
         hint.setWrapText(true);
 
-        Label summaryLabel = new Label("Produkte insgesamt: 0");
-        Label stockLabel = new Label("Gesamtbestand: 0");
+        summaryLabel.setText("Produkte insgesamt: 0");
+        stockLabel.setText("Gesamtbestand: 0");
 
-        TableView<Produkt> produktListe = new TableView<>();
         produktListe.setPrefHeight(220);
 
         TableColumn<Produkt, Number> idColumn = new TableColumn<>("ID");
@@ -56,9 +58,6 @@ public class MainView extends VBox {
         produktListe.getColumns().setAll(idColumn, nameColumn, preisColumn, lagerColumn);
         aktualisiereTable(produktListe, summaryLabel, stockLabel, produktService);
 
-        Button refreshButton = new Button("Produkte aktualisieren");
-        refreshButton.setOnAction(event -> aktualisiereTable(produktListe, summaryLabel, stockLabel, produktService));
-
         Button demoButton = new Button("MVP-Status anzeigen");
         demoButton.setOnAction(event -> {
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
@@ -71,9 +70,13 @@ public class MainView extends VBox {
         HBox summaryBox = new HBox(16, summaryLabel, stockLabel, valueLabel);
         summaryBox.setStyle("-fx-padding: 4 0 0 0;");
 
-        HBox actions = new HBox(10, refreshButton, demoButton);
+        HBox actions = new HBox(10, demoButton);
 
         getChildren().addAll(title, info, hint, overview, summaryBox, produktListe, actions);
+    }
+
+    public void refresh() {
+        aktualisiereTable(produktListe, summaryLabel, stockLabel, produktService);
     }
 
     private void aktualisiereTable(TableView<Produkt> table, Label summaryLabel, Label stockLabel, ProduktService produktService) {

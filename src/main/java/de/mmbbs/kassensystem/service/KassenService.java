@@ -12,6 +12,7 @@ public class KassenService {
     private final ProduktRepository repository;
     private final BonService bonService;
     private final List<BonPosition> warenkorb = new ArrayList<>();
+    private final List<Bon> bonHistorie = new ArrayList<>();
 
     public KassenService(ProduktRepository repository) {
         this.repository = repository;
@@ -48,8 +49,13 @@ public class KassenService {
         }
 
         Bon bon = bonService.erstelleBon(new ArrayList<>(warenkorb));
+        bonHistorie.add(bon);
         warenkorb.clear();
         return bon;
+    }
+
+    public List<Bon> getBonHistorie() {
+        return List.copyOf(bonHistorie);
     }
 
     public void warenkorbLeeren() {

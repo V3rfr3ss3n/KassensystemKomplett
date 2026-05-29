@@ -16,6 +16,7 @@ public class KassenView extends VBox {
     private final KassenService kassenService;
     private final ListView<Produkt> produktListe = new ListView<>();
     private final ListView<BonPosition> warenkorbListe = new ListView<>();
+    private final ListView<Bon> bonHistorieListe = new ListView<>();
     private final Label gesamtPreisLabel = new Label("Gesamtpreis: 0,00 €");
     private final TextField mengeField = new TextField();
     private final TextArea bonArea = new TextArea();
@@ -69,7 +70,19 @@ public class KassenView extends VBox {
         bonArea.setPrefHeight(130);
         bonArea.setPromptText("Der erzeugte Bon erscheint hier nach dem Kaufabschluss.");
 
-        getChildren().addAll(title, hint, new Label("Produkte:"), produktListe, controls, new Label("Warenkorb:"), warenkorbListe, gesamtPreisLabel, bonArea, statusLabel);
+        bonHistorieListe.setPrefHeight(130);
+        bonHistorieListe.setCellFactory(list -> new ListCell<>() {
+            @Override
+            protected void updateItem(Bon bon, boolean empty) {
+                super.updateItem(bon, empty);
+                setText(empty || bon == null
+                        ? null
+                        : "Bon " + bon.getBonnummer() + " · " + bon.getDatumUhrzeit().toLocalDate() + " · " + String.format("%.2f €", bon.getGesamtpreis()));
+            }
+        });
+        aktualisiereHistorie();
+
+        getChildren().addAll(title, hint, new Label("Produkte:"), produktListe, controls, new Label("Warenkorb:"), warenkorbListe, gesamtPreisLabel, bonArea, new Label("Bon-Historie:"), bonHistorieListe, statusLabel);
         aktualisiereWarenkorb();
     }
 
@@ -111,6 +124,7 @@ public class KassenView extends VBox {
             alert.showAndWait();
             statusLabel.setText("Kauf abgeschlossen. Lagerbestand wurde aktualisiert.");
             produktListe.getItems().setAll(produktService.alleProdukte());
+            aktualisiereHistorie();
         } catch (IllegalArgumentException ex) {
             statusLabel.setText(ex.getMessage());
         }
@@ -120,5 +134,9 @@ public class KassenView extends VBox {
         warenkorbListe.getItems().setAll(kassenService.getWarenkorb());
         gesamtPreisLabel.setText("Gesamtpreis: " + String.format("%.2f €", kassenService.berechneGesamtpreis()));
         checkoutButton.setDisable(kassenService.getWarenkorb().isEmpty());
+    }
+
+    private void aktualisiereHistorie() {
+        bonHistorieListe.getItems().setAll(kassenService.getBonHistorie());
     }
 }

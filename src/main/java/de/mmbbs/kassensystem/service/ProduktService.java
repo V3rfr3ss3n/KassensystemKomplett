@@ -28,6 +28,21 @@ public class ProduktService {
         return repository.findeAlle();
     }
 
+    public void produktLoeschen(int produktId) {
+        repository.findeNachId(produktId)
+                .orElseThrow(() -> new IllegalArgumentException("Produkt nicht gefunden."));
+        repository.loeschen(produktId);
+    }
+
+    public Produkt produktAktualisieren(int produktId, String name, double preis, int lagerbestand) {
+        Produkt produkt = repository.findeNachId(produktId)
+                .orElseThrow(() -> new IllegalArgumentException("Produkt nicht gefunden."));
+        produkt.setName(name);
+        produkt.setPreis(preis);
+        produkt.setLagerbestand(lagerbestand);
+        return repository.speichern(produkt);
+    }
+
     public boolean istMengeVerfuegbar(int produktId, int menge) {
         return repository.findeNachId(produktId)
                 .map(produkt -> produkt.getLagerbestand() >= menge)

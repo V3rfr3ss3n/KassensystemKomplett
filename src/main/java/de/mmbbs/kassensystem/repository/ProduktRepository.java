@@ -11,4 +11,6 @@ public interface ProduktRepository {
     Optional<Produkt> findeNachId(int id);
 
     Produkt speichern(Produkt produkt);
+
+    void loeschen(int id);
 }

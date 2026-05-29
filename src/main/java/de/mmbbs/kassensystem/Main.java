@@ -25,12 +25,18 @@ public class Main extends Application {
         TabPane tabPane = new TabPane();
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
-        Tab startTab = new Tab("Start", new MainView(produktService));
+        MainView mainView = new MainView(produktService);
+        Tab startTab = new Tab("Start", mainView);
         Tab kasseTab = new Tab("Kasse", new KassenView(produktService, kassenService));
         Tab produktTab = new Tab("Produkt hinzufügen", new ProduktFormView(produktService));
         Tab lagerTab = new Tab("Lagerbestand", new LagerView(produktService));
 
         tabPane.getTabs().addAll(startTab, kasseTab, produktTab, lagerTab);
+        tabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
+            if (newTab == startTab) {
+                mainView.refresh();
+            }
+        });
 
         Scene scene = new Scene(tabPane, 900, 600);
         scene.getStylesheets().add(getClass().getResource("/styles.css").toExternalForm());

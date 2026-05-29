@@ -51,4 +51,9 @@ public class InMemoryProduktRepository implements ProduktRepository {
         }
         return speichere(produkt);
     }
+
+    @Override
+    public void loeschen(int id) {
+        produkte.remove(id);
+    }
 }
