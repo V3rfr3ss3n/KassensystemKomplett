@@ -21,13 +21,17 @@ public class ProduktFormView extends VBox {
         Label title = new Label("Produkt hinzufügen");
         title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
 
+        Label hint = new Label("Geben Sie Name, Preis und Startbestand ein. Danach erscheint das Produkt im Lager. ");
+        hint.setWrapText(true);
+
         Button saveButton = new Button("Produkt speichern");
         saveButton.setOnAction(event -> speichern());
 
         getChildren().addAll(
                 title,
+                hint,
                 new Label("Name:"), nameField,
-                new Label("Preis:"), preisField,
+                new Label("Preis in €:"), preisField,
                 new Label("Anfangsbestand:"), bestandField,
                 saveButton,
                 statusLabel
@@ -41,7 +45,7 @@ public class ProduktFormView extends VBox {
             int bestand = Integer.parseInt(bestandField.getText().trim());
 
             produktService.produktHinzufuegen(name, preis, bestand);
-            statusLabel.setText("Produkt wurde gespeichert.");
+            statusLabel.setText("Produkt wurde gespeichert. Es ist jetzt im Lager und in der Produktübersicht sichtbar.");
             nameField.clear();
             preisField.clear();
             bestandField.clear();

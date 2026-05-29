@@ -2,6 +2,7 @@ package de.mmbbs.kassensystem.ui;
 
 import de.mmbbs.kassensystem.model.Produkt;
 import de.mmbbs.kassensystem.service.ProduktService;
+import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
@@ -9,7 +10,7 @@ import javafx.scene.layout.VBox;
 
 public class LagerView extends VBox {
     private final ProduktService produktService;
-    private final ListView<Produkt> produktListe = new ListView<>();
+    private final TableView<Produkt> produktListe = new TableView<>();
     private final TextField mengeField = new TextField();
     private final Label statusLabel = new Label();
 
@@ -25,24 +26,27 @@ public class LagerView extends VBox {
         Label overview = new Label("Übersicht der aktuellen Lagerstände");
         overview.setStyle("-fx-font-weight: bold;");
 
+        Label hint = new Label("Wählen Sie ein Produkt aus der Tabelle aus und buchen Sie einen Warenzugang direkt hier.");
+        hint.setWrapText(true);
+
         Label summary = new Label("Produkte: " + produktService.alleProdukte().size());
         summary.setStyle("-fx-padding: 4 0 0 0;");
 
-        produktListe.getItems().setAll(produktService.alleProdukte());
-        produktListe.setPrefHeight(180);
-        produktListe.setCellFactory(list -> new javafx.scene.control.ListCell<>() {
-            @Override
-            protected void updateItem(Produkt produkt, boolean empty) {
-                super.updateItem(produkt, empty);
-                setText(empty || produkt == null
-                        ? null
-                        : produkt.getId() + " · " + produkt.getName() + " · Lager: " + produkt.getLagerbestand() + " · " + String.format("%.2f €", produkt.getPreis()));
-            }
-        });
+        produktListe.setPrefHeight(220);
+        TableColumn<Produkt, Number> idColumn = new TableColumn<>("ID");
+        idColumn.setCellValueFactory(data -> data.getValue().getIdProperty());
+        TableColumn<Produkt, String> nameColumn = new TableColumn<>("Name");
+        nameColumn.setCellValueFactory(data -> data.getValue().nameProperty());
+        TableColumn<Produkt, Number> preisColumn = new TableColumn<>("Preis");
+        preisColumn.setCellValueFactory(data -> data.getValue().preisProperty());
+        TableColumn<Produkt, Number> lagerColumn = new TableColumn<>("Lager");
+        lagerColumn.setCellValueFactory(data -> data.getValue().lagerbestandProperty());
+        produktListe.getColumns().setAll(idColumn, nameColumn, preisColumn, lagerColumn);
+        aktualisiereTabelle();
 
         Button refreshButton = new Button("Aktualisieren");
         refreshButton.setOnAction(event -> {
-            produktListe.getItems().setAll(produktService.alleProdukte());
+            aktualisiereTabelle();
             summary.setText("Produkte: " + produktService.alleProdukte().size());
         });
 
@@ -51,7 +55,7 @@ public class LagerView extends VBox {
 
         HBox controls = new HBox(10, new Label("Menge:"), mengeField, zugangButton, refreshButton);
 
-        getChildren().addAll(title, overview, summary, produktListe, controls, statusLabel);
+        getChildren().addAll(title, hint, overview, summary, produktListe, controls, statusLabel);
     }
 
     private void bucheWarenzugang() {
@@ -71,11 +75,15 @@ public class LagerView extends VBox {
 
         try {
             produktService.warenzugangErfassen(produkt.getId(), menge);
-            produktListe.getItems().setAll(produktService.alleProdukte());
+            aktualisiereTabelle();
             statusLabel.setText("Warenzugang wurde gespeichert.");
             mengeField.clear();
         } catch (IllegalArgumentException ex) {
             statusLabel.setText(ex.getMessage());
         }
+    }
+
+    private void aktualisiereTabelle() {
+        produktListe.setItems(FXCollections.observableArrayList(produktService.alleProdukte()));
     }
 }

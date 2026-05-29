@@ -20,6 +20,7 @@ public class KassenView extends VBox {
     private final TextField mengeField = new TextField();
     private final TextArea bonArea = new TextArea();
     private final Label statusLabel = new Label();
+    private final Button checkoutButton = new Button("Kauf abschließen");
 
     public KassenView(ProduktService produktService, KassenService kassenService) {
         this.produktService = produktService;
@@ -45,10 +46,12 @@ public class KassenView extends VBox {
 
         warenkorbListe.setPrefHeight(160);
 
+        Label hint = new Label("Wählen Sie ein Produkt, geben Sie eine Menge ein und legen Sie es in den Warenkorb.");
+        hint.setWrapText(true);
+
         Button addButton = new Button("Zum Warenkorb hinzufügen");
         addButton.setOnAction(event -> hinzufuegen());
 
-        Button checkoutButton = new Button("Kauf abschließen");
         checkoutButton.setOnAction(event -> abschliessen());
 
         Button clearButton = new Button("Warenkorb leeren");
@@ -60,12 +63,13 @@ public class KassenView extends VBox {
 
         HBox controls = new HBox(10, new Label("Menge:"), mengeField, addButton, checkoutButton, clearButton);
         controls.setPadding(new Insets(0, 0, 6, 0));
+        checkoutButton.setDisable(true);
 
         bonArea.setEditable(false);
         bonArea.setPrefHeight(130);
         bonArea.setPromptText("Der erzeugte Bon erscheint hier nach dem Kaufabschluss.");
 
-        getChildren().addAll(title, new Label("Produkte:"), produktListe, controls, new Label("Warenkorb:"), warenkorbListe, gesamtPreisLabel, bonArea, statusLabel);
+        getChildren().addAll(title, hint, new Label("Produkte:"), produktListe, controls, new Label("Warenkorb:"), warenkorbListe, gesamtPreisLabel, bonArea, statusLabel);
         aktualisiereWarenkorb();
     }
 
@@ -115,5 +119,6 @@ public class KassenView extends VBox {
     private void aktualisiereWarenkorb() {
         warenkorbListe.getItems().setAll(kassenService.getWarenkorb());
         gesamtPreisLabel.setText("Gesamtpreis: " + String.format("%.2f €", kassenService.berechneGesamtpreis()));
+        checkoutButton.setDisable(kassenService.getWarenkorb().isEmpty());
     }
 }

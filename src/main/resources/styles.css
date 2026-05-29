@@ -1,6 +1,6 @@
 .root {
     -fx-font-family: "Segoe UI";
-    -fx-background-color: #f6f8fb;
+    -fx-background-color: linear-gradient(to bottom, #f8fbff 0%, #eef4ff 100%);
 }
 
 .label {
@@ -10,15 +10,25 @@
 .button {
     -fx-background-color: #2563eb;
     -fx-text-fill: white;
-    -fx-background-radius: 6;
+    -fx-background-radius: 8;
+    -fx-padding: 6 10 6 10;
 }
 
 .button:hover {
     -fx-background-color: #1d4ed8;
 }
 
-.list-view {
+.list-view, .table-view, .text-area, .text-field {
     -fx-background-color: white;
     -fx-border-color: #dbe4f0;
-    -fx-border-radius: 6;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+.table-view .column-header {
+    -fx-background-color: #e5eefc;
+}
+
+.text-area, .text-field {
+    -fx-prompt-text-fill: #94a3b8;
 }
