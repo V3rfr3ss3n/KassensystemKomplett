@@ -929,6 +929,8 @@ Der Agent soll diese Regeln beachten:
 15. Geldbeträge mit zwei Nachkommastellen anzeigen.
 16. Code so kommentieren, dass Mitschüler und Lehrkraft ihn verstehen.
 17. Nach jedem erledigten Block den Abschnitt „Erledigt“ aktualisieren.
+18. Bei jeder Code-Änderung müssen passende Unittests mitgeschrieben und ausgeführt werden. Wenn ein Test fehlschlägt, muss der Fehler zuerst behoben werden, bevor weitergearbeitet wird.
+19. Vor jeder wichtigen Änderung oder vor der Übergabe an den Nutzer muss kurz geprüft werden, welche Schritte manuell getestet werden müssen und welche Ergebnisse erwartet werden.
 
 ---
 
@@ -960,7 +962,31 @@ Hinweis: Umlaute in Methodennamen vermeiden. Also besser `hinzufuegen` statt `hi
 
 ---
 
-## 18. Offene Risiken
+## 18. Qualitätsregel für Tests und manuelle Prüfung
+
+### 18.1 Unittest-Regel
+
+- Bei jeder Funktionserweiterung, Bugfix oder Änderung an Logik, Repository, Service oder UI muss mindestens ein passender Unittest ergänzt oder aktualisiert werden.
+- Die Tests müssen lokal mit Maven ausgeführt werden, bevor die Änderung als fertig gilt.
+- Wenn ein Test fehlschlägt, ist die Änderung nicht abgeschlossen und muss korrigiert werden.
+
+### 18.2 Manuelle Prüfregel für Antworten an den Nutzer
+
+Wenn der Agent oder die Person dem Nutzer eine Änderung oder einen Fix meldet, muss in der Antwort kurz enthalten sein:
+
+1. Was muss der Nutzer manuell testen?
+2. Was wird erwartet?
+3. Wenn es einen bekannten Fehlerfall gibt, welcher Hinweis oder welche Fehlermeldung ist relevant?
+
+Beispiel:
+
+- Manuell testen: Kauf abschließen mit einem Produkt im Lagerbestand.
+- Erwartet: Bon wird angezeigt, Lagerbestand sinkt um die gekaufte Menge.
+- Hinweis: Falls der Bestand zu niedrig ist, muss eine Fehlermeldung erscheinen.
+
+---
+
+## 19. Offene Risiken
 
 ### Risiko 1: JavaFX in VS Code braucht Setup-Zeit
 
@@ -998,7 +1024,7 @@ Lösung:
 
 ---
 
-## 19. Sofort umzusetzende Reihenfolge
+## 20. Sofort umzusetzende Reihenfolge
 
 Diese Reihenfolge ist verbindlich, damit keine Zeit verloren geht.
 
@@ -1025,7 +1051,7 @@ Diese Reihenfolge ist verbindlich, damit keine Zeit verloren geht.
 
 ---
 
-# 20. Todo
+# 21. Todo
 
 ## Muss-Aufgaben
 
@@ -1060,6 +1086,7 @@ Diese Reihenfolge ist verbindlich, damit keine Zeit verloren geht.
 - [ ] Warenkorb nach Kauf leeren
 - [ ] Fehlerhafte Eingaben abfangen
 - [ ] Testfälle 1 bis 7 durchführen
+- [ ] Für jede Code-Änderung passende Unittests ergänzen und ausführen
 - [ ] Code kommentieren
 - [x] README schreiben
 - [ ] Abgabeordner kontrollieren
@@ -1096,7 +1123,7 @@ Diese Reihenfolge ist verbindlich, damit keine Zeit verloren geht.
 
 ---
 
-# 21. Erledigt
+# 22. Erledigt
 
 Dieser Abschnitt wird vom Agenten oder Team nach jeder abgeschlossenen Aufgabe aktualisiert.
 
@@ -1141,7 +1168,7 @@ Dieser Abschnitt wird vom Agenten oder Team nach jeder abgeschlossenen Aufgabe a
 
 ---
 
-# 22. Definition of Done
+# 23. Definition of Done
 
 Das Projekt gilt als fertig, wenn folgende Punkte erfüllt sind:
 
@@ -1156,12 +1183,13 @@ Das Projekt gilt als fertig, wenn folgende Punkte erfüllt sind:
 - Bon wird mit Positionen und Gesamtpreis angezeigt.
 - Lagerbestand wird nach Verkauf aktualisiert.
 - Code ist sinnvoll strukturiert.
+- Für Änderungen wurden passende Unittests ergänzt und ausgeführt.
 - Wichtige Stellen sind kommentiert.
 - README erklärt Start und Bedienung.
 - Projektordner enthält alle notwendigen Dateien.
 
 ---
 
-# 23. Kurzfassung für die Abgabe
+# 24. Kurzfassung für die Abgabe
 
 Wir entwickeln ein grafisches Kassensystem mit **Java 21, Maven und JavaFX**. Das Programm verwaltet Produkte mit Name, Preis und Lagerbestand. Benutzer können Produkte hinzufügen, bearbeiten, löschen, Warenzugänge buchen, den Lagerbestand anzeigen und Kassenvorgänge durchführen. Beim Verkauf prüft das Programm den Lagerbestand, berechnet den Gesamtpreis, reduziert den Bestand und zeigt einen Bon mit Datum, Uhrzeit, Bonnummer, Positionen und Gesamtpreis an. Produktdaten werden in `produkte.json` gespeichert und beim Start wieder geladen. Die Architektur ist objektorientiert aufgebaut und so vorbereitet, dass später Bonspeicherung, SQLite oder eine Spring-Boot-REST-API mit Browser-GUI ergänzt werden können.
