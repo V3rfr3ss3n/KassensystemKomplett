@@ -38,6 +38,7 @@ public class KassenView extends VBox {
         produktListe.getItems().setAll(produktService.alleProdukte());
         produktListe.setPrefHeight(180);
         produktListe.getColumns().setAll(
+                ProduktTableHelper.bildColumn(),
                 ProduktTableHelper.idColumn(produktFilter),
                 ProduktTableHelper.nameColumn(produktFilter),
                 ProduktTableHelper.preisColumn(produktFilter),

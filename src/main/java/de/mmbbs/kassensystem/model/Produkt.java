@@ -16,13 +16,19 @@ public class Produkt {
     private String name;
     private double preis;
     private int lagerbestand;
+    private String bildPfad;
 
     public Produkt(int id, String name, double preis, int lagerbestand) {
+        this(id, name, preis, lagerbestand, null);
+    }
+
+    public Produkt(int id, String name, double preis, int lagerbestand, String bildPfad) {
         this.id = id;
         this.idProperty = new SimpleIntegerProperty(id);
         this.nameProperty = new SimpleStringProperty();
         this.preisProperty = new SimpleDoubleProperty();
         this.lagerbestandProperty = new SimpleIntegerProperty();
+        this.bildPfad = bildPfad;
         setName(name);
         setPreis(preis);
         setLagerbestand(lagerbestand);
@@ -74,6 +80,14 @@ public class Produkt {
 
     public int getLagerbestand() {
         return lagerbestand;
+    }
+
+    public String getBildPfad() {
+        return bildPfad;
+    }
+
+    public void setBildPfad(String bildPfad) {
+        this.bildPfad = bildPfad;
     }
 
     public void setLagerbestand(int lagerbestand) {

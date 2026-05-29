@@ -13,7 +13,11 @@ public class ProduktService {
     }
 
     public Produkt produktHinzufuegen(String name, double preis, int anfangsbestand) {
-        Produkt produkt = new Produkt(0, name, preis, anfangsbestand);
+        return produktHinzufuegen(name, preis, anfangsbestand, null);
+    }
+
+    public Produkt produktHinzufuegen(String name, double preis, int anfangsbestand, String bildPfad) {
+        Produkt produkt = new Produkt(0, name, preis, anfangsbestand, bildPfad);
         return repository.speichern(produkt);
     }
 
@@ -35,11 +39,18 @@ public class ProduktService {
     }
 
     public Produkt produktAktualisieren(int produktId, String name, double preis, int lagerbestand) {
+        return produktAktualisieren(produktId, name, preis, lagerbestand, null);
+    }
+
+    public Produkt produktAktualisieren(int produktId, String name, double preis, int lagerbestand, String bildPfad) {
         Produkt produkt = repository.findeNachId(produktId)
                 .orElseThrow(() -> new IllegalArgumentException("Produkt nicht gefunden."));
         produkt.setName(name);
         produkt.setPreis(preis);
         produkt.setLagerbestand(lagerbestand);
+        if (bildPfad != null) {
+            produkt.setBildPfad(bildPfad);
+        }
         return repository.speichern(produkt);
     }
 

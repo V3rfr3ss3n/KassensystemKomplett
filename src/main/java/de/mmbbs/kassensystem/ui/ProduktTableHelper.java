@@ -6,6 +6,9 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TextField;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
 
 import java.util.List;
@@ -41,6 +44,36 @@ final class ProduktTableHelper {
         private List<TextField> allFields() {
             return List.of(idFilter, nameFilter, preisFilter, lagerFilter);
         }
+    }
+
+    static TableColumn<Produkt, String> bildColumn() {
+        TableColumn<Produkt, String> column = new TableColumn<>("Bild");
+        column.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getBildPfad()));
+        column.setCellFactory(col -> new TableCell<>() {
+            private final ImageView imageView = new ImageView();
+
+            {
+                imageView.setFitWidth(48);
+                imageView.setFitHeight(48);
+                imageView.setPreserveRatio(true);
+            }
+
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                    return;
+                }
+
+                Produkt produkt = getTableView().getItems().get(getIndex());
+                Image image = ladeBild(produkt);
+                imageView.setImage(image);
+                setGraphic(imageView);
+            }
+        });
+        column.setPrefWidth(68);
+        return column;
     }
 
     static TableColumn<Produkt, Number> idColumn(FilterFields filters) {
@@ -80,6 +113,18 @@ final class ProduktTableHelper {
         column.setCellValueFactory(data -> data.getValue().lagerbestandProperty());
         column.setPrefWidth(100);
         return column;
+    }
+
+    private static Image ladeBild(Produkt produkt) {
+        String bildPfad = produkt.getBildPfad();
+        if (bildPfad != null && !bildPfad.isBlank()) {
+            java.io.File file = new java.io.File(bildPfad);
+            if (file.exists() && file.isFile()) {
+                return new Image(file.toURI().toString(), true);
+            }
+        }
+
+        return new Image("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAXNSR0IArs4c6QAAAAERFTkSuQmCC", true);
     }
 
     private static VBox header(String title, TextField filterField) {

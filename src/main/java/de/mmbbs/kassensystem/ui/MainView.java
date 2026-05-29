@@ -46,6 +46,7 @@ public class MainView extends VBox {
 
         produktListe.setPrefHeight(220);
         produktListe.getColumns().setAll(
+                ProduktTableHelper.bildColumn(),
                 ProduktTableHelper.idColumn(produktFilter),
                 ProduktTableHelper.nameColumn(produktFilter),
                 ProduktTableHelper.preisColumn(produktFilter),

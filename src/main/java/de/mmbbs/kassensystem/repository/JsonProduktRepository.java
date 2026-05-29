@@ -126,6 +126,7 @@ public class JsonProduktRepository implements ProduktRepository {
         private String name;
         private double preis;
         private int lagerbestand;
+        private String bildPfad;
 
         private ProduktJson() {
         }
@@ -135,10 +136,11 @@ public class JsonProduktRepository implements ProduktRepository {
             this.name = produkt.getName();
             this.preis = produkt.getPreis();
             this.lagerbestand = produkt.getLagerbestand();
+            this.bildPfad = produkt.getBildPfad();
         }
 
         private Produkt toProdukt() {
-            return new Produkt(id, name, preis, lagerbestand);
+            return new Produkt(id, name, preis, lagerbestand, bildPfad);
         }
     }
 }

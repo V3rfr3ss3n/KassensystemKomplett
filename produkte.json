@@ -21,12 +21,19 @@
     "id": 4,
     "name": "Kaffee",
     "preis": 2.2,
-    "lagerbestand": 10
+    "lagerbestand": 10,
+    "bildPfad": "C:\\Users\\AsusV3rBook\\Pictures\\Hintergrund.jpg"
   },
   {
     "id": 5,
     "name": "Schokoriegel",
     "preis": 1.2,
     "lagerbestand": 25
+  },
+  {
+    "id": 6,
+    "name": "RedBull",
+    "preis": 3.0,
+    "lagerbestand": 33
   }
 ]
