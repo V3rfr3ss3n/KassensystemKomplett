@@ -9,13 +9,13 @@
     "id": 2,
     "name": "Wasser",
     "preis": 1.0,
-    "lagerbestand": 30
+    "lagerbestand": 28
   },
   {
     "id": 3,
     "name": "Brötchen",
     "preis": 0.8,
-    "lagerbestand": 15
+    "lagerbestand": 13
   },
   {
     "id": 4,

@@ -11,10 +11,16 @@ public class Bon {
     private final double gesamtpreis;
 
     public Bon(int bonnummer, List<BonPosition> positionen) {
+        this(bonnummer, LocalDateTime.now(), positionen, Double.NaN);
+    }
+
+    public Bon(int bonnummer, LocalDateTime datumUhrzeit, List<BonPosition> positionen, double gesamtpreis) {
         this.bonnummer = bonnummer;
-        this.datumUhrzeit = LocalDateTime.now();
+        this.datumUhrzeit = datumUhrzeit;
         this.positionen = new ArrayList<>(positionen);
-        this.gesamtpreis = this.positionen.stream().mapToDouble(BonPosition::getGesamtpreis).sum();
+        this.gesamtpreis = Double.isNaN(gesamtpreis)
+                ? this.positionen.stream().mapToDouble(BonPosition::getGesamtpreis).sum()
+                : gesamtpreis;
     }
 
     public int getBonnummer() {

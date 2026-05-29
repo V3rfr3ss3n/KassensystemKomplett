@@ -1081,7 +1081,7 @@ Diese Reihenfolge ist verbindlich, damit keine Zeit verloren geht.
 - [x] Produkt löschen
 - [x] Produkte in JSON speichern
 - [x] Produkte aus JSON laden
-- [ ] Bons speichern
+- [x] Bons speichern
 - [ ] SQLite-Datenbank einbauen
 
 ## Optionale große Erweiterung
@@ -1114,6 +1114,7 @@ Dieser Abschnitt wird vom Agenten oder Team nach jeder abgeschlossenen Aufgabe a
 - [x] Projektplan erstellt und überarbeitet
 - [x] Produktlisten besitzen Suchfelder direkt in den Spaltenköpfen
 - [x] Produktdaten werden in `produkte.json` gespeichert und beim Start wieder geladen
+- [x] Bon-Historie wird in `bon-historie.json` dauerhaft gespeichert und beim Start wieder geladen
 - [x] Produktbearbeitung und Produktlöschung sind in der Lageransicht eingebunden
 
 ## Entscheidungen

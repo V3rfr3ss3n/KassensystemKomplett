@@ -1,0 +1,16 @@
+[ {
+  "bonnummer" : 1,
+  "datumUhrzeit" : "2026-05-29T09:12:19.1559341",
+  "positionen" : [ {
+    "produkt" : {
+      "id" : 2,
+      "name" : "Wasser",
+      "preis" : 1.0,
+      "lagerbestand" : 28
+    },
+    "menge" : 1,
+    "einzelpreis" : 1.0,
+    "gesamtpreis" : 1.0
+  } ],
+  "gesamtpreis" : 1.0
+} ]

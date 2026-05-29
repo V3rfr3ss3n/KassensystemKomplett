@@ -3,6 +3,8 @@ package de.mmbbs.kassensystem.service;
 import de.mmbbs.kassensystem.model.Bon;
 import de.mmbbs.kassensystem.model.BonPosition;
 import de.mmbbs.kassensystem.model.Produkt;
+import de.mmbbs.kassensystem.repository.BonHistorieRepository;
+import de.mmbbs.kassensystem.repository.JsonBonHistorieRepository;
 import de.mmbbs.kassensystem.repository.ProduktRepository;
 
 import java.util.ArrayList;
@@ -12,13 +14,20 @@ import java.util.Map;
 
 public class KassenService {
     private final ProduktRepository repository;
+    private final BonHistorieRepository bonHistorieRepository;
     private final BonService bonService;
     private final List<BonPosition> warenkorb = new ArrayList<>();
     private final List<Bon> bonHistorie = new ArrayList<>();
 
     public KassenService(ProduktRepository repository) {
+        this(repository, new JsonBonHistorieRepository());
+    }
+
+    public KassenService(ProduktRepository repository, BonHistorieRepository bonHistorieRepository) {
         this.repository = repository;
+        this.bonHistorieRepository = bonHistorieRepository;
         this.bonService = new BonService();
+        this.bonHistorie.addAll(bonHistorieRepository.ladeBonHistorie());
     }
 
     public void positionHinzufuegen(int produktId, int menge) {
@@ -70,6 +79,7 @@ public class KassenService {
 
         Bon bon = bonService.erstelleBon(new ArrayList<>(warenkorb));
         bonHistorie.add(bon);
+        bonHistorieRepository.speichereBonHistorie(new ArrayList<>(bonHistorie));
         warenkorb.clear();
         return bon;
     }

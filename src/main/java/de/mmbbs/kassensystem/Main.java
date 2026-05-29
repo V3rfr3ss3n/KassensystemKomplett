@@ -1,5 +1,6 @@
 package de.mmbbs.kassensystem;
 
+import de.mmbbs.kassensystem.repository.JsonBonHistorieRepository;
 import de.mmbbs.kassensystem.repository.JsonProduktRepository;
 import de.mmbbs.kassensystem.repository.ProduktRepository;
 import de.mmbbs.kassensystem.service.KassenService;
@@ -21,7 +22,7 @@ public class Main extends Application {
     public void start(Stage stage) {
         ProduktRepository repository = new JsonProduktRepository();
         ProduktService produktService = new ProduktService(repository);
-        KassenService kassenService = new KassenService(repository);
+        KassenService kassenService = new KassenService(repository, new JsonBonHistorieRepository());
 
         TabPane tabPane = new TabPane();
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);

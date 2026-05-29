@@ -36,4 +36,4 @@ Falls das Projekt in VS Code gestartet wird, sollte die Java-Umgebung auf JDK 24
 
 ## Hinweis
 
-Die Produktdaten werden aktuell in `produkte.json` gespeichert. Bons bleiben vorerst nur während der Laufzeit in der Bon-Historie sichtbar; SQLite ist als spätere Erweiterung geplant.
+Die Produktdaten werden aktuell in `produkte.json` gespeichert. Die Bon-Historie wird zusätzlich in `bon-historie.json` dauerhaft mitgeführt, damit abgeschlossene Käufe nach dem Neustart weiterhin sichtbar bleiben. SQLite ist als spätere Erweiterung geplant.
