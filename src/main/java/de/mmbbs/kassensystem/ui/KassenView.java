@@ -18,7 +18,6 @@ public class KassenView extends VBox {
     private final ListView<BonPosition> warenkorbListe = new ListView<>();
     private final ListView<Bon> bonHistorieListe = new ListView<>();
     private final Label gesamtPreisLabel = new Label("Gesamtpreis: 0,00 €");
-    private final TextField sucheField = new TextField();
     private final TextField mengeField = new TextField();
     private final TextArea bonArea = new TextArea();
     private final Label statusLabel = new Label();
@@ -35,9 +34,6 @@ public class KassenView extends VBox {
 
         Label title = new Label("Kasse");
         title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
-
-        sucheField.setPromptText("Produkt suchen...");
-        sucheField.textProperty().addListener((obs, oldValue, newValue) -> aktualisiereProduktListe());
 
         produktListe.getItems().setAll(produktService.alleProdukte());
         produktListe.setPrefHeight(180);
@@ -67,7 +63,6 @@ public class KassenView extends VBox {
 
         HBox controls = new HBox(10, new Label("Menge:"), mengeField, addButton, checkoutButton, clearButton);
         controls.setPadding(new Insets(0, 0, 6, 0));
-        HBox searchBox = new HBox(10, new Label("Suche:"), sucheField);
         checkoutButton.setDisable(true);
 
         bonArea.setEditable(false);
@@ -86,7 +81,7 @@ public class KassenView extends VBox {
         });
         aktualisiereHistorie();
 
-        getChildren().addAll(title, hint, new Label("Produkte:"), searchBox, produktListe, controls, new Label("Warenkorb:"), warenkorbListe, gesamtPreisLabel, bonArea, new Label("Bon-Historie:"), bonHistorieListe, statusLabel);
+        getChildren().addAll(title, hint, new Label("Produkte:"), produktListe, controls, new Label("Warenkorb:"), warenkorbListe, gesamtPreisLabel, bonArea, new Label("Bon-Historie:"), bonHistorieListe, statusLabel);
         aktualisiereWarenkorb();
     }
 
@@ -142,9 +137,8 @@ public class KassenView extends VBox {
     }
 
     private void aktualisiereProduktListe() {
-        String filter = sucheField.getText();
         produktListe.getItems().setAll(produktService.alleProdukte().stream()
-                .filter(produkt -> produktFilter.matches(produkt, filter))
+                .filter(produktFilter::matches)
                 .toList());
     }
 

@@ -6,7 +6,6 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TextField;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 
 import java.util.List;
@@ -97,9 +96,7 @@ final class ProduktTableHelper {
         field.setPromptText("Filter " + prompt);
         field.getStyleClass().add("column-filter-field");
         field.setMaxWidth(Double.MAX_VALUE);
-        field.addEventHandler(MouseEvent.MOUSE_PRESSED, MouseEvent::consume);
-        field.addEventHandler(MouseEvent.MOUSE_RELEASED, MouseEvent::consume);
-        field.addEventHandler(MouseEvent.MOUSE_CLICKED, MouseEvent::consume);
+        field.setFocusTraversable(true);
         return field;
     }
 

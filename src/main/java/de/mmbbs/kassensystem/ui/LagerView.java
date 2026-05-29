@@ -15,7 +15,6 @@ public class LagerView extends VBox {
     private final ProduktService produktService;
     private final TableView<Produkt> produktListe = new TableView<>();
     private final TextField mengeField = new TextField();
-    private final TextField sucheField = new TextField();
     private final Label statusLabel = new Label();
     private final Label summaryLabel = new Label("Produkte: 0");
     private final ProduktTableHelper.FilterFields produktFilter;
@@ -41,9 +40,6 @@ public class LagerView extends VBox {
 
         Label selectedLabel = new Label("Ausgewählt: nichts");
         selectedLabel.setStyle("-fx-text-fill: #334155;");
-
-        sucheField.setPromptText("Produkt im Lager suchen...");
-        sucheField.textProperty().addListener((obs, oldValue, newValue) -> aktualisiereTabelle());
 
         produktListe.setPrefHeight(220);
         TableColumn<Produkt, String> actionColumn = new TableColumn<>("✎");
@@ -92,7 +88,6 @@ public class LagerView extends VBox {
         deleteButton.setOnAction(event -> loescheProdukt());
 
         HBox controls = new HBox(10, new Label("Menge:"), mengeField, zugangButton, editButton, deleteButton);
-        HBox searchBox = new HBox(10, new Label("Suche:"), sucheField);
 
         produktListe.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, selected) -> {
             if (selected == null) {
@@ -102,7 +97,7 @@ public class LagerView extends VBox {
             }
         });
 
-        getChildren().addAll(title, hint, overview, summaryLabel, selectedLabel, searchBox, produktListe, controls, statusLabel);
+        getChildren().addAll(title, hint, overview, summaryLabel, selectedLabel, produktListe, controls, statusLabel);
     }
 
     private void bucheWarenzugang() {
@@ -203,9 +198,8 @@ public class LagerView extends VBox {
     }
 
     private void aktualisiereTabelle() {
-        String filter = sucheField.getText();
         produktListe.setItems(FXCollections.observableArrayList(produktService.alleProdukte().stream()
-                .filter(produkt -> produktFilter.matches(produkt, filter))
+                .filter(produktFilter::matches)
                 .toList()));
         summaryLabel.setText("Produkte: " + produktService.alleProdukte().size());
     }
