@@ -14,18 +14,21 @@ import javafx.scene.layout.VBox;
 public class KassenView extends VBox {
     private final ProduktService produktService;
     private final KassenService kassenService;
-    private final ListView<Produkt> produktListe = new ListView<>();
+    private final TableView<Produkt> produktListe = new TableView<>();
     private final ListView<BonPosition> warenkorbListe = new ListView<>();
     private final ListView<Bon> bonHistorieListe = new ListView<>();
     private final Label gesamtPreisLabel = new Label("Gesamtpreis: 0,00 €");
+    private final TextField sucheField = new TextField();
     private final TextField mengeField = new TextField();
     private final TextArea bonArea = new TextArea();
     private final Label statusLabel = new Label();
     private final Button checkoutButton = new Button("Kauf abschließen");
+    private final ProduktTableHelper.FilterFields produktFilter;
 
     public KassenView(ProduktService produktService, KassenService kassenService) {
         this.produktService = produktService;
         this.kassenService = kassenService;
+        this.produktFilter = new ProduktTableHelper.FilterFields(this::aktualisiereProduktListe);
 
         setSpacing(10);
         setPadding(new Insets(16));
@@ -33,17 +36,17 @@ public class KassenView extends VBox {
         Label title = new Label("Kasse");
         title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
 
+        sucheField.setPromptText("Produkt suchen...");
+        sucheField.textProperty().addListener((obs, oldValue, newValue) -> aktualisiereProduktListe());
+
         produktListe.getItems().setAll(produktService.alleProdukte());
-        produktListe.setPrefHeight(160);
-        produktListe.setCellFactory(list -> new javafx.scene.control.ListCell<>() {
-            @Override
-            protected void updateItem(Produkt produkt, boolean empty) {
-                super.updateItem(produkt, empty);
-                setText(empty || produkt == null
-                        ? null
-                        : produkt.getId() + " · " + produkt.getName() + " · Lager: " + produkt.getLagerbestand() + " · " + String.format("%.2f €", produkt.getPreis()));
-            }
-        });
+        produktListe.setPrefHeight(180);
+        produktListe.getColumns().setAll(
+                ProduktTableHelper.idColumn(produktFilter),
+                ProduktTableHelper.nameColumn(produktFilter),
+                ProduktTableHelper.preisColumn(produktFilter),
+                ProduktTableHelper.lagerColumn(produktFilter)
+        );
 
         warenkorbListe.setPrefHeight(160);
 
@@ -64,6 +67,7 @@ public class KassenView extends VBox {
 
         HBox controls = new HBox(10, new Label("Menge:"), mengeField, addButton, checkoutButton, clearButton);
         controls.setPadding(new Insets(0, 0, 6, 0));
+        HBox searchBox = new HBox(10, new Label("Suche:"), sucheField);
         checkoutButton.setDisable(true);
 
         bonArea.setEditable(false);
@@ -82,7 +86,7 @@ public class KassenView extends VBox {
         });
         aktualisiereHistorie();
 
-        getChildren().addAll(title, hint, new Label("Produkte:"), produktListe, controls, new Label("Warenkorb:"), warenkorbListe, gesamtPreisLabel, bonArea, new Label("Bon-Historie:"), bonHistorieListe, statusLabel);
+        getChildren().addAll(title, hint, new Label("Produkte:"), searchBox, produktListe, controls, new Label("Warenkorb:"), warenkorbListe, gesamtPreisLabel, bonArea, new Label("Bon-Historie:"), bonHistorieListe, statusLabel);
         aktualisiereWarenkorb();
     }
 
@@ -123,7 +127,7 @@ public class KassenView extends VBox {
             alert.setContentText("Bon Nr. " + bon.getBonnummer() + "\nGesamtpreis: " + String.format("%.2f €", bon.getGesamtpreis()));
             alert.showAndWait();
             statusLabel.setText("Kauf abgeschlossen. Lagerbestand wurde aktualisiert.");
-            produktListe.getItems().setAll(produktService.alleProdukte());
+            aktualisiereProduktListe();
             aktualisiereHistorie();
         } catch (IllegalArgumentException ex) {
             statusLabel.setText(ex.getMessage());
@@ -134,6 +138,14 @@ public class KassenView extends VBox {
         warenkorbListe.getItems().setAll(kassenService.getWarenkorb());
         gesamtPreisLabel.setText("Gesamtpreis: " + String.format("%.2f €", kassenService.berechneGesamtpreis()));
         checkoutButton.setDisable(kassenService.getWarenkorb().isEmpty());
+        aktualisiereProduktListe();
+    }
+
+    private void aktualisiereProduktListe() {
+        String filter = sucheField.getText();
+        produktListe.getItems().setAll(produktService.alleProdukte().stream()
+                .filter(produkt -> produktFilter.matches(produkt, filter))
+                .toList());
     }
 
     private void aktualisiereHistorie() {

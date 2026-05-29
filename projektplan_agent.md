@@ -1061,25 +1061,26 @@ Diese Reihenfolge ist verbindlich, damit keine Zeit verloren geht.
 - [ ] Fehlerhafte Eingaben abfangen
 - [ ] Testfälle 1 bis 7 durchführen
 - [ ] Code kommentieren
-- [ ] README schreiben
+- [x] README schreiben
 - [ ] Abgabeordner kontrollieren
 
 ## Sollte-Aufgaben
 
 - [ ] Oberfläche optisch verbessern
-- [ ] CSS-Datei einbauen
-- [ ] Tabellen automatisch aktualisieren
+- [x] CSS-Datei einbauen
+- [x] Tabellen automatisch aktualisieren
 - [ ] Einheitliche Dialoge verwenden
 - [ ] Geldbeträge einheitlich formatieren
 - [ ] Bon schöner formatieren
-- [ ] Produktnummern sichtbar machen
+- [x] Produktnummern sichtbar machen
+- [x] Produktlisten direkt in den Spalten filtern
 
 ## Optionale Aufgaben nach MVP
 
-- [ ] Produkt bearbeiten
-- [ ] Produkt löschen
-- [ ] Produkte in JSON speichern
-- [ ] Produkte aus JSON laden
+- [x] Produkt bearbeiten
+- [x] Produkt löschen
+- [x] Produkte in JSON speichern
+- [x] Produkte aus JSON laden
 - [ ] Bons speichern
 - [ ] SQLite-Datenbank einbauen
 
@@ -1111,6 +1112,9 @@ Dieser Abschnitt wird vom Agenten oder Team nach jeder abgeschlossenen Aufgabe a
 - [x] Spätere Erweiterungen mit JSON, Datenbank und API eingeplant
 - [x] Spring Boot später nur mit Browser-GUI geplant
 - [x] Projektplan erstellt und überarbeitet
+- [x] Produktlisten besitzen Suchfelder direkt in den Spaltenköpfen
+- [x] Produktdaten werden in `produkte.json` gespeichert und beim Start wieder geladen
+- [x] Produktbearbeitung und Produktlöschung sind in der Lageransicht eingebunden
 
 ## Entscheidungen
 
@@ -1119,6 +1123,7 @@ Dieser Abschnitt wird vom Agenten oder Team nach jeder abgeschlossenen Aufgabe a
 - Server kommt erst nach dem lokalen MVP.
 - Wenn Spring Boot genutzt wird, dann mit Browser-GUI statt JavaFX-Client.
 - Daten werden am Anfang nur zur Laufzeit gespeichert.
+- Produktdaten werden nach dem MVP-Schritt jetzt dauerhaft in JSON gespeichert.
 - Dummy-Produkte werden im Code erzeugt.
 - Produktnummern werden intern automatisch vergeben.
 - Bon wird zuerst nur auf dem Bildschirm angezeigt.
@@ -1130,7 +1135,7 @@ Dieser Abschnitt wird vom Agenten oder Team nach jeder abgeschlossenen Aufgabe a
 
 - Keine Zeit mit Spring Boot verlieren, solange die JavaFX-App nicht komplett funktioniert.
 - Wenn JavaFX-Setup Probleme macht, nur ein minimales Fenster starten und danach sofort Logik bauen.
-- JSON, DB und Server erst beginnen, wenn der Kassenvorgang vollständig funktioniert.
+- SQLite, Bonspeicherung und Server erst beginnen, wenn JSON-Speicherung stabil getestet ist.
 - Für Spring Boot später möglichst viel Logik aus den Services übernehmen.
 
 ---
@@ -1158,4 +1163,4 @@ Das Projekt gilt als fertig, wenn folgende Punkte erfüllt sind:
 
 # 23. Kurzfassung für die Abgabe
 
-Wir entwickeln ein grafisches Kassensystem mit **Java 21, Maven und JavaFX**. Das Programm verwaltet Produkte mit Name, Preis und Lagerbestand. Benutzer können Produkte hinzufügen, Warenzugänge buchen, den Lagerbestand anzeigen und Kassenvorgänge durchführen. Beim Verkauf prüft das Programm den Lagerbestand, berechnet den Gesamtpreis, reduziert den Bestand und zeigt einen Bon mit Datum, Uhrzeit, Bonnummer, Positionen und Gesamtpreis an. Die Daten werden zunächst nur während der Laufzeit gespeichert. Die Architektur ist objektorientiert aufgebaut und so vorbereitet, dass später JSON-Speicherung, SQLite oder eine Spring-Boot-REST-API mit Browser-GUI ergänzt werden können.
+Wir entwickeln ein grafisches Kassensystem mit **Java 21, Maven und JavaFX**. Das Programm verwaltet Produkte mit Name, Preis und Lagerbestand. Benutzer können Produkte hinzufügen, bearbeiten, löschen, Warenzugänge buchen, den Lagerbestand anzeigen und Kassenvorgänge durchführen. Beim Verkauf prüft das Programm den Lagerbestand, berechnet den Gesamtpreis, reduziert den Bestand und zeigt einen Bon mit Datum, Uhrzeit, Bonnummer, Positionen und Gesamtpreis an. Produktdaten werden in `produkte.json` gespeichert und beim Start wieder geladen. Die Architektur ist objektorientiert aufgebaut und so vorbereitet, dass später Bonspeicherung, SQLite oder eine Spring-Boot-REST-API mit Browser-GUI ergänzt werden können.

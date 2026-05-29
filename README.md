@@ -8,6 +8,9 @@ Dieses Projekt ist ein kleines JavaFX-Kassensystem mit Maven. Die aktuelle Versi
 - Kassenansicht mit Warenkorb und Bonvorschau
 - Lageransicht mit Warenzugang
 - Produkt anlegen mit Eingabeprüfung
+- Produkt bearbeiten und löschen
+- Produktlisten mit Suche und Spaltenfiltern
+- JSON-Speicherung der Produkte in `produkte.json`
 - einfache JavaFX-Oberfläche mit CSS-Styling
 
 ## Starten
@@ -25,10 +28,12 @@ Falls das Projekt in VS Code gestartet wird, sollte die Java-Umgebung auf JDK 24
 
 - src/main/java/de/mmbbs/kassensystem/Main.java – Einstiegspunkt der JavaFX-Anwendung
 - src/main/java/de/mmbbs/kassensystem/ui/ – JavaFX-Ansichten für Start, Kasse, Lager und Produktanlage
+- src/main/java/de/mmbbs/kassensystem/repository/ – Produktdaten im Speicher oder in JSON
 - src/main/java/de/mmbbs/kassensystem/service/ – Geschäftslogik für Produkte, Kassenvorgänge und Bons
 - src/main/java/de/mmbbs/kassensystem/model/ – Datenmodelle wie Produkt, Bon und BonPosition
 - src/main/resources/styles.css – JavaFX-Styling
+- produkte.json – wird beim ersten Start automatisch erzeugt und danach aktualisiert
 
 ## Hinweis
 
-Die Datenhaltung ist aktuell nur im Arbeitsspeicher umgesetzt. Für spätere Erweiterungen sind JSON oder SQLite als nächste Schritte gedacht.
+Die Produktdaten werden aktuell in `produkte.json` gespeichert. Bons bleiben vorerst nur während der Laufzeit in der Bon-Historie sichtbar; SQLite ist als spätere Erweiterung geplant.

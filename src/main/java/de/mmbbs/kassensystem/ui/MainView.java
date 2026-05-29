@@ -7,10 +7,11 @@ import javafx.geometry.Insets;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+
+import java.util.List;
 
 public class MainView extends VBox {
     private final ProduktService produktService;
@@ -18,9 +19,11 @@ public class MainView extends VBox {
     private final Label summaryLabel = new Label("Produkte insgesamt: 0");
     private final Label stockLabel = new Label("Gesamtbestand: 0");
     private final TableView<Produkt> produktListe = new TableView<>();
+    private final ProduktTableHelper.FilterFields produktFilter;
 
     public MainView(ProduktService produktService) {
         this.produktService = produktService;
+        this.produktFilter = new ProduktTableHelper.FilterFields(this::refresh);
 
         setSpacing(12);
         setPadding(new Insets(16));
@@ -42,20 +45,12 @@ public class MainView extends VBox {
         stockLabel.setText("Gesamtbestand: 0");
 
         produktListe.setPrefHeight(220);
-
-        TableColumn<Produkt, Number> idColumn = new TableColumn<>("ID");
-        idColumn.setCellValueFactory(data -> data.getValue().getIdProperty());
-
-        TableColumn<Produkt, String> nameColumn = new TableColumn<>("Name");
-        nameColumn.setCellValueFactory(data -> data.getValue().nameProperty());
-
-        TableColumn<Produkt, Number> preisColumn = new TableColumn<>("Preis");
-        preisColumn.setCellValueFactory(data -> data.getValue().preisProperty());
-
-        TableColumn<Produkt, Number> lagerColumn = new TableColumn<>("Lager");
-        lagerColumn.setCellValueFactory(data -> data.getValue().lagerbestandProperty());
-
-        produktListe.getColumns().setAll(idColumn, nameColumn, preisColumn, lagerColumn);
+        produktListe.getColumns().setAll(
+                ProduktTableHelper.idColumn(produktFilter),
+                ProduktTableHelper.nameColumn(produktFilter),
+                ProduktTableHelper.preisColumn(produktFilter),
+                ProduktTableHelper.lagerColumn(produktFilter)
+        );
         aktualisiereTable(produktListe, summaryLabel, stockLabel, produktService);
 
         Button demoButton = new Button("MVP-Status anzeigen");
@@ -80,10 +75,15 @@ public class MainView extends VBox {
     }
 
     private void aktualisiereTable(TableView<Produkt> table, Label summaryLabel, Label stockLabel, ProduktService produktService) {
-        table.setItems(FXCollections.observableArrayList(produktService.alleProdukte()));
-        summaryLabel.setText("Produkte insgesamt: " + produktService.alleProdukte().size());
-        int gesamtbestand = produktService.alleProdukte().stream().mapToInt(Produkt::getLagerbestand).sum();
-        double gesamtwert = produktService.alleProdukte().stream()
+        List<Produkt> alleProdukte = produktService.alleProdukte();
+        List<Produkt> gefilterteProdukte = alleProdukte.stream()
+                .filter(produktFilter::matches)
+                .toList();
+
+        table.setItems(FXCollections.observableArrayList(gefilterteProdukte));
+        summaryLabel.setText("Produkte insgesamt: " + alleProdukte.size());
+        int gesamtbestand = alleProdukte.stream().mapToInt(Produkt::getLagerbestand).sum();
+        double gesamtwert = alleProdukte.stream()
                 .mapToDouble(produkt -> produkt.getPreis() * produkt.getLagerbestand())
                 .sum();
         stockLabel.setText("Gesamtbestand: " + gesamtbestand);

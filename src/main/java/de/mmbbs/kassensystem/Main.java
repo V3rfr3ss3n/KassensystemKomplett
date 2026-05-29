@@ -1,6 +1,7 @@
 package de.mmbbs.kassensystem;
 
-import de.mmbbs.kassensystem.repository.InMemoryProduktRepository;
+import de.mmbbs.kassensystem.repository.JsonProduktRepository;
+import de.mmbbs.kassensystem.repository.ProduktRepository;
 import de.mmbbs.kassensystem.service.KassenService;
 import de.mmbbs.kassensystem.service.ProduktService;
 import de.mmbbs.kassensystem.ui.KassenView;
@@ -18,7 +19,7 @@ public class Main extends Application {
 
     @Override
     public void start(Stage stage) {
-        InMemoryProduktRepository repository = new InMemoryProduktRepository();
+        ProduktRepository repository = new JsonProduktRepository();
         ProduktService produktService = new ProduktService(repository);
         KassenService kassenService = new KassenService(repository);
 

@@ -29,6 +29,14 @@
     -fx-background-color: #e5eefc;
 }
 
+.column-filter-field {
+    -fx-font-size: 11px;
+    -fx-padding: 3 5 3 5;
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+    -fx-min-height: 24;
+}
+
 .text-area, .text-field {
     -fx-prompt-text-fill: #94a3b8;
 }

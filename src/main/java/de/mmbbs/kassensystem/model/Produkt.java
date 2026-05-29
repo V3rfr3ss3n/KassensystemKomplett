@@ -88,7 +88,7 @@ public class Produkt {
         if (menge <= 0) {
             throw new IllegalArgumentException("Menge muss größer als 0 sein.");
         }
-        this.lagerbestand += menge;
+        setLagerbestand(this.lagerbestand + menge);
     }
 
     public void bestandVerringern(int menge) {
@@ -98,7 +98,7 @@ public class Produkt {
         if (this.lagerbestand < menge) {
             throw new IllegalArgumentException("Nicht genügend Produkte auf Lager.");
         }
-        this.lagerbestand -= menge;
+        setLagerbestand(this.lagerbestand - menge);
     }
 
     @Override

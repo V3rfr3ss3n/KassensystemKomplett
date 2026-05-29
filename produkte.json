@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "name": "Cola",
+    "preis": 1.5,
+    "lagerbestand": 20
+  },
+  {
+    "id": 2,
+    "name": "Wasser",
+    "preis": 1.0,
+    "lagerbestand": 30
+  },
+  {
+    "id": 3,
+    "name": "Brötchen",
+    "preis": 0.8,
+    "lagerbestand": 15
+  },
+  {
+    "id": 4,
+    "name": "Kaffee",
+    "preis": 2.2,
+    "lagerbestand": 10
+  },
+  {
+    "id": 5,
+    "name": "Schokoriegel",
+    "preis": 1.2,
+    "lagerbestand": 25
+  }
+]
