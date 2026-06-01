@@ -2,6 +2,7 @@ package de.mmbbs.kassensystem.ui;
 
 import de.mmbbs.kassensystem.model.Produkt;
 import de.mmbbs.kassensystem.service.ProduktService;
+import de.mmbbs.kassensystem.util.ImageUtil;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -21,6 +22,9 @@ public class LagerView extends VBox {
     public LagerView(ProduktService produktService) {
         this.produktService = produktService;
         this.produktFilter = new ProduktTableHelper.FilterFields(this::aktualisiereTabelle);
+
+        // Listener registrieren für automatische Aktualisierung
+        produktService.addListener(() -> aktualisiereTabelle());
 
         setSpacing(0);
         setPadding(new Insets(40));
@@ -218,14 +222,7 @@ public class LagerView extends VBox {
     }
 
     private void aktualisiereBildVorschau(String bildPfad, javafx.scene.image.ImageView imageView) {
-        if (bildPfad != null && !bildPfad.isBlank()) {
-            java.io.File file = new java.io.File(bildPfad);
-            if (file.exists() && file.isFile()) {
-                imageView.setImage(new javafx.scene.image.Image(file.toURI().toString(), true));
-                return;
-            }
-        }
-        imageView.setImage(new javafx.scene.image.Image("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAXNSR0IArs4c6QAAAAERFTkSuQmCC", true));
+        imageView.setImage(ImageUtil.loadProductImage(bildPfad));
     }
 
     private void loescheProdukt() {

@@ -6,6 +6,7 @@ import de.mmbbs.kassensystem.model.Produkt;
 import de.mmbbs.kassensystem.service.BonService;
 import de.mmbbs.kassensystem.service.KassenService;
 import de.mmbbs.kassensystem.service.ProduktService;
+import de.mmbbs.kassensystem.util.ImageUtil;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
@@ -31,6 +32,9 @@ public class KassenView extends VBox {
     public KassenView(ProduktService produktService, KassenService kassenService) {
         this.produktService = produktService;
         this.kassenService = kassenService;
+
+        // Listener registrieren für automatische Aktualisierung
+        produktService.addListener(() -> aktualisiereProduktGrid());
 
         // root setup
         setSpacing(0);
@@ -148,21 +152,7 @@ public class KassenView extends VBox {
         imageView.setFitHeight(40);
         imageView.setFitWidth(40);
         imageView.setPreserveRatio(true);
-
-        try {
-            if (p.getBildPfad() != null && !p.getBildPfad().isEmpty()) {
-                java.io.File file = new java.io.File(p.getBildPfad());
-                if (file.exists()) {
-                    imageView.setImage(new Image(file.toURI().toString(), true));
-                } else {
-                    imageView.setImage(null);
-                }
-            } else {
-                imageView.setImage(null);
-            }
-        } catch (Exception e) {
-            System.err.println("Could not load image for " + p.getName() + ": " + e.getMessage());
-        }
+        imageView.setImage(ImageUtil.loadProductImage(p.getBildPfad()));
 
         // Text
         VBox textContainer = new VBox(2);

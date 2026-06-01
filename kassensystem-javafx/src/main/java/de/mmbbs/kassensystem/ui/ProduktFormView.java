@@ -1,6 +1,7 @@
 package de.mmbbs.kassensystem.ui;
 
 import de.mmbbs.kassensystem.service.ProduktService;
+import de.mmbbs.kassensystem.util.ImageUtil;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
@@ -123,14 +124,7 @@ public class ProduktFormView extends VBox {
     }
 
     private void aktualisiereBildVorschau(String bildPfad) {
-        if (bildPfad != null && !bildPfad.isBlank()) {
-            File file = new File(bildPfad);
-            if (file.exists() && file.isFile()) {
-                bildVorschau.setImage(new Image(file.toURI().toString(), true));
-                return;
-            }
-        }
-        bildVorschau.setImage(null);
+        bildVorschau.setImage(ImageUtil.loadProductImage(bildPfad));
     }
 
     private void speichern() {
