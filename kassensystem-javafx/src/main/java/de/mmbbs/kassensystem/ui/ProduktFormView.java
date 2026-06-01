@@ -2,6 +2,7 @@ package de.mmbbs.kassensystem.ui;
 
 import de.mmbbs.kassensystem.service.ProduktService;
 import de.mmbbs.kassensystem.util.ImageUtil;
+import de.mmbbs.kassensystem.util.ImageProcessor;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
@@ -117,9 +118,15 @@ public class ProduktFormView extends VBox {
 
         File datei = chooser.showOpenDialog(getScene().getWindow());
         if (datei != null) {
-            gewaehlterBildPfad = datei.getAbsolutePath();
-            bildPfadField.setText(gewaehlterBildPfad);
-            aktualisiereBildVorschau(gewaehlterBildPfad);
+            String processedPath = ImageProcessor.processAndSaveImage(datei.getAbsolutePath());
+            if (processedPath != null) {
+                gewaehlterBildPfad = processedPath;
+                bildPfadField.setText("✓ Bild verarbeitet (120x120px)");
+                aktualisiereBildVorschau(gewaehlterBildPfad);
+            } else {
+                statusLabel.setText("Fehler beim Verarbeiten des Bildes. Bitte versuchen Sie es erneut.");
+                gewaehlterBildPfad = null;
+            }
         }
     }
 
