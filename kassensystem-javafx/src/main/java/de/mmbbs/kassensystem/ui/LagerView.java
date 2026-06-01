@@ -3,6 +3,7 @@ package de.mmbbs.kassensystem.ui;
 import de.mmbbs.kassensystem.model.Produkt;
 import de.mmbbs.kassensystem.service.ProduktService;
 import de.mmbbs.kassensystem.util.ImageUtil;
+import de.mmbbs.kassensystem.util.ValidationUtil;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -122,25 +123,24 @@ public class LagerView extends VBox {
     private void bucheWarenzugang() {
         Produkt produkt = produktListe.getSelectionModel().getSelectedItem();
         if (produkt == null) {
-            statusLabel.setText("Bitte Produkt auswählen.");
+            statusLabel.setText("❌ Bitte Produkt auswählen.");
             return;
         }
 
-        int menge;
-        try {
-            menge = Integer.parseInt(mengeField.getText().trim());
-        } catch (NumberFormatException ex) {
-            statusLabel.setText("Menge muss eine ganze Zahl größer als 0 sein.");
+        String mengeStr = mengeField.getText().trim();
+        if (!ValidationUtil.isValidQuantity(mengeStr)) {
+            statusLabel.setText("❌ " + ValidationUtil.getQuantityError());
             return;
         }
 
         try {
+            int menge = Integer.parseInt(mengeStr);
             produktService.warenzugangErfassen(produkt.getId(), menge);
             aktualisiereTabelle();
-            statusLabel.setText("Warenzugang wurde gespeichert.");
+            statusLabel.setText("✓ Warenzugang gespeichert!");
             mengeField.clear();
         } catch (IllegalArgumentException ex) {
-            statusLabel.setText(ex.getMessage());
+            statusLabel.setText("❌ " + ex.getMessage());
         }
     }
 

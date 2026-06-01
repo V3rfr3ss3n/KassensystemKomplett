@@ -3,6 +3,7 @@ package de.mmbbs.kassensystem.ui;
 import de.mmbbs.kassensystem.service.ProduktService;
 import de.mmbbs.kassensystem.util.ImageUtil;
 import de.mmbbs.kassensystem.util.ImageProcessor;
+import de.mmbbs.kassensystem.util.ValidationUtil;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
@@ -136,22 +137,43 @@ public class ProduktFormView extends VBox {
 
     private void speichern() {
         try {
-            String name = nameField.getText();
-            double preis = Double.parseDouble(preisField.getText().trim());
-            int bestand = Integer.parseInt(bestandField.getText().trim());
+            String name = nameField.getText().trim();
+            String preisStr = preisField.getText().trim();
+            String bestandStr = bestandField.getText().trim();
+
+            // Validierung: Name
+            if (!ValidationUtil.isValidProductName(name)) {
+                statusLabel.setText("❌ " + ValidationUtil.getProductNameError());
+                return;
+            }
+
+            // Validierung: Preis
+            if (!ValidationUtil.isValidPrice(preisStr)) {
+                statusLabel.setText("❌ " + ValidationUtil.getPriceError());
+                return;
+            }
+
+            // Validierung: Bestand
+            if (!ValidationUtil.isValidStock(bestandStr)) {
+                statusLabel.setText("❌ " + ValidationUtil.getStockError());
+                return;
+            }
+
+            double preis = Double.parseDouble(preisStr.replace(",", "."));
+            int bestand = Integer.parseInt(bestandStr);
 
             produktService.produktHinzufuegen(name, preis, bestand, gewaehlterBildPfad);
-            statusLabel.setText("Produkt wurde gespeichert. Es ist jetzt im Lager und in der Produktübersicht sichtbar.");
+            statusLabel.setText("✓ Produkt gespeichert!");
+
+            // Form clearen
             nameField.clear();
             preisField.clear();
             bestandField.clear();
             bildPfadField.clear();
             bildVorschau.setImage(null);
             gewaehlterBildPfad = null;
-        } catch (NumberFormatException ex) {
-            statusLabel.setText("Bitte gültige Zahlen für Preis und Bestand eingeben.");
-        } catch (IllegalArgumentException ex) {
-            statusLabel.setText(ex.getMessage());
+        } catch (Exception ex) {
+            statusLabel.setText("❌ Fehler beim Speichern: " + ex.getMessage());
         }
     }
 }
