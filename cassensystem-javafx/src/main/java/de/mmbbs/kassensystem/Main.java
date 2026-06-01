@@ -1,7 +1,7 @@
 package de.mmbbs.kassensystem;
 
-import de.mmbbs.kassensystem.repository.JsonBonHistorieRepository;
-import de.mmbbs.kassensystem.repository.JsonProduktRepository;
+import de.mmbbs.kassensystem.repository.SqlBonHistorieRepository;
+import de.mmbbs.kassensystem.repository.SqlProduktRepository;
 import de.mmbbs.kassensystem.repository.ProduktRepository;
 import de.mmbbs.kassensystem.service.KassenService;
 import de.mmbbs.kassensystem.service.ProduktService;
@@ -19,9 +19,9 @@ public class Main extends Application {
 
     @Override
     public void start(Stage stage) {
-        ProduktRepository repository = new JsonProduktRepository();
+        ProduktRepository repository = new SqlProduktRepository();
         ProduktService produktService = new ProduktService(repository);
-        KassenService kassenService = new KassenService(repository, new JsonBonHistorieRepository());
+        KassenService kassenService = new KassenService(repository, new SqlBonHistorieRepository(repository));
 
         TabPane tabPane = new TabPane();
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
@@ -48,4 +48,5 @@ public class Main extends Application {
         launch(args);
     }
 }
+
 
