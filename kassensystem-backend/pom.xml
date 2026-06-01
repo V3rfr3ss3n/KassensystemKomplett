@@ -10,7 +10,7 @@
         <relativePath>..</relativePath>
     </parent>
 
-    <artifactId>cassensystem-backend</artifactId>
+    <artifactId>kassensystem-backend</artifactId>
     <name>Kassensystem - Spring Boot Backend</name>
     <description>Spring Boot REST API Backend (Future Extension)</description>
 

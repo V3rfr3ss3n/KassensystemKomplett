@@ -10,7 +10,7 @@
         <relativePath>..</relativePath>
     </parent>
 
-    <artifactId>cassensystem-javafx</artifactId>
+    <artifactId>kassensystem-javafx</artifactId>
     <name>Kassensystem - JavaFX Desktop</name>
     <description>JavaFX Desktop Application for Point of Sale System</description>
 

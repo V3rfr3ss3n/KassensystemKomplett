@@ -11,8 +11,8 @@
     <description>Multi-Module Project: JavaFX Desktop App + Spring Boot Backend (future)</description>
 
     <modules>
-        <module>cassensystem-javafx</module>
-        <module>cassensystem-backend</module>
+        <module>kassensystem-javafx</module>
+        <module>kassensystem-backend</module>
     </modules>
 
     <properties>
@@ -59,7 +59,7 @@
             <dependency>
                 <groupId>org.sqlite</groupId>
                 <artifactId>sqlite-jdbc</artifactId>
-                <version>3.45.1.0</version>
+                <version>3.44.0.0</version>
             </dependency>
 
             <!-- Testing -->
