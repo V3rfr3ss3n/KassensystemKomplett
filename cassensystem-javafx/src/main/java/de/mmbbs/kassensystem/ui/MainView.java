@@ -4,6 +4,7 @@ import de.mmbbs.kassensystem.model.Produkt;
 import de.mmbbs.kassensystem.service.ProduktService;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -25,26 +26,38 @@ public class MainView extends VBox {
         this.produktService = produktService;
         this.produktFilter = new ProduktTableHelper.FilterFields(this::refresh);
 
-        setSpacing(12);
-        setPadding(new Insets(16));
-        getStyleClass().add("root");
+        setSpacing(0);
+        setPadding(new Insets(40));
+        setAlignment(Pos.TOP_CENTER);
+
+        VBox mainContainer = new VBox();
+        mainContainer.getStyleClass().add("main-container");
+        mainContainer.setSpacing(20);
+        mainContainer.setMaxWidth(900);
 
         Label title = new Label("Kassensystem MVP");
-        title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+        title.getStyleClass().add("title-label");
 
         Label info = new Label("Startseite mit Produktübersicht, Kassenfunktion und Lagerverwaltung.");
+        info.getStyleClass().add("subtitle-label");
         info.setWrapText(true);
 
-        Label overview = new Label("Aktueller Produktbestand");
-        overview.setStyle("-fx-font-weight: bold;");
-
         Label hint = new Label("Die Übersicht zeigt sofort an, wie viele Produkte aktuell verfügbar sind.");
+        hint.getStyleClass().add("subtitle-label");
         hint.setWrapText(true);
 
-        summaryLabel.setText("Produkte insgesamt: 0");
-        stockLabel.setText("Gesamtbestand: 0");
+        Label overview = new Label("Aktueller Produktbestand");
+        overview.getStyleClass().add("section-label");
 
-        produktListe.setPrefHeight(220);
+        summaryLabel.getStyleClass().add("subtitle-label");
+        stockLabel.getStyleClass().add("subtitle-label");
+        valueLabel.getStyleClass().add("subtitle-label");
+
+        HBox summaryBox = new HBox(16, summaryLabel, stockLabel, valueLabel);
+        summaryBox.setAlignment(Pos.CENTER_LEFT);
+        summaryBox.setPadding(new Insets(5, 0, 0, 0));
+
+        produktListe.setPrefHeight(300);
         produktListe.getColumns().setAll(
                 ProduktTableHelper.bildColumn(),
                 ProduktTableHelper.idColumn(produktFilter),
@@ -55,6 +68,7 @@ public class MainView extends VBox {
         aktualisiereTable(produktListe, summaryLabel, stockLabel, produktService);
 
         Button demoButton = new Button("MVP-Status anzeigen");
+        demoButton.getStyleClass().add("secondary-button");
         demoButton.setOnAction(event -> {
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("MVP-Status");
@@ -63,12 +77,11 @@ public class MainView extends VBox {
             alert.showAndWait();
         });
 
-        HBox summaryBox = new HBox(16, summaryLabel, stockLabel, valueLabel);
-        summaryBox.setStyle("-fx-padding: 4 0 0 0;");
-
         HBox actions = new HBox(10, demoButton);
+        actions.setAlignment(Pos.CENTER_LEFT);
 
-        getChildren().addAll(title, info, hint, overview, summaryBox, produktListe, actions);
+        mainContainer.getChildren().addAll(title, info, hint, overview, summaryBox, produktListe, actions);
+        getChildren().add(mainContainer);
     }
 
     public void refresh() {

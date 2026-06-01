@@ -1,0 +1,36 @@
+{
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "java.jdt.ls.java.home": "C:\\Program Files\\Java\\jdk-24",
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-24",
+      "path": "C:\\Program Files\\Java\\jdk-24",
+      "default": true
+    }
+  ],
+  "terminal.integrated.env.windows": {
+    "JAVA_HOME": "C:\\Program Files\\Java\\jdk-24",
+    "PATH": "${env:JAVA_HOME}\\bin;${env:PATH}"
+  },
+  "maven.terminal.customEnv": [
+    {
+      "environmentVariable": "JAVA_HOME",
+      "value": "C:\\Program Files\\Java\\jdk-24"
+    }
+  ],
+  "chat.tools.terminal.autoApprove": {
+    "&": true,
+    "/^cd \"c:\\\\Users\\\\AsusV3rBook\\\\Documents\\\\MMBBS\\\\LF-5 Programmieren\\\\KassensystemKomplett\"; \\$env:JAVA_HOME='C:\\\\Program Files\\\\Java\\\\jdk-24'; \\$env:PATH=\"\\$env:JAVA_HOME\\\\bin;\\$env:PATH\"; & \"C:\\\\Program Files\\\\Apache\\\\apache-maven-3\\.9\\.10\\\\bin\\\\mvn\\.cmd\" clean compile$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^cd \"c:\\\\Users\\\\AsusV3rBook\\\\Documents\\\\MMBBS\\\\LF-5 Programmieren\\\\KassensystemKomplett\" ; set JAVA_HOME=C:\\\\Program Files\\\\Java\\\\jdk-24 ; set PATH=C:\\\\Program Files\\\\Java\\\\jdk-24\\\\bin;%PATH% && mvn clean compile$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^cd \"c:\\\\Users\\\\AsusV3rBook\\\\Documents\\\\MMBBS\\\\LF-5 Programmieren\\\\KassensystemKomplett\"; \\$env:JAVA_HOME='C:\\\\Program Files\\\\Java\\\\jdk-24'; \\$env:PATH='C:\\\\Program Files\\\\Java\\\\jdk-24\\\\bin;' \\+ \\$env:PATH; mvn clean compile$/": {
+      "approve": true,
+      "matchCommandLine": true
+    }
+  }
+}

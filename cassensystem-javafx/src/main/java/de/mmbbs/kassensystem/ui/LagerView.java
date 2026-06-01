@@ -4,10 +4,9 @@ import de.mmbbs.kassensystem.model.Produkt;
 import de.mmbbs.kassensystem.service.ProduktService;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 
 import java.util.Locale;
 
@@ -23,25 +22,32 @@ public class LagerView extends VBox {
         this.produktService = produktService;
         this.produktFilter = new ProduktTableHelper.FilterFields(this::aktualisiereTabelle);
 
-        setSpacing(10);
-        setPadding(new Insets(16));
+        setSpacing(0);
+        setPadding(new Insets(40));
+        setAlignment(Pos.TOP_CENTER);
+
+        VBox mainContainer = new VBox();
+        mainContainer.getStyleClass().add("main-container");
+        mainContainer.setSpacing(20);
+        mainContainer.setMaxWidth(900);
 
         Label title = new Label("Lagerbestand");
-        title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
-
-        Label overview = new Label("Übersicht der aktuellen Lagerstände");
-        overview.setStyle("-fx-font-weight: bold;");
+        title.getStyleClass().add("title-label");
 
         Label hint = new Label("Wählen Sie ein Produkt aus der Tabelle aus und buchen Sie einen Warenzugang direkt hier.");
+        hint.getStyleClass().add("subtitle-label");
         hint.setWrapText(true);
 
+        Label overview = new Label("Übersicht der aktuellen Lagerstände");
+        overview.getStyleClass().add("section-label");
+
         summaryLabel.setText("Produkte: " + produktService.alleProdukte().size());
-        summaryLabel.setStyle("-fx-padding: 4 0 0 0;");
+        summaryLabel.getStyleClass().add("subtitle-label");
 
         Label selectedLabel = new Label("Ausgewählt: nichts");
-        selectedLabel.setStyle("-fx-text-fill: #334155;");
+        selectedLabel.getStyleClass().add("subtitle-label");
 
-        produktListe.setPrefHeight(220);
+        produktListe.setPrefHeight(300);
         TableColumn<Produkt, String> actionColumn = new TableColumn<>("✎");
         actionColumn.setPrefWidth(60);
         actionColumn.setCellFactory(col -> new TableCell<>() {
@@ -80,15 +86,22 @@ public class LagerView extends VBox {
         aktualisiereTabelle();
 
         Button zugangButton = new Button("Warenzugang buchen");
+        zugangButton.getStyleClass().add("primary-button");
         zugangButton.setOnAction(event -> bucheWarenzugang());
 
         Button editButton = new Button("Produkt bearbeiten");
+        editButton.getStyleClass().add("secondary-button");
         editButton.setOnAction(event -> bearbeiteProdukt());
 
         Button deleteButton = new Button("Produkt löschen");
+        deleteButton.getStyleClass().add("secondary-button");
         deleteButton.setOnAction(event -> loescheProdukt());
 
-        HBox controls = new HBox(10, new Label("Menge:"), mengeField, zugangButton, editButton, deleteButton);
+        HBox controls = new HBox(15);
+        controls.setAlignment(Pos.CENTER_LEFT);
+        Label mengeLabel = new Label("Menge:");
+        mengeLabel.getStyleClass().add("subtitle-label");
+        controls.getChildren().addAll(mengeLabel, mengeField, zugangButton, editButton, deleteButton);
 
         produktListe.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, selected) -> {
             if (selected == null) {
@@ -98,7 +111,8 @@ public class LagerView extends VBox {
             }
         });
 
-        getChildren().addAll(title, hint, overview, summaryLabel, selectedLabel, produktListe, controls, statusLabel);
+        mainContainer.getChildren().addAll(title, hint, overview, summaryLabel, selectedLabel, produktListe, controls, statusLabel);
+        getChildren().add(mainContainer);
     }
 
     private void bucheWarenzugang() {

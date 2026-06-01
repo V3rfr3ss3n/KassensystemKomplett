@@ -43,4 +43,19 @@
     "gesamtpreis" : 2.0
   } ],
   "gesamtpreis" : 2.0
+}, {
+  "bonnummer" : 1,
+  "datumUhrzeit" : "2026-05-29T12:13:38.3606374",
+  "positionen" : [ {
+    "produkt" : {
+      "id" : 5,
+      "name" : "Schokoriegel",
+      "preis" : 1.2,
+      "lagerbestand" : 23
+    },
+    "menge" : 2,
+    "einzelpreis" : 1.2,
+    "gesamtpreis" : 2.4
+  } ],
+  "gesamtpreis" : 2.4
 } ]
