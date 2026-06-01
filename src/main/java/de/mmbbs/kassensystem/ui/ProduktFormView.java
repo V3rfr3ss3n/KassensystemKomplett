@@ -2,7 +2,11 @@ package de.mmbbs.kassensystem.ui;
 
 import de.mmbbs.kassensystem.service.ProduktService;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
@@ -15,41 +19,92 @@ public class ProduktFormView extends VBox {
     private final TextField preisField = new TextField();
     private final TextField bestandField = new TextField();
     private final TextField bildPfadField = new TextField();
+    private final ImageView bildVorschau = new ImageView();
     private final Label statusLabel = new Label();
     private String gewaehlterBildPfad;
 
     public ProduktFormView(ProduktService produktService) {
         this.produktService = produktService;
 
-        setSpacing(10);
-        setPadding(new Insets(16));
+        setSpacing(0);
+        setPadding(new Insets(40));
+        setAlignment(Pos.TOP_CENTER);
+
+        VBox mainContainer = new VBox();
+        mainContainer.getStyleClass().add("main-container");
+        mainContainer.setSpacing(20);
+        mainContainer.setMaxWidth(900);
 
         Label title = new Label("Produkt hinzufügen");
-        title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+        title.getStyleClass().add("title-label");
 
         Label hint = new Label("Geben Sie Name, Preis, Startbestand und optional ein Produktbild ein. Ohne Bild fällt das Produkt auf einen Fallback zurück.");
+        hint.getStyleClass().add("subtitle-label");
         hint.setWrapText(true);
 
-        Button bildButton = new Button("Bild auswählen");
-        bildButton.setOnAction(event -> waehleBild());
+        Label formLabel = new Label("Produktdaten");
+        formLabel.getStyleClass().add("section-label");
 
-        HBox bildBox = new HBox(8, bildPfadField, bildButton);
+        GridPane grid = new GridPane();
+        grid.setHgap(12);
+        grid.setVgap(12);
+        grid.setPadding(new Insets(10, 0, 0, 0));
+
+        Label nameLabel = new Label("Name:");
+        nameLabel.getStyleClass().add("subtitle-label");
+        grid.add(nameLabel, 0, 0);
+        grid.add(nameField, 1, 0);
+
+        Label preisLabel = new Label("Preis in €:");
+        preisLabel.getStyleClass().add("subtitle-label");
+        grid.add(preisLabel, 0, 1);
+        grid.add(preisField, 1, 1);
+
+        Label bestandLabel = new Label("Anfangsbestand:");
+        bestandLabel.getStyleClass().add("subtitle-label");
+        grid.add(bestandLabel, 0, 2);
+        grid.add(bestandField, 1, 2);
+
+        Label bildLabel = new Label("Produktbild:");
+        bildLabel.getStyleClass().add("subtitle-label");
+
+        bildVorschau.setFitWidth(60);
+        bildVorschau.setFitHeight(60);
+        bildVorschau.setPreserveRatio(true);
+
         bildPfadField.setPromptText("Pfad zum Produktbild");
         bildPfadField.setEditable(false);
 
+        Button bildButton = new Button("Bild auswählen");
+        bildButton.getStyleClass().add("secondary-button");
+        bildButton.setOnAction(event -> waehleBild());
+
+        HBox bildBox = new HBox(8, bildPfadField, bildButton, bildVorschau);
+        bildBox.setAlignment(Pos.CENTER_LEFT);
+
+        grid.add(bildLabel, 0, 3);
+        grid.add(bildBox, 1, 3);
+
         Button saveButton = new Button("Produkt speichern");
+        saveButton.getStyleClass().add("primary-button");
         saveButton.setOnAction(event -> speichern());
 
-        getChildren().addAll(
+        HBox actions = new HBox(10, saveButton);
+        actions.setAlignment(Pos.CENTER_LEFT);
+        actions.setPadding(new Insets(10, 0, 0, 0));
+
+        statusLabel.getStyleClass().add("subtitle-label");
+
+        mainContainer.getChildren().addAll(
                 title,
                 hint,
-                new Label("Name:"), nameField,
-                new Label("Preis in €:"), preisField,
-                new Label("Anfangsbestand:"), bestandField,
-                new Label("Produktbild:"), bildBox,
-                saveButton,
+                formLabel,
+                grid,
+                actions,
                 statusLabel
         );
+
+        getChildren().add(mainContainer);
     }
 
     private void waehleBild() {
@@ -63,7 +118,19 @@ public class ProduktFormView extends VBox {
         if (datei != null) {
             gewaehlterBildPfad = datei.getAbsolutePath();
             bildPfadField.setText(gewaehlterBildPfad);
+            aktualisiereBildVorschau(gewaehlterBildPfad);
         }
+    }
+
+    private void aktualisiereBildVorschau(String bildPfad) {
+        if (bildPfad != null && !bildPfad.isBlank()) {
+            File file = new File(bildPfad);
+            if (file.exists() && file.isFile()) {
+                bildVorschau.setImage(new Image(file.toURI().toString(), true));
+                return;
+            }
+        }
+        bildVorschau.setImage(null);
     }
 
     private void speichern() {
@@ -78,6 +145,7 @@ public class ProduktFormView extends VBox {
             preisField.clear();
             bestandField.clear();
             bildPfadField.clear();
+            bildVorschau.setImage(null);
             gewaehlterBildPfad = null;
         } catch (NumberFormatException ex) {
             statusLabel.setText("Bitte gültige Zahlen für Preis und Bestand eingeben.");
