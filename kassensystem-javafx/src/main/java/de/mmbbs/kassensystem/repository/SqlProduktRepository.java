@@ -6,6 +6,7 @@ import de.mmbbs.kassensystem.model.Produkt;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class SqlProduktRepository implements ProduktRepository {
     private static final String DB_URL = "jdbc:sqlite:" + DatabaseInitializer.getDbPath();
@@ -15,35 +16,7 @@ public class SqlProduktRepository implements ProduktRepository {
     }
 
     @Override
-    public void speichern(List<Produkt> produkte) {
-        try (Connection conn = DriverManager.getConnection(DB_URL)) {
-            conn.setAutoCommit(false);
-
-            try (Statement stmt = conn.createStatement()) {
-                stmt.execute("DELETE FROM produkte");
-            }
-
-            try (PreparedStatement pstmt = conn.prepareStatement(
-                    "INSERT INTO produkte (id, name, preis, lagerbestand, bildPfad) VALUES (?, ?, ?, ?, ?)")) {
-                for (Produkt p : produkte) {
-                    pstmt.setInt(1, p.getId());
-                    pstmt.setString(2, p.getName());
-                    pstmt.setDouble(3, p.getPreis());
-                    pstmt.setInt(4, p.getLagerbestand());
-                    pstmt.setString(5, p.getBildPfad());
-                    pstmt.addBatch();
-                }
-                pstmt.executeBatch();
-            }
-
-            conn.commit();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public List<Produkt> laden() {
+    public List<Produkt> findeAlle() {
         List<Produkt> produkte = new ArrayList<>();
 
         try (Connection conn = DriverManager.getConnection(DB_URL);
@@ -68,7 +41,7 @@ public class SqlProduktRepository implements ProduktRepository {
     }
 
     @Override
-    public Produkt findeNachId(int id) {
+    public Optional<Produkt> findeNachId(int id) {
         try (Connection conn = DriverManager.getConnection(DB_URL);
              PreparedStatement pstmt = conn.prepareStatement(
                      "SELECT id, name, preis, lagerbestand, bildPfad FROM produkte WHERE id = ?")) {
@@ -76,19 +49,60 @@ public class SqlProduktRepository implements ProduktRepository {
             pstmt.setInt(1, id);
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
-                    return new Produkt(
+                    return Optional.of(new Produkt(
                         rs.getInt("id"),
                         rs.getString("name"),
                         rs.getDouble("preis"),
                         rs.getInt("lagerbestand"),
                         rs.getString("bildPfad")
-                    );
+                    ));
                 }
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
-        return null;
+        return Optional.empty();
+    }
+
+    @Override
+    public Produkt speichern(Produkt produkt) {
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            int produktId = produkt.getId();
+
+            if (produktId == 0) {
+                try (Statement stmt = conn.createStatement();
+                     ResultSet rs = stmt.executeQuery("SELECT MAX(id) as maxId FROM produkte")) {
+                    produktId = rs.next() ? rs.getInt("maxId") + 1 : 1;
+                }
+            }
+
+            try (PreparedStatement pstmt = conn.prepareStatement(
+                    "INSERT OR REPLACE INTO produkte (id, name, preis, lagerbestand, bildPfad) VALUES (?, ?, ?, ?, ?)")) {
+                pstmt.setInt(1, produktId);
+                pstmt.setString(2, produkt.getName());
+                pstmt.setDouble(3, produkt.getPreis());
+                pstmt.setInt(4, produkt.getLagerbestand());
+                pstmt.setString(5, produkt.getBildPfad());
+                pstmt.executeUpdate();
+            }
+
+            return new Produkt(produktId, produkt.getName(), produkt.getPreis(), produkt.getLagerbestand(), produkt.getBildPfad());
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return produkt;
+    }
+
+    @Override
+    public void loeschen(int id) {
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             PreparedStatement pstmt = conn.prepareStatement("DELETE FROM produkte WHERE id = ?")) {
+            pstmt.setInt(1, id);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }
