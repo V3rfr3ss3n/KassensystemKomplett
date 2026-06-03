@@ -6,6 +6,7 @@ import de.mmbbs.kassensystem.model.Produkt;
 import de.mmbbs.kassensystem.service.BonService;
 import de.mmbbs.kassensystem.service.KassenService;
 import de.mmbbs.kassensystem.service.ProduktService;
+import de.mmbbs.kassensystem.util.GeldFormatter;
 import de.mmbbs.kassensystem.util.ImageUtil;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -21,7 +22,7 @@ public class KassenView extends VBox {
 
     private final FlowPane produktGrid = new FlowPane();
     private final ListView<BonPosition> warenkorbListe = new ListView<>();
-    private final Label gesamtPreisLabel = new Label("Gesamtpreis: 0,00 €");
+    private final Label gesamtPreisLabel = new Label("Gesamtpreis: " + GeldFormatter.formatiereBetrag(0));
     private final TextField mengeField = new TextField();
     private final TextArea bonArea = new TextArea();
     private final Label statusLabel = new Label();
@@ -99,7 +100,7 @@ public class KassenView extends VBox {
         warenkorbListe.getStyleClass().add("cart-area");
 
         gesamtPreisLabel.getStyleClass().add("section-label");
-        gesamtPreisLabel.setText("Gesamtpreis: 0,00 €");
+        gesamtPreisLabel.setText("Gesamtpreis: " + GeldFormatter.formatiereBetrag(0));
 
         // Bottom Info Box
         VBox infoBox = new VBox();
@@ -159,7 +160,7 @@ public class KassenView extends VBox {
         Label nameLabel = new Label(p.getName());
         nameLabel.getStyleClass().add("product-card-name");
 
-        Label detailsLabel = new Label(String.format("Lager: %d - %.2f €", p.getLagerbestand(), p.getPreis()));
+        Label detailsLabel = new Label("Lager: " + p.getLagerbestand() + " - " + GeldFormatter.formatiereBetrag(p.getPreis()));
         detailsLabel.getStyleClass().add("product-card-details");
 
         textContainer.getChildren().addAll(nameLabel, detailsLabel);
@@ -212,11 +213,8 @@ public class KassenView extends VBox {
             bonArea.setText(bonService.formatiereBon(bon));
             aktualisiereWarenkorb();
 
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Bon erstellt");
-            alert.setHeaderText("Kauf erfolgreich abgeschlossen");
-            alert.setContentText("Bon Nr. " + bon.getBonnummer() + "\nGesamtpreis: " + String.format("%.2f €", bon.getGesamtpreis()));
-            alert.showAndWait();
+            AlertUtil.showInfo("Kauf erfolgreich abgeschlossen",
+                    "Bon Nr. " + bon.getBonnummer() + "\nGesamtpreis: " + GeldFormatter.formatiereBetrag(bon.getGesamtpreis()));
 
             statusLabel.setText("Kauf abgeschlossen. Lagerbestand wurde aktualisiert.");
             aktualisiereProduktGrid();
@@ -227,7 +225,7 @@ public class KassenView extends VBox {
 
     private void aktualisiereWarenkorb() {
         warenkorbListe.getItems().setAll(kassenService.getWarenkorb());
-        gesamtPreisLabel.setText("Gesamtpreis: " + String.format("%.2f €", kassenService.berechneGesamtpreis()));
+        gesamtPreisLabel.setText("Gesamtpreis: " + GeldFormatter.formatiereBetrag(kassenService.berechneGesamtpreis()));
         checkoutButton.setDisable(kassenService.getWarenkorb().isEmpty());
     }
 }

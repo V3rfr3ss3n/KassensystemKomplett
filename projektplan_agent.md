@@ -1096,9 +1096,9 @@ Diese Reihenfolge ist verbindlich, damit keine Zeit verloren geht.
 - [ ] Oberfläche optisch verbessern
 - [x] CSS-Datei einbauen
 - [x] Tabellen automatisch aktualisieren
-- [ ] Einheitliche Dialoge verwenden
-- [ ] Geldbeträge einheitlich formatieren
-- [ ] Bon schöner formatieren
+- [x] Einheitliche Dialoge verwenden
+- [x] Geldbeträge einheitlich formatieren
+- [x] Bon schöner formatieren
 - [x] Produktnummern sichtbar machen
 - [x] Produktlisten direkt in den Spalten filtern
 
@@ -1143,6 +1143,9 @@ Dieser Abschnitt wird vom Agenten oder Team nach jeder abgeschlossenen Aufgabe a
 - [x] Produktdaten werden in `produkte.json` gespeichert und beim Start wieder geladen
 - [x] Bon-Historie wird in `bon-historie.json` dauerhaft gespeichert und beim Start wieder geladen
 - [x] Produktbearbeitung und Produktlöschung sind in der Lageransicht eingebunden
+- [x] Dialoge werden über `AlertUtil` zentral verwendet
+- [x] Geldbeträge werden zentral im deutschen Euroformat angezeigt
+- [x] Bon-Ausgabe und Warenkorbpositionen sind lesbarer formatiert
 
 ## Entscheidungen
 

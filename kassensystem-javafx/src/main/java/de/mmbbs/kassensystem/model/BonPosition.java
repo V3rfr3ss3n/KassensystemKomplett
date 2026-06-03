@@ -1,5 +1,7 @@
 package de.mmbbs.kassensystem.model;
 
+import de.mmbbs.kassensystem.util.GeldFormatter;
+
 public class BonPosition {
     private final Produkt produkt;
     private final int menge;
@@ -33,5 +35,10 @@ public class BonPosition {
 
     public double getGesamtpreis() {
         return gesamtpreis;
+    }
+
+    @Override
+    public String toString() {
+        return produkt.getName() + " x " + menge + " = " + GeldFormatter.formatiereBetrag(gesamtpreis);
     }
 }

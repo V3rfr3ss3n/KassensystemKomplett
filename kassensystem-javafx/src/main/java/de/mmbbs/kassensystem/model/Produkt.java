@@ -1,5 +1,6 @@
 package de.mmbbs.kassensystem.model;
 
+import de.mmbbs.kassensystem.util.GeldFormatter;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleDoubleProperty;
@@ -117,6 +118,6 @@ public class Produkt {
 
     @Override
     public String toString() {
-        return id + " - " + name + " (" + String.format("%.2f", preis) + " €)";
+        return id + " - " + name + " (" + GeldFormatter.formatiereBetrag(preis) + ")";
     }
 }

@@ -2,6 +2,7 @@ package de.mmbbs.kassensystem.ui;
 
 import de.mmbbs.kassensystem.model.Produkt;
 import de.mmbbs.kassensystem.service.ProduktService;
+import de.mmbbs.kassensystem.util.GeldFormatter;
 import de.mmbbs.kassensystem.util.ImageProcessor;
 import de.mmbbs.kassensystem.util.ImageUtil;
 import de.mmbbs.kassensystem.util.ValidationUtil;
@@ -10,8 +11,6 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-
-import java.util.Locale;
 
 public class LagerView extends VBox {
     private final ProduktService produktService;
@@ -157,7 +156,7 @@ public class LagerView extends VBox {
         }
 
         TextField nameField = new TextField(produkt.getName());
-        TextField preisField = new TextField(String.format(Locale.GERMAN, "%.2f", produkt.getPreis()));
+        TextField preisField = new TextField(GeldFormatter.formatiereZahl(produkt.getPreis()));
         TextField bestandField = new TextField(String.valueOf(produkt.getLagerbestand()));
         TextField bildPfadField = new TextField(produkt.getBildPfad() != null ? produkt.getBildPfad() : "");
         bildPfadField.setEditable(false);
@@ -241,19 +240,14 @@ public class LagerView extends VBox {
             return;
         }
 
-        Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION);
-        confirmation.setTitle("Produkt löschen");
-        confirmation.setHeaderText("Produkt wirklich löschen?");
-        confirmation.setContentText("Das Produkt '" + produkt.getName() + "' wird aus dem Lager entfernt.");
-
-        confirmation.showAndWait().ifPresent(result -> {
-            if (result == javafx.scene.control.ButtonType.OK) {
-                produktService.produktLoeschen(produkt.getId());
-                aktualisiereTabelle();
-                summaryLabel.setText("Produkte: " + produktService.alleProdukte().size());
-                statusLabel.setText("Produkt wurde entfernt.");
-            }
-        });
+        boolean bestaetigt = AlertUtil.showConfirmation("Produkt löschen",
+                "Das Produkt '" + produkt.getName() + "' wird aus dem Lager entfernt.");
+        if (bestaetigt) {
+            produktService.produktLoeschen(produkt.getId());
+            aktualisiereTabelle();
+            summaryLabel.setText("Produkte: " + produktService.alleProdukte().size());
+            statusLabel.setText("Produkt wurde entfernt.");
+        }
     }
 
     private void aktualisiereTabelle() {

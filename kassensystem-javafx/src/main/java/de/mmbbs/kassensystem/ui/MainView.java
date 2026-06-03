@@ -2,10 +2,10 @@ package de.mmbbs.kassensystem.ui;
 
 import de.mmbbs.kassensystem.model.Produkt;
 import de.mmbbs.kassensystem.service.ProduktService;
+import de.mmbbs.kassensystem.util.GeldFormatter;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableView;
@@ -16,7 +16,7 @@ import java.util.List;
 
 public class MainView extends VBox {
     private final ProduktService produktService;
-    private final Label valueLabel = new Label("Gesamtwert im Lager: 0,00 €");
+    private final Label valueLabel = new Label("Gesamtwert im Lager: " + GeldFormatter.formatiereBetrag(0));
     private final Label summaryLabel = new Label("Produkte insgesamt: 0");
     private final Label stockLabel = new Label("Gesamtbestand: 0");
     private final TableView<Produkt> produktListe = new TableView<>();
@@ -70,11 +70,8 @@ public class MainView extends VBox {
         Button demoButton = new Button("MVP-Status anzeigen");
         demoButton.getStyleClass().add("secondary-button");
         demoButton.setOnAction(event -> {
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("MVP-Status");
-            alert.setHeaderText("Grundbau und Hauptfunktionen sind eingebunden");
-            alert.setContentText("Die aktuelle Version enthält Modell-, Repository-, Service- und UI-Bausteine für Kasse, Lager und Produktanlegen.");
-            alert.showAndWait();
+            AlertUtil.showInfo("MVP-Status",
+                    "Die aktuelle Version enthält Modell-, Repository-, Service- und UI-Bausteine für Kasse, Lager und Produktanlegen.");
         });
 
         HBox actions = new HBox(10, demoButton);
@@ -101,6 +98,6 @@ public class MainView extends VBox {
                 .mapToDouble(produkt -> produkt.getPreis() * produkt.getLagerbestand())
                 .sum();
         stockLabel.setText("Gesamtbestand: " + gesamtbestand);
-        valueLabel.setText("Gesamtwert im Lager: " + String.format("%.2f €", gesamtwert));
+        valueLabel.setText("Gesamtwert im Lager: " + GeldFormatter.formatiereBetrag(gesamtwert));
     }
 }

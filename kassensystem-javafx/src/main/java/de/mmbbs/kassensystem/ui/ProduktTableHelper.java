@@ -1,6 +1,7 @@
 package de.mmbbs.kassensystem.ui;
 
 import de.mmbbs.kassensystem.model.Produkt;
+import de.mmbbs.kassensystem.util.GeldFormatter;
 import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
@@ -100,7 +101,7 @@ final class ProduktTableHelper {
             @Override
             protected void updateItem(Number preis, boolean empty) {
                 super.updateItem(preis, empty);
-                setText(empty || preis == null ? null : String.format(Locale.GERMAN, "%.2f \u20ac", preis.doubleValue()));
+                setText(empty || preis == null ? null : GeldFormatter.formatiereBetrag(preis.doubleValue()));
             }
         });
         column.setPrefWidth(110);
@@ -174,6 +175,7 @@ final class ProduktTableHelper {
     }
 
     private static String preisSuchtext(Produkt produkt) {
-        return String.format(Locale.GERMAN, "%.2f EUR %.2f", produkt.getPreis(), produkt.getPreis());
+        return GeldFormatter.formatiereBetrag(produkt.getPreis()) + " "
+                + String.format(Locale.GERMAN, "%.2f EUR %.2f", produkt.getPreis(), produkt.getPreis());
     }
 }
