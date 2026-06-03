@@ -2,6 +2,7 @@ package de.mmbbs.kassensystem.ui;
 
 import de.mmbbs.kassensystem.model.Produkt;
 import de.mmbbs.kassensystem.service.ProduktService;
+import de.mmbbs.kassensystem.util.ImageProcessor;
 import de.mmbbs.kassensystem.util.ImageUtil;
 import de.mmbbs.kassensystem.util.ValidationUtil;
 import javafx.collections.FXCollections;
@@ -176,8 +177,16 @@ public class LagerView extends VBox {
             );
             java.io.File datei = chooser.showOpenDialog(getScene().getWindow());
             if (datei != null) {
-                bildPfadField.setText(datei.getAbsolutePath());
-                aktualisiereBildVorschau(datei.getAbsolutePath(), imageView);
+                ImageCropDialog.show(getScene().getWindow(), datei).ifPresent(cropArea -> {
+                    String processedPath = ImageProcessor.processAndSaveImage(datei.getAbsolutePath(), cropArea);
+                    if (processedPath != null) {
+                        bildPfadField.setText(processedPath);
+                        aktualisiereBildVorschau(processedPath, imageView);
+                        statusLabel.setText("");
+                    } else {
+                        statusLabel.setText("Fehler beim Verarbeiten des Bildes. Bitte versuchen Sie es erneut.");
+                    }
+                });
             }
         });
 

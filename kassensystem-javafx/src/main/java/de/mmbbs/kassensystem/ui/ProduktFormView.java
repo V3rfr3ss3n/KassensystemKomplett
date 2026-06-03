@@ -119,15 +119,18 @@ public class ProduktFormView extends VBox {
 
         File datei = chooser.showOpenDialog(getScene().getWindow());
         if (datei != null) {
-            String processedPath = ImageProcessor.processAndSaveImage(datei.getAbsolutePath());
-            if (processedPath != null) {
-                gewaehlterBildPfad = processedPath;
-                bildPfadField.setText("✓ Bild verarbeitet (120x120px)");
-                aktualisiereBildVorschau(gewaehlterBildPfad);
-            } else {
-                statusLabel.setText("Fehler beim Verarbeiten des Bildes. Bitte versuchen Sie es erneut.");
-                gewaehlterBildPfad = null;
-            }
+            ImageCropDialog.show(getScene().getWindow(), datei).ifPresent(cropArea -> {
+                String processedPath = ImageProcessor.processAndSaveImage(datei.getAbsolutePath(), cropArea);
+                if (processedPath != null) {
+                    gewaehlterBildPfad = processedPath;
+                    bildPfadField.setText("Bild zugeschnitten (120x120 px)");
+                    aktualisiereBildVorschau(gewaehlterBildPfad);
+                    statusLabel.setText("");
+                } else {
+                    statusLabel.setText("Fehler beim Verarbeiten des Bildes. Bitte versuchen Sie es erneut.");
+                    gewaehlterBildPfad = null;
+                }
+            });
         }
     }
 
