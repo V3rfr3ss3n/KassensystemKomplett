@@ -25,7 +25,7 @@ public class ValidationUtil {
 
     public static boolean isValidStock(String stockStr) {
         try {
-            int stock = Integer.parseInt(stockStr.trim());
+            double stock = Double.parseDouble(stockStr.trim().replace(",", "."));
             return stock >= 0;
         } catch (NumberFormatException e) {
             return false;
@@ -33,12 +33,12 @@ public class ValidationUtil {
     }
 
     public static String getStockError() {
-        return "Lagerbestand muss eine ganze Zahl >= 0 sein.";
+        return "Lagerbestand muss eine Zahl >= 0 sein.";
     }
 
     public static boolean isValidQuantity(String quantityStr) {
         try {
-            int quantity = Integer.parseInt(quantityStr.trim());
+            double quantity = Double.parseDouble(quantityStr.trim().replace(",", "."));
             return quantity > 0;
         } catch (NumberFormatException e) {
             return false;
@@ -46,6 +46,6 @@ public class ValidationUtil {
     }
 
     public static String getQuantityError() {
-        return "Menge muss eine ganze Zahl > 0 sein.";
+        return "Menge muss eine Zahl > 0 sein.";
     }
 }

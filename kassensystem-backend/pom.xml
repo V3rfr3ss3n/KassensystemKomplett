@@ -15,7 +15,7 @@
     <description>Spring Boot REST API Backend für optionale Erweiterung</description>
 
     <properties>
-        <spring-boot.version>3.2.0</spring-boot.version>
+        <spring-boot.version>3.5.14</spring-boot.version>
     </properties>
 
     <dependencyManagement>
@@ -48,6 +48,12 @@
             <groupId>org.xerial</groupId>
             <artifactId>sqlite-jdbc</artifactId>
             <version>3.43.2.0</version>
+        </dependency>
+
+        <!-- Hibernate 6 SQLite Dialect -->
+        <dependency>
+            <groupId>org.hibernate.orm</groupId>
+            <artifactId>hibernate-community-dialects</artifactId>
         </dependency>
 
         <!-- Datenbank-Connection-Pool -->

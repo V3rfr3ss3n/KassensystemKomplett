@@ -3,6 +3,8 @@ package de.mmbbs.kassensystem.service;
 import de.mmbbs.kassensystem.model.Bon;
 import de.mmbbs.kassensystem.model.BonPosition;
 import de.mmbbs.kassensystem.model.Produkt;
+import de.mmbbs.kassensystem.model.Steuersatz;
+import de.mmbbs.kassensystem.model.Verkaufseinheit;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -15,7 +17,8 @@ class BonServiceTest {
     @Test
     void formatiereBon_erstelltLesbarenBonMitFormatiertenGeldbetraegen() {
         Produkt kaffee = new Produkt(1, "Kaffee", 1.20, 10);
-        Produkt kuchen = new Produkt(2, "Kuchen", 1.50, 5);
+        Produkt kuchen = new Produkt(2, "Kuchen", 1.50, 5, null,
+                Verkaufseinheit.STUECK, Steuersatz.ERMAESSIGT.getProzent());
         Bon bon = new Bon(
                 7,
                 LocalDateTime.of(2026, 6, 3, 14, 5),
@@ -29,6 +32,9 @@ class BonServiceTest {
         assertTrue(text.contains("03.06.2026 14:05 Uhr"));
         assertTrue(text.contains("Produkt"));
         assertTrue(text.contains("Kaffee"));
+        assertTrue(text.contains("19%"));
+        assertTrue(text.contains("7%"));
+        assertTrue(text.contains("USt"));
         assertTrue(text.contains("2,40 €"));
         assertTrue(text.contains("Gesamt:"));
         assertTrue(text.contains("3,90 €"));

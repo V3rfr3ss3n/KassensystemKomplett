@@ -26,25 +26,92 @@ public class KassenService {
     public KassenService(ProduktRepository repository, BonHistorieRepository bonHistorieRepository) {
         this.repository = repository;
         this.bonHistorieRepository = bonHistorieRepository;
-        this.bonService = new BonService();
         this.bonHistorie.addAll(bonHistorieRepository.ladeBonHistorie());
+        int naechsteBonNummer = this.bonHistorie.stream()
+                .mapToInt(Bon::getBonnummer)
+                .max()
+                .orElse(0) + 1;
+        this.bonService = new BonService(naechsteBonNummer);
     }
 
     public void positionHinzufuegen(int produktId, int menge) {
+        positionHinzufuegen(produktId, (double) menge);
+    }
+
+    public void positionHinzufuegen(int produktId, double menge) {
         Produkt produkt = repository.findeNachId(produktId)
                 .orElseThrow(() -> new IllegalArgumentException("Produkt nicht gefunden."));
-        int mengeImWarenkorb = warenkorb.stream()
+        double bisherigeMenge = warenkorb.stream()
                 .filter(position -> position.getProdukt().getId() == produktId)
-                .mapToInt(BonPosition::getMenge)
+                .mapToDouble(BonPosition::getMenge)
                 .sum();
-        if (produkt.getLagerbestand() < mengeImWarenkorb + menge) {
+        double neueMenge = bisherigeMenge + menge;
+        if (produkt.getLagerbestand() < neueMenge) {
             throw new IllegalArgumentException("Nicht genügend Produkte auf Lager.");
         }
-        warenkorb.add(new BonPosition(produkt, menge));
+
+        int erstePosition = -1;
+        for (int i = 0; i < warenkorb.size(); i++) {
+            if (warenkorb.get(i).getProdukt().getId() == produktId) {
+                if (erstePosition < 0) {
+                    erstePosition = i;
+                } else {
+                    warenkorb.remove(i);
+                    i--;
+                }
+            }
+        }
+
+        BonPosition neuePosition = new BonPosition(produkt, neueMenge);
+        if (erstePosition >= 0) {
+            warenkorb.set(erstePosition, neuePosition);
+        } else {
+            warenkorb.add(neuePosition);
+        }
     }
 
     public List<BonPosition> getWarenkorb() {
         return List.copyOf(warenkorb);
+    }
+
+    public void positionEntfernen(BonPosition position) {
+        warenkorb.remove(position);
+    }
+
+    public void positionErhoehen(BonPosition position) {
+        int index = warenkorb.indexOf(position);
+        if (index < 0) {
+            return;
+        }
+
+        Produkt produkt = repository.findeNachId(position.getProdukt().getId())
+                .orElseThrow(() -> new IllegalArgumentException("Produkt nicht gefunden."));
+        double mengeImWarenkorb = warenkorb.stream()
+                .filter(eintrag -> eintrag.getProdukt().getId() == position.getProdukt().getId())
+                .mapToDouble(BonPosition::getMenge)
+                .sum();
+        if (produkt.getLagerbestand() < mengeImWarenkorb + 1.0) {
+            throw new IllegalArgumentException("Nicht genügend Produkte auf Lager.");
+        }
+
+        warenkorb.set(index, new BonPosition(position.getProdukt(), position.getMenge() + 1.0,
+                position.getEinzelpreis(), Double.NaN, position.getSteuerSatz()));
+    }
+
+    public void positionVerringern(BonPosition position) {
+        int index = warenkorb.indexOf(position);
+        if (index < 0) {
+            return;
+        }
+
+        double neueMenge = position.getMenge() - 1.0;
+        if (neueMenge <= 0) {
+            warenkorb.remove(index);
+            return;
+        }
+
+        warenkorb.set(index, new BonPosition(position.getProdukt(), neueMenge,
+                position.getEinzelpreis(), Double.NaN, position.getSteuerSatz()));
     }
 
     public double berechneGesamtpreis() {
@@ -56,13 +123,13 @@ public class KassenService {
             throw new IllegalArgumentException("Der Warenkorb ist leer.");
         }
 
-        Map<Integer, Integer> benoetigteMengen = new LinkedHashMap<>();
+        Map<Integer, Double> benoetigteMengen = new LinkedHashMap<>();
         for (BonPosition position : warenkorb) {
             int produktId = position.getProdukt().getId();
-            benoetigteMengen.merge(produktId, position.getMenge(), Integer::sum);
+            benoetigteMengen.merge(produktId, position.getMenge(), Double::sum);
         }
 
-        for (Map.Entry<Integer, Integer> eintrag : benoetigteMengen.entrySet()) {
+        for (Map.Entry<Integer, Double> eintrag : benoetigteMengen.entrySet()) {
             Produkt produkt = repository.findeNachId(eintrag.getKey())
                     .orElseThrow(() -> new IllegalArgumentException("Produkt nicht gefunden."));
             if (produkt.getLagerbestand() < eintrag.getValue()) {
@@ -78,7 +145,7 @@ public class KassenService {
         }
 
         Bon bon = bonService.erstelleBon(new ArrayList<>(warenkorb));
-        bonHistorie.add(bon);
+        bonHistorie.add(0, bon);
         bonHistorieRepository.speichereBonHistorie(new ArrayList<>(bonHistorie));
         warenkorb.clear();
         return bon;

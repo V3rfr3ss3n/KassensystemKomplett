@@ -1,6 +1,8 @@
 package de.mmbbs.kassensystem.service;
 
+import de.mmbbs.kassensystem.model.Steuersatz;
 import de.mmbbs.kassensystem.model.Produkt;
+import de.mmbbs.kassensystem.model.Verkaufseinheit;
 import de.mmbbs.kassensystem.repository.ProduktRepository;
 
 import java.util.ArrayList;
@@ -33,13 +35,23 @@ public class ProduktService {
     }
 
     public Produkt produktHinzufuegen(String name, double preis, int anfangsbestand, String bildPfad) {
-        Produkt produkt = new Produkt(0, name, preis, anfangsbestand, bildPfad);
+        return produktHinzufuegen(name, preis, anfangsbestand, bildPfad,
+                Verkaufseinheit.STUECK, Steuersatz.REGELSTEUERSATZ.getProzent());
+    }
+
+    public Produkt produktHinzufuegen(String name, double preis, double anfangsbestand, String bildPfad,
+                                      Verkaufseinheit einheit, double steuerSatz) {
+        Produkt produkt = new Produkt(0, name, preis, anfangsbestand, bildPfad, einheit, steuerSatz);
         Produkt saved = repository.speichern(produkt);
         notifyListeners();
         return saved;
     }
 
     public void warenzugangErfassen(int produktId, int menge) {
+        warenzugangErfassen(produktId, (double) menge);
+    }
+
+    public void warenzugangErfassen(int produktId, double menge) {
         Produkt produkt = repository.findeNachId(produktId)
                 .orElseThrow(() -> new IllegalArgumentException("Produkt nicht gefunden."));
         produkt.bestandErhoehen(menge);
@@ -63,11 +75,23 @@ public class ProduktService {
     }
 
     public Produkt produktAktualisieren(int produktId, String name, double preis, int lagerbestand, String bildPfad) {
+        return produktAktualisieren(produktId, name, preis, (double) lagerbestand, bildPfad);
+    }
+
+    public Produkt produktAktualisieren(int produktId, String name, double preis, double lagerbestand, String bildPfad) {
+        return produktAktualisieren(produktId, name, preis, lagerbestand, bildPfad,
+                Verkaufseinheit.STUECK, Steuersatz.REGELSTEUERSATZ.getProzent());
+    }
+
+    public Produkt produktAktualisieren(int produktId, String name, double preis, double lagerbestand, String bildPfad,
+                                        Verkaufseinheit einheit, double steuerSatz) {
         Produkt produkt = repository.findeNachId(produktId)
                 .orElseThrow(() -> new IllegalArgumentException("Produkt nicht gefunden."));
         produkt.setName(name);
         produkt.setPreis(preis);
         produkt.setLagerbestand(lagerbestand);
+        produkt.setEinheit(einheit);
+        produkt.setSteuerSatz(steuerSatz);
         if (bildPfad != null) {
             produkt.setBildPfad(bildPfad);
         }
@@ -77,6 +101,10 @@ public class ProduktService {
     }
 
     public boolean istMengeVerfuegbar(int produktId, int menge) {
+        return istMengeVerfuegbar(produktId, (double) menge);
+    }
+
+    public boolean istMengeVerfuegbar(int produktId, double menge) {
         return repository.findeNachId(produktId)
                 .map(produkt -> produkt.getLagerbestand() >= menge)
                 .orElse(false);

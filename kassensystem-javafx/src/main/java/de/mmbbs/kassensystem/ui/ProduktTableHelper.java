@@ -2,6 +2,7 @@ package de.mmbbs.kassensystem.ui;
 
 import de.mmbbs.kassensystem.model.Produkt;
 import de.mmbbs.kassensystem.util.GeldFormatter;
+import de.mmbbs.kassensystem.util.MengenFormatter;
 import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
@@ -39,7 +40,7 @@ final class ProduktTableHelper {
                     && enthaelt(String.valueOf(produkt.getId()), idFilter.getText())
                     && enthaelt(produkt.getName(), nameFilter.getText())
                     && enthaelt(preisSuchtext(produkt), preisFilter.getText())
-                    && enthaelt(String.valueOf(produkt.getLagerbestand()), lagerFilter.getText());
+                    && enthaelt(lagerSuchtext(produkt), lagerFilter.getText());
         }
 
         private List<TextField> allFields() {
@@ -101,7 +102,12 @@ final class ProduktTableHelper {
             @Override
             protected void updateItem(Number preis, boolean empty) {
                 super.updateItem(preis, empty);
-                setText(empty || preis == null ? null : GeldFormatter.formatiereBetrag(preis.doubleValue()));
+                if (empty || preis == null) {
+                    setText(null);
+                    return;
+                }
+                Produkt produkt = getTableView().getItems().get(getIndex());
+                setText(GeldFormatter.formatiereBetrag(preis.doubleValue()) + "/" + produkt.getEinheitLabel());
             }
         });
         column.setPrefWidth(110);
@@ -112,6 +118,18 @@ final class ProduktTableHelper {
         TableColumn<Produkt, Number> column = new TableColumn<>();
         column.setGraphic(header("Lager", filters.lagerFilter));
         column.setCellValueFactory(data -> data.getValue().lagerbestandProperty());
+        column.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(Number lagerbestand, boolean empty) {
+                super.updateItem(lagerbestand, empty);
+                if (empty || lagerbestand == null) {
+                    setText(null);
+                    return;
+                }
+                Produkt produkt = getTableView().getItems().get(getIndex());
+                setText(MengenFormatter.formatiereMenge(lagerbestand.doubleValue(), produkt.getEinheitLabel()));
+            }
+        });
         column.setPrefWidth(100);
         return column;
     }
@@ -155,7 +173,8 @@ final class ProduktTableHelper {
                 String.valueOf(produkt.getId()),
                 produkt.getName(),
                 preisSuchtext(produkt),
-                String.valueOf(produkt.getLagerbestand()));
+                lagerSuchtext(produkt),
+                String.valueOf(produkt.getSteuerSatz()));
         return enthaelt(globalSuchtext, globalFilter);
     }
 
@@ -176,6 +195,12 @@ final class ProduktTableHelper {
 
     private static String preisSuchtext(Produkt produkt) {
         return GeldFormatter.formatiereBetrag(produkt.getPreis()) + " "
-                + String.format(Locale.GERMAN, "%.2f EUR %.2f", produkt.getPreis(), produkt.getPreis());
+                + String.format(Locale.GERMAN, "%.2f EUR %.2f", produkt.getPreis(), produkt.getPreis())
+                + " " + produkt.getEinheitLabel();
+    }
+
+    private static String lagerSuchtext(Produkt produkt) {
+        return MengenFormatter.formatiereMenge(produkt.getLagerbestand(), produkt.getEinheitLabel())
+                + " " + produkt.getLagerbestand();
     }
 }

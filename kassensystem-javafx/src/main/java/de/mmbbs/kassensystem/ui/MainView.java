@@ -3,16 +3,21 @@ package de.mmbbs.kassensystem.ui;
 import de.mmbbs.kassensystem.model.Produkt;
 import de.mmbbs.kassensystem.service.ProduktService;
 import de.mmbbs.kassensystem.util.GeldFormatter;
+import de.mmbbs.kassensystem.util.MengenFormatter;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
+import java.awt.Desktop;
+import java.net.URI;
 import java.util.List;
+import java.util.Optional;
 
 public class MainView extends VBox {
     private final ProduktService produktService;
@@ -74,7 +79,11 @@ public class MainView extends VBox {
                     "Die aktuelle Version enthält Modell-, Repository-, Service- und UI-Bausteine für Kasse, Lager und Produktanlegen.");
         });
 
-        HBox actions = new HBox(10, demoButton);
+        Button adminButton = new Button("Adminbereich öffnen");
+        adminButton.getStyleClass().add("secondary-button");
+        adminButton.setOnAction(event -> oeffneAdminbereich());
+
+        HBox actions = new HBox(10, demoButton, adminButton);
         actions.setAlignment(Pos.CENTER_LEFT);
 
         mainContainer.getChildren().addAll(title, info, hint, overview, summaryBox, produktListe, actions);
@@ -93,11 +102,37 @@ public class MainView extends VBox {
 
         table.setItems(FXCollections.observableArrayList(gefilterteProdukte));
         summaryLabel.setText("Produkte insgesamt: " + alleProdukte.size());
-        int gesamtbestand = alleProdukte.stream().mapToInt(Produkt::getLagerbestand).sum();
+        double gesamtbestand = alleProdukte.stream().mapToDouble(Produkt::getLagerbestand).sum();
         double gesamtwert = alleProdukte.stream()
                 .mapToDouble(produkt -> produkt.getPreis() * produkt.getLagerbestand())
                 .sum();
-        stockLabel.setText("Gesamtbestand: " + gesamtbestand);
+        stockLabel.setText("Gesamtbestand: " + MengenFormatter.formatiereMenge(gesamtbestand));
         valueLabel.setText("Gesamtwert im Lager: " + GeldFormatter.formatiereBetrag(gesamtwert));
+    }
+
+    private void oeffneAdminbereich() {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Adminzugang");
+        dialog.setHeaderText("Adminbereich öffnen");
+        dialog.setContentText("Passwort:");
+
+        Optional<String> passwort = dialog.showAndWait();
+        if (passwort.isEmpty()) {
+            return;
+        }
+        if (!"1234".equals(passwort.get())) {
+            AlertUtil.showWarning("Adminzugang", "Passwort ist falsch.");
+            return;
+        }
+
+        try {
+            if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().browse(new URI("http://localhost:3000"));
+            } else {
+                AlertUtil.showInfo("Adminbereich", "Admin-Webadresse: http://localhost:3000");
+            }
+        } catch (Exception ex) {
+            AlertUtil.showWarning("Adminbereich", "Admin-Webadresse: http://localhost:3000");
+        }
     }
 }

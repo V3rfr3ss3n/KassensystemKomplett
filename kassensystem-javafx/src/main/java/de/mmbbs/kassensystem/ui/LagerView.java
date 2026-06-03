@@ -1,10 +1,13 @@
 package de.mmbbs.kassensystem.ui;
 
 import de.mmbbs.kassensystem.model.Produkt;
+import de.mmbbs.kassensystem.model.Steuersatz;
+import de.mmbbs.kassensystem.model.Verkaufseinheit;
 import de.mmbbs.kassensystem.service.ProduktService;
 import de.mmbbs.kassensystem.util.GeldFormatter;
 import de.mmbbs.kassensystem.util.ImageProcessor;
 import de.mmbbs.kassensystem.util.ImageUtil;
+import de.mmbbs.kassensystem.util.MengenFormatter;
 import de.mmbbs.kassensystem.util.ValidationUtil;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -19,9 +22,15 @@ public class LagerView extends VBox {
     private final Label statusLabel = new Label();
     private final Label summaryLabel = new Label("Produkte: 0");
     private final ProduktTableHelper.FilterFields produktFilter;
+    private final Runnable produktHinzufuegenAction;
 
     public LagerView(ProduktService produktService) {
+        this(produktService, null);
+    }
+
+    public LagerView(ProduktService produktService, Runnable produktHinzufuegenAction) {
         this.produktService = produktService;
+        this.produktHinzufuegenAction = produktHinzufuegenAction;
         this.produktFilter = new ProduktTableHelper.FilterFields(this::aktualisiereTabelle);
 
         // Listener registrieren für automatische Aktualisierung
@@ -102,17 +111,26 @@ public class LagerView extends VBox {
         deleteButton.getStyleClass().add("secondary-button");
         deleteButton.setOnAction(event -> loescheProdukt());
 
+        Button addProductButton = new Button("Produkt hinzufügen");
+        addProductButton.getStyleClass().add("secondary-button");
+        addProductButton.setOnAction(event -> {
+            if (produktHinzufuegenAction != null) {
+                produktHinzufuegenAction.run();
+            }
+        });
+
         HBox controls = new HBox(15);
         controls.setAlignment(Pos.CENTER_LEFT);
         Label mengeLabel = new Label("Menge:");
         mengeLabel.getStyleClass().add("subtitle-label");
-        controls.getChildren().addAll(mengeLabel, mengeField, zugangButton, editButton, deleteButton);
+        controls.getChildren().addAll(mengeLabel, mengeField, zugangButton, addProductButton, editButton, deleteButton);
 
         produktListe.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, selected) -> {
             if (selected == null) {
                 selectedLabel.setText("Ausgewählt: nichts");
             } else {
-                selectedLabel.setText("Ausgewählt: " + selected.getName() + " · Lager: " + selected.getLagerbestand());
+                selectedLabel.setText("Ausgewählt: " + selected.getName()
+                        + " · Lager: " + MengenFormatter.formatiereMenge(selected.getLagerbestand(), selected.getEinheitLabel()));
             }
         });
 
@@ -134,7 +152,7 @@ public class LagerView extends VBox {
         }
 
         try {
-            int menge = Integer.parseInt(mengeStr);
+            double menge = MengenFormatter.parseMenge(mengeStr);
             produktService.warenzugangErfassen(produkt.getId(), menge);
             aktualisiereTabelle();
             statusLabel.setText("✓ Warenzugang gespeichert!");
@@ -157,9 +175,15 @@ public class LagerView extends VBox {
 
         TextField nameField = new TextField(produkt.getName());
         TextField preisField = new TextField(GeldFormatter.formatiereZahl(produkt.getPreis()));
-        TextField bestandField = new TextField(String.valueOf(produkt.getLagerbestand()));
+        TextField bestandField = new TextField(MengenFormatter.formatiereMenge(produkt.getLagerbestand()));
         TextField bildPfadField = new TextField(produkt.getBildPfad() != null ? produkt.getBildPfad() : "");
         bildPfadField.setEditable(false);
+        ComboBox<Verkaufseinheit> einheitBox = new ComboBox<>();
+        einheitBox.getItems().setAll(Verkaufseinheit.values());
+        einheitBox.getSelectionModel().select(produkt.getEinheit());
+        ComboBox<Steuersatz> steuerBox = new ComboBox<>();
+        steuerBox.getItems().setAll(Steuersatz.values());
+        steuerBox.getSelectionModel().select(Steuersatz.fromProzent(produkt.getSteuerSatz()));
 
         javafx.scene.image.ImageView imageView = new javafx.scene.image.ImageView();
         imageView.setFitWidth(48);
@@ -198,10 +222,14 @@ public class LagerView extends VBox {
         grid.add(preisField, 1, 1);
         grid.add(new Label("Lagerbestand:"), 0, 2);
         grid.add(bestandField, 1, 2);
-        grid.add(new Label("Bildpfad:"), 0, 3);
-        grid.add(bildPfadField, 1, 3);
-        grid.add(bildButton, 2, 3);
-        grid.add(imageView, 3, 3);
+        grid.add(new Label("Einheit:"), 0, 3);
+        grid.add(einheitBox, 1, 3);
+        grid.add(new Label("Umsatzsteuer:"), 0, 4);
+        grid.add(steuerBox, 1, 4);
+        grid.add(new Label("Bildpfad:"), 0, 5);
+        grid.add(bildPfadField, 1, 5);
+        grid.add(bildButton, 2, 5);
+        grid.add(imageView, 3, 5);
 
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Produkt bearbeiten");
@@ -214,10 +242,13 @@ public class LagerView extends VBox {
                 try {
                     String name = nameField.getText().trim();
                     double preis = Double.parseDouble(preisField.getText().replace(',', '.'));
-                    int bestand = Integer.parseInt(bestandField.getText().trim());
+                    double bestand = MengenFormatter.parseMenge(bestandField.getText());
                     String bildPfad = bildPfadField.getText().isBlank() ? null : bildPfadField.getText();
+                    Verkaufseinheit einheit = einheitBox.getSelectionModel().getSelectedItem();
+                    Steuersatz steuer = steuerBox.getSelectionModel().getSelectedItem();
 
-                    produktService.produktAktualisieren(produkt.getId(), name, preis, bestand, bildPfad);
+                    produktService.produktAktualisieren(produkt.getId(), name, preis, bestand, bildPfad,
+                            einheit, steuer.getProzent());
                     aktualisiereTabelle();
                     statusLabel.setText("Produkt wurde aktualisiert.");
                 } catch (NumberFormatException ex) {

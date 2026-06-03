@@ -61,20 +61,27 @@ public class SqlBonHistorieRepository implements BonHistorieRepository {
 
     private void speichereSingleBon(Connection conn, Bon bon) throws SQLException {
         try (PreparedStatement pstmt = conn.prepareStatement(
-                "INSERT INTO bons (bonnummer, datumUhrzeit, gesamtpreis) VALUES (?, ?, ?)")) {
+                "INSERT OR REPLACE INTO bons (bonnummer, datumUhrzeit, gesamtpreis) VALUES (?, ?, ?)")) {
             pstmt.setInt(1, bon.getBonnummer());
             pstmt.setString(2, bon.getDatumUhrzeit().toString());
             pstmt.setDouble(3, bon.getGesamtpreis());
             pstmt.executeUpdate();
 
+            try (PreparedStatement deletePstmt = conn.prepareStatement(
+                    "DELETE FROM bon_positionen WHERE bonnummer = ?")) {
+                deletePstmt.setInt(1, bon.getBonnummer());
+                deletePstmt.executeUpdate();
+            }
+
             try (PreparedStatement posPstmt = conn.prepareStatement(
-                    "INSERT INTO bon_positionen (bonnummer, produkt_id, menge, einzelpreis, gesamtpreis) VALUES (?, ?, ?, ?, ?)")) {
+                    "INSERT INTO bon_positionen (bonnummer, produkt_id, menge, einzelpreis, steuerSatz, gesamtpreis) VALUES (?, ?, ?, ?, ?, ?)")) {
                 for (BonPosition pos : bon.getPositionen()) {
                     posPstmt.setInt(1, bon.getBonnummer());
                     posPstmt.setInt(2, pos.getProdukt().getId());
-                    posPstmt.setInt(3, pos.getMenge());
+                    posPstmt.setDouble(3, pos.getMenge());
                     posPstmt.setDouble(4, pos.getEinzelpreis());
-                    posPstmt.setDouble(5, pos.getGesamtpreis());
+                    posPstmt.setDouble(5, pos.getSteuerSatz());
+                    posPstmt.setDouble(6, pos.getGesamtpreis());
                     posPstmt.addBatch();
                 }
                 posPstmt.executeBatch();
@@ -86,17 +93,20 @@ public class SqlBonHistorieRepository implements BonHistorieRepository {
         List<BonPosition> positionen = new ArrayList<>();
 
         try (PreparedStatement pstmt = conn.prepareStatement(
-                "SELECT produkt_id, menge FROM bon_positionen WHERE bonnummer = ?")) {
+                "SELECT produkt_id, menge, einzelpreis, steuerSatz, gesamtpreis FROM bon_positionen WHERE bonnummer = ?")) {
             pstmt.setInt(1, bonnummer);
 
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
                     int produktId = rs.getInt("produkt_id");
-                    int menge = rs.getInt("menge");
+                    double menge = rs.getDouble("menge");
+                    double einzelpreis = rs.getDouble("einzelpreis");
+                    double steuerSatz = rs.getDouble("steuerSatz");
+                    double gesamtpreis = rs.getDouble("gesamtpreis");
 
                     Optional<Produkt> produktOpt = produktRepository.findeNachId(produktId);
                     if (produktOpt.isPresent()) {
-                        BonPosition pos = new BonPosition(produktOpt.get(), menge);
+                        BonPosition pos = new BonPosition(produktOpt.get(), menge, einzelpreis, gesamtpreis, steuerSatz);
                         positionen.add(pos);
                     }
                 }

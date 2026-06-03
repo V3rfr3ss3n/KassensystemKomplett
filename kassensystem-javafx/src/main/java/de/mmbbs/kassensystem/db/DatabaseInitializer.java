@@ -44,9 +44,20 @@ public class DatabaseInitializer {
                         stmt.execute(sql);
                     }
                 }
+                ensureColumn(stmt, "produkte", "einheit", "TEXT NOT NULL DEFAULT 'STUECK'");
+                ensureColumn(stmt, "produkte", "steuerSatz", "REAL NOT NULL DEFAULT 19.0");
+                ensureColumn(stmt, "bon_positionen", "steuerSatz", "REAL NOT NULL DEFAULT 19.0");
             } catch (Exception e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    private static void ensureColumn(Statement stmt, String table, String column, String definition) {
+        try {
+            stmt.execute("ALTER TABLE " + table + " ADD COLUMN " + column + " " + definition);
+        } catch (Exception ignored) {
+            // SQLite wirft einen Fehler, wenn die Spalte bereits existiert.
         }
     }
 

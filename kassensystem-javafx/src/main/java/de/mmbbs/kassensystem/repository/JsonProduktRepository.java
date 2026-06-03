@@ -4,6 +4,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import de.mmbbs.kassensystem.model.Produkt;
+import de.mmbbs.kassensystem.model.Steuersatz;
+import de.mmbbs.kassensystem.model.Verkaufseinheit;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -46,7 +48,8 @@ public class JsonProduktRepository implements ProduktRepository {
     public Produkt speichern(Produkt produkt) {
         Produkt zuSpeichern = produkt;
         if (produkt.getId() == 0) {
-            zuSpeichern = new Produkt(nextId(), produkt.getName(), produkt.getPreis(), produkt.getLagerbestand());
+            zuSpeichern = new Produkt(nextId(), produkt.getName(), produkt.getPreis(), produkt.getLagerbestand(),
+                    produkt.getBildPfad(), produkt.getEinheit(), produkt.getSteuerSatz());
         }
 
         produkte.put(zuSpeichern.getId(), zuSpeichern);
@@ -88,11 +91,11 @@ public class JsonProduktRepository implements ProduktRepository {
     }
 
     private void speichereInitialeDaten() {
-        speichereOhneDatei(new Produkt(nextId(), "Cola", 1.50, 20));
-        speichereOhneDatei(new Produkt(nextId(), "Wasser", 1.00, 30));
-        speichereOhneDatei(new Produkt(nextId(), "Br\u00f6tchen", 0.80, 15));
-        speichereOhneDatei(new Produkt(nextId(), "Kaffee", 2.20, 10));
-        speichereOhneDatei(new Produkt(nextId(), "Schokoriegel", 1.20, 25));
+        speichereOhneDatei(new Produkt(nextId(), "Cola", 1.50, 20, null, Verkaufseinheit.STUECK, Steuersatz.REGELSTEUERSATZ.getProzent()));
+        speichereOhneDatei(new Produkt(nextId(), "Wasser", 1.00, 30, null, Verkaufseinheit.STUECK, Steuersatz.REGELSTEUERSATZ.getProzent()));
+        speichereOhneDatei(new Produkt(nextId(), "Br\u00f6tchen", 0.80, 15, null, Verkaufseinheit.STUECK, Steuersatz.ERMAESSIGT.getProzent()));
+        speichereOhneDatei(new Produkt(nextId(), "Kaffee", 2.20, 10, null, Verkaufseinheit.STUECK, Steuersatz.REGELSTEUERSATZ.getProzent()));
+        speichereOhneDatei(new Produkt(nextId(), "Schokoriegel", 1.20, 25, null, Verkaufseinheit.STUECK, Steuersatz.ERMAESSIGT.getProzent()));
     }
 
     private void speichereOhneDatei(Produkt produkt) {
@@ -125,8 +128,10 @@ public class JsonProduktRepository implements ProduktRepository {
         private int id;
         private String name;
         private double preis;
-        private int lagerbestand;
+        private double lagerbestand;
         private String bildPfad;
+        private String einheit;
+        private double steuerSatz;
 
         private ProduktJson() {
         }
@@ -137,10 +142,14 @@ public class JsonProduktRepository implements ProduktRepository {
             this.preis = produkt.getPreis();
             this.lagerbestand = produkt.getLagerbestand();
             this.bildPfad = produkt.getBildPfad();
+            this.einheit = produkt.getEinheit().name();
+            this.steuerSatz = produkt.getSteuerSatz();
         }
 
         private Produkt toProdukt() {
-            return new Produkt(id, name, preis, lagerbestand, bildPfad);
+            double verwendeterSteuersatz = steuerSatz == 0 ? Steuersatz.REGELSTEUERSATZ.getProzent() : steuerSatz;
+            return new Produkt(id, name, preis, lagerbestand, bildPfad,
+                    Verkaufseinheit.fromLabel(einheit), verwendeterSteuersatz);
         }
     }
 }

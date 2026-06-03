@@ -28,7 +28,8 @@ public class Main extends Application {
 
         Tab kasseTab = new Tab("Kasse", new KassenView(produktService, kassenService));
         Tab produktTab = new Tab("Produkt hinzufügen", new ProduktFormView(produktService));
-        Tab lagerTab = new Tab("Lagerbestand", new LagerView(produktService));
+        Tab lagerTab = new Tab("Lagerbestand", new LagerView(produktService,
+                () -> tabPane.getSelectionModel().select(produktTab)));
 
         tabPane.getTabs().addAll(kasseTab, produktTab, lagerTab);
         tabPane.getSelectionModel().select(0);

@@ -1,13 +1,15 @@
 package de.mmbbs.kassensystem.ui;
 
+import de.mmbbs.kassensystem.model.Steuersatz;
+import de.mmbbs.kassensystem.model.Verkaufseinheit;
 import de.mmbbs.kassensystem.service.ProduktService;
 import de.mmbbs.kassensystem.util.ImageUtil;
 import de.mmbbs.kassensystem.util.ImageProcessor;
+import de.mmbbs.kassensystem.util.MengenFormatter;
 import de.mmbbs.kassensystem.util.ValidationUtil;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -22,6 +24,8 @@ public class ProduktFormView extends VBox {
     private final TextField preisField = new TextField();
     private final TextField bestandField = new TextField();
     private final TextField bildPfadField = new TextField();
+    private final ComboBox<Verkaufseinheit> einheitBox = new ComboBox<>();
+    private final ComboBox<Steuersatz> steuerBox = new ComboBox<>();
     private final ImageView bildVorschau = new ImageView();
     private final Label statusLabel = new Label();
     private String gewaehlterBildPfad;
@@ -68,6 +72,20 @@ public class ProduktFormView extends VBox {
         grid.add(bestandLabel, 0, 2);
         grid.add(bestandField, 1, 2);
 
+        einheitBox.getItems().setAll(Verkaufseinheit.values());
+        einheitBox.getSelectionModel().select(Verkaufseinheit.STUECK);
+        Label einheitLabel = new Label("Einheit:");
+        einheitLabel.getStyleClass().add("subtitle-label");
+        grid.add(einheitLabel, 0, 3);
+        grid.add(einheitBox, 1, 3);
+
+        steuerBox.getItems().setAll(Steuersatz.values());
+        steuerBox.getSelectionModel().select(Steuersatz.REGELSTEUERSATZ);
+        Label steuerLabel = new Label("Umsatzsteuer:");
+        steuerLabel.getStyleClass().add("subtitle-label");
+        grid.add(steuerLabel, 0, 4);
+        grid.add(steuerBox, 1, 4);
+
         Label bildLabel = new Label("Produktbild:");
         bildLabel.getStyleClass().add("subtitle-label");
 
@@ -85,8 +103,8 @@ public class ProduktFormView extends VBox {
         HBox bildBox = new HBox(8, bildPfadField, bildButton, bildVorschau);
         bildBox.setAlignment(Pos.CENTER_LEFT);
 
-        grid.add(bildLabel, 0, 3);
-        grid.add(bildBox, 1, 3);
+        grid.add(bildLabel, 0, 5);
+        grid.add(bildBox, 1, 5);
 
         Button saveButton = new Button("Produkt speichern");
         saveButton.getStyleClass().add("primary-button");
@@ -163,15 +181,19 @@ public class ProduktFormView extends VBox {
             }
 
             double preis = Double.parseDouble(preisStr.replace(",", "."));
-            int bestand = Integer.parseInt(bestandStr);
+            double bestand = MengenFormatter.parseMenge(bestandStr);
+            Verkaufseinheit einheit = einheitBox.getSelectionModel().getSelectedItem();
+            Steuersatz steuer = steuerBox.getSelectionModel().getSelectedItem();
 
-            produktService.produktHinzufuegen(name, preis, bestand, gewaehlterBildPfad);
+            produktService.produktHinzufuegen(name, preis, bestand, gewaehlterBildPfad, einheit, steuer.getProzent());
             statusLabel.setText("✓ Produkt gespeichert!");
 
             // Form clearen
             nameField.clear();
             preisField.clear();
             bestandField.clear();
+            einheitBox.getSelectionModel().select(Verkaufseinheit.STUECK);
+            steuerBox.getSelectionModel().select(Steuersatz.REGELSTEUERSATZ);
             bildPfadField.clear();
             bildVorschau.setImage(null);
             gewaehlterBildPfad = null;

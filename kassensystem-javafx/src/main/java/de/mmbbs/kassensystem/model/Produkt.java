@@ -1,11 +1,11 @@
 package de.mmbbs.kassensystem.model;
 
 import de.mmbbs.kassensystem.util.GeldFormatter;
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.StringProperty;
 
 public class Produkt {
@@ -13,23 +13,36 @@ public class Produkt {
     private final IntegerProperty idProperty;
     private final StringProperty nameProperty;
     private final DoubleProperty preisProperty;
-    private final IntegerProperty lagerbestandProperty;
+    private final DoubleProperty lagerbestandProperty;
     private String name;
     private double preis;
-    private int lagerbestand;
+    private double lagerbestand;
     private String bildPfad;
+    private Verkaufseinheit einheit;
+    private double steuerSatz;
 
     public Produkt(int id, String name, double preis, int lagerbestand) {
-        this(id, name, preis, lagerbestand, null);
+        this(id, name, preis, (double) lagerbestand, null);
     }
 
     public Produkt(int id, String name, double preis, int lagerbestand, String bildPfad) {
+        this(id, name, preis, (double) lagerbestand, bildPfad);
+    }
+
+    public Produkt(int id, String name, double preis, double lagerbestand, String bildPfad) {
+        this(id, name, preis, lagerbestand, bildPfad, Verkaufseinheit.STUECK, Steuersatz.REGELSTEUERSATZ.getProzent());
+    }
+
+    public Produkt(int id, String name, double preis, double lagerbestand, String bildPfad,
+                   Verkaufseinheit einheit, double steuerSatz) {
         this.id = id;
         this.idProperty = new SimpleIntegerProperty(id);
         this.nameProperty = new SimpleStringProperty();
         this.preisProperty = new SimpleDoubleProperty();
-        this.lagerbestandProperty = new SimpleIntegerProperty();
+        this.lagerbestandProperty = new SimpleDoubleProperty();
         this.bildPfad = bildPfad;
+        this.einheit = einheit == null ? Verkaufseinheit.STUECK : einheit;
+        this.steuerSatz = Steuersatz.fromProzent(steuerSatz).getProzent();
         setName(name);
         setPreis(preis);
         setLagerbestand(lagerbestand);
@@ -51,7 +64,7 @@ public class Produkt {
         return preisProperty;
     }
 
-    public IntegerProperty lagerbestandProperty() {
+    public DoubleProperty lagerbestandProperty() {
         return lagerbestandProperty;
     }
 
@@ -79,7 +92,7 @@ public class Produkt {
         this.preisProperty.set(this.preis);
     }
 
-    public int getLagerbestand() {
+    public double getLagerbestand() {
         return lagerbestand;
     }
 
@@ -91,7 +104,7 @@ public class Produkt {
         this.bildPfad = bildPfad;
     }
 
-    public void setLagerbestand(int lagerbestand) {
+    public void setLagerbestand(double lagerbestand) {
         if (lagerbestand < 0) {
             throw new IllegalArgumentException("Lagerbestand darf nicht negativ sein.");
         }
@@ -99,14 +112,34 @@ public class Produkt {
         this.lagerbestandProperty.set(this.lagerbestand);
     }
 
-    public void bestandErhoehen(int menge) {
+    public Verkaufseinheit getEinheit() {
+        return einheit;
+    }
+
+    public String getEinheitLabel() {
+        return einheit.getLabel();
+    }
+
+    public void setEinheit(Verkaufseinheit einheit) {
+        this.einheit = einheit == null ? Verkaufseinheit.STUECK : einheit;
+    }
+
+    public double getSteuerSatz() {
+        return steuerSatz;
+    }
+
+    public void setSteuerSatz(double steuerSatz) {
+        this.steuerSatz = Steuersatz.fromProzent(steuerSatz).getProzent();
+    }
+
+    public void bestandErhoehen(double menge) {
         if (menge <= 0) {
             throw new IllegalArgumentException("Menge muss größer als 0 sein.");
         }
         setLagerbestand(this.lagerbestand + menge);
     }
 
-    public void bestandVerringern(int menge) {
+    public void bestandVerringern(double menge) {
         if (menge <= 0) {
             throw new IllegalArgumentException("Menge muss größer als 0 sein.");
         }
@@ -118,6 +151,6 @@ public class Produkt {
 
     @Override
     public String toString() {
-        return id + " - " + name + " (" + GeldFormatter.formatiereBetrag(preis) + ")";
+        return id + " - " + name + " (" + GeldFormatter.formatiereBetrag(preis) + "/" + getEinheitLabel() + ")";
     }
 }

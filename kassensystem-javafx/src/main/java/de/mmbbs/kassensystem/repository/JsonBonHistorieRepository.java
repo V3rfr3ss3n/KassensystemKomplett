@@ -7,6 +7,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import de.mmbbs.kassensystem.model.Bon;
 import de.mmbbs.kassensystem.model.BonPosition;
 import de.mmbbs.kassensystem.model.Produkt;
+import de.mmbbs.kassensystem.model.Steuersatz;
+import de.mmbbs.kassensystem.model.Verkaufseinheit;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -99,8 +101,9 @@ public class JsonBonHistorieRepository implements BonHistorieRepository {
     @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
     private static final class BonPositionJson {
         private ProduktJson produkt;
-        private int menge;
+        private double menge;
         private double einzelpreis;
+        private double steuerSatz;
         private double gesamtpreis;
 
         private BonPositionJson() {
@@ -110,11 +113,13 @@ public class JsonBonHistorieRepository implements BonHistorieRepository {
             this.produkt = new ProduktJson(position.getProdukt());
             this.menge = position.getMenge();
             this.einzelpreis = position.getEinzelpreis();
+            this.steuerSatz = position.getSteuerSatz();
             this.gesamtpreis = position.getGesamtpreis();
         }
 
         private BonPosition toBonPosition() {
-            return new BonPosition(produkt.toProdukt(), menge);
+            double verwendeterSteuersatz = steuerSatz == 0 ? Steuersatz.REGELSTEUERSATZ.getProzent() : steuerSatz;
+            return new BonPosition(produkt.toProdukt(), menge, einzelpreis, gesamtpreis, verwendeterSteuersatz);
         }
     }
 
@@ -123,7 +128,9 @@ public class JsonBonHistorieRepository implements BonHistorieRepository {
         private int id;
         private String name;
         private double preis;
-        private int lagerbestand;
+        private double lagerbestand;
+        private String einheit;
+        private double steuerSatz;
 
         private ProduktJson() {
         }
@@ -133,10 +140,14 @@ public class JsonBonHistorieRepository implements BonHistorieRepository {
             this.name = produkt.getName();
             this.preis = produkt.getPreis();
             this.lagerbestand = produkt.getLagerbestand();
+            this.einheit = produkt.getEinheit().name();
+            this.steuerSatz = produkt.getSteuerSatz();
         }
 
         private Produkt toProdukt() {
-            return new Produkt(id, name, preis, lagerbestand);
+            double verwendeterSteuersatz = steuerSatz == 0 ? Steuersatz.REGELSTEUERSATZ.getProzent() : steuerSatz;
+            return new Produkt(id, name, preis, lagerbestand, null,
+                    Verkaufseinheit.fromLabel(einheit), verwendeterSteuersatz);
         }
     }
 }

@@ -1101,6 +1101,17 @@ Diese Reihenfolge ist verbindlich, damit keine Zeit verloren geht.
 - [x] Bon schöner formatieren
 - [x] Produktnummern sichtbar machen
 - [x] Produktlisten direkt in den Spalten filtern
+- [x] Bon in der Kasse rechts groß sichtbar anzeigen
+- [x] Produkte per Plus-Klick direkt in den Warenkorb legen
+- [x] Produktdetails per Doppelklick öffnen
+- [x] Produkt-Detailansicht ergänzen
+- [x] Produktdetailansicht zeigt das Produktbild größer an
+- [x] Kassenprodukte per Suchfeld filtern
+- [x] Warenkorbpositionen einzeln erhöhen, verringern oder entfernen
+- [x] Kaufabschluss unten grün hervorheben
+- [x] Verkaufseinheiten wie Stück, kg und Liter unterstützen
+- [x] Umsatzsteuer mit 19 % und 7 % berechnen und auf dem Bon ausweisen
+- [x] Bon-Historie in der Kassenansicht wieder sichtbar machen
 
 ## Optionale Aufgaben nach MVP
 
@@ -1113,13 +1124,15 @@ Diese Reihenfolge ist verbindlich, damit keine Zeit verloren geht.
 
 ## Optionale große Erweiterung
 
-- [ ] Spring-Boot-Projekt planen
+- [ ] Spring-Boot-/React-Adminbereich planen
 - [ ] REST-API-Endpunkte definieren
-- [ ] Spring-Boot-Backend erstellen
-- [ ] Browser-GUI mit HTML/CSS/JavaScript erstellen
+- [ ] Spring-Boot-Backend für administrative Funktionen erstellen
+- [ ] React-Weboberfläche für Produkt- und Lagerverwaltung erstellen
 - [ ] Produkte über API laden
-- [ ] Kassenvorgang über API abschließen
+- [x] Admin-Link aus JavaFX mit Testpasswort schützen
 - [ ] Datenbank an Spring Boot anbinden
+- [x] Spring Boot für Java 24 auf Version 3.5.14 aktualisieren
+- [x] SQLite-Dialect im Spring-Backend auf Hibernate 6 Community Dialect umstellen
 
 ---
 
@@ -1146,6 +1159,14 @@ Dieser Abschnitt wird vom Agenten oder Team nach jeder abgeschlossenen Aufgabe a
 - [x] Dialoge werden über `AlertUtil` zentral verwendet
 - [x] Geldbeträge werden zentral im deutschen Euroformat angezeigt
 - [x] Bon-Ausgabe und Warenkorbpositionen sind lesbarer formatiert
+- [x] Bon steht in der Kasse rechts mit sichtbarer Bon-Historie
+- [x] Spring-Backend startet mit Java 24, Spring Boot 3.5.14 und SQLite
+- [x] Produktkarten unterstützen Plus-Klick, Doppelklick-Details und Warenkorb-Mengenbadge
+- [x] Warenkorbpositionen können direkt in der Liste bearbeitet werden
+- [x] Kaufabschluss ist in der Kasse unten als grüner Button hervorgehoben
+- [x] Produkte unterstützen Verkaufseinheiten und Umsatzsteuersätze 19 % / 7 %
+- [x] Bon weist Netto- und Umsatzsteuerbeträge pro Steuersatz aus
+- [x] JavaFX enthält einen Admin-Weblink mit Testpasswort `1234`
 
 ## Entscheidungen
 
@@ -1153,6 +1174,8 @@ Dieser Abschnitt wird vom Agenten oder Team nach jeder abgeschlossenen Aufgabe a
 - Build-Tool ist Maven.
 - Server kommt erst nach dem lokalen MVP.
 - Wenn Spring Boot genutzt wird, dann mit Browser-GUI statt JavaFX-Client.
+- Kasse bleibt ausschließlich in JavaFX; Web/React wird ein Adminbereich für Produkte, Lager und neue Verwaltungsfeatures.
+- JavaFX soll später per Admin-Zugang auf die Weboberfläche weiterleiten können, zunächst mit Testpasswort `1234`.
 - Daten werden am Anfang nur zur Laufzeit gespeichert.
 - Produktdaten werden nach dem MVP-Schritt jetzt dauerhaft in JSON gespeichert.
 - Dummy-Produkte werden im Code erzeugt.

@@ -1,6 +1,8 @@
 package de.mmbbs.kassensystem.repository;
 
 import de.mmbbs.kassensystem.model.Produkt;
+import de.mmbbs.kassensystem.model.Steuersatz;
+import de.mmbbs.kassensystem.model.Verkaufseinheit;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -17,11 +19,11 @@ public class InMemoryProduktRepository implements ProduktRepository {
     }
 
     private void speichereInitialeDaten() {
-        speichere(new Produkt(nextId(), "Cola", 1.50, 20));
-        speichere(new Produkt(nextId(), "Wasser", 1.00, 30));
-        speichere(new Produkt(nextId(), "Brötchen", 0.80, 15));
-        speichere(new Produkt(nextId(), "Kaffee", 2.20, 10));
-        speichere(new Produkt(nextId(), "Schokoriegel", 1.20, 25));
+        speichere(new Produkt(nextId(), "Cola", 1.50, 20, null, Verkaufseinheit.STUECK, Steuersatz.REGELSTEUERSATZ.getProzent()));
+        speichere(new Produkt(nextId(), "Wasser", 1.00, 30, null, Verkaufseinheit.STUECK, Steuersatz.REGELSTEUERSATZ.getProzent()));
+        speichere(new Produkt(nextId(), "Brötchen", 0.80, 15, null, Verkaufseinheit.STUECK, Steuersatz.ERMAESSIGT.getProzent()));
+        speichere(new Produkt(nextId(), "Kaffee", 2.20, 10, null, Verkaufseinheit.STUECK, Steuersatz.REGELSTEUERSATZ.getProzent()));
+        speichere(new Produkt(nextId(), "Schokoriegel", 1.20, 25, null, Verkaufseinheit.STUECK, Steuersatz.ERMAESSIGT.getProzent()));
     }
 
     private int nextId() {
@@ -46,7 +48,8 @@ public class InMemoryProduktRepository implements ProduktRepository {
     @Override
     public Produkt speichern(Produkt produkt) {
         if (produkt.getId() == 0) {
-            Produkt mitId = new Produkt(nextId(), produkt.getName(), produkt.getPreis(), produkt.getLagerbestand());
+            Produkt mitId = new Produkt(nextId(), produkt.getName(), produkt.getPreis(), produkt.getLagerbestand(),
+                    produkt.getBildPfad(), produkt.getEinheit(), produkt.getSteuerSatz());
             return speichere(mitId);
         }
         return speichere(produkt);

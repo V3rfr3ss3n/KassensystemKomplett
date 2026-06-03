@@ -87,6 +87,49 @@
     -fx-background-color: #d1d5db;
 }
 
+.success-button {
+    -fx-background-color: #16a34a;
+    -fx-text-fill: white;
+    -fx-background-radius: 8;
+    -fx-padding: 10 18;
+    -fx-font-weight: bold;
+}
+
+.success-button:hover {
+    -fx-background-color: #15803d;
+}
+
+.success-button:disabled {
+    -fx-background-color: #bbf7d0;
+    -fx-text-fill: #f8fafc;
+}
+
+.cart-badge {
+    -fx-background-color: #ef4444;
+    -fx-text-fill: white;
+    -fx-background-radius: 999;
+    -fx-padding: 2 6;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-translate-x: 8;
+    -fx-translate-y: -8;
+}
+
+.filter-panel {
+    -fx-background-color: #f9fafb;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 10;
+}
+
+.detail-image {
+    -fx-background-color: #f9fafb;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
 .cart-area {
     -fx-background-color: white;
     -fx-border-color: #e5e7eb;

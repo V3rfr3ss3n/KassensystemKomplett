@@ -1,6 +1,7 @@
 package de.mmbbs.kassensystem.service;
 
 import de.mmbbs.kassensystem.model.Bon;
+import de.mmbbs.kassensystem.model.BonPosition;
 import de.mmbbs.kassensystem.model.Produkt;
 import de.mmbbs.kassensystem.repository.BonHistorieRepository;
 import de.mmbbs.kassensystem.repository.InMemoryProduktRepository;
@@ -29,6 +30,37 @@ class KassenServiceTest {
         assertEquals(18, repository.findeNachId(1).orElseThrow().getLagerbestand());
         assertEquals(1, historie.saved.size());
         assertTrue(service.getWarenkorb().isEmpty());
+    }
+
+    @Test
+    void warenkorbPositionenKoennenBearbeitetWerden() {
+        InMemoryProduktRepository repository = new InMemoryProduktRepository();
+        KassenService service = new KassenService(repository, new TestBonHistorieRepository());
+
+        service.positionHinzufuegen(1, 2);
+        BonPosition position = service.getWarenkorb().get(0);
+
+        service.positionErhoehen(position);
+        assertEquals(1, service.getWarenkorb().size());
+        assertEquals(3.0, service.getWarenkorb().get(0).getMenge(), 0.001);
+
+        service.positionVerringern(service.getWarenkorb().get(0));
+        assertEquals(2.0, service.getWarenkorb().get(0).getMenge(), 0.001);
+
+        service.positionEntfernen(service.getWarenkorb().get(0));
+        assertTrue(service.getWarenkorb().isEmpty());
+    }
+
+    @Test
+    void gleichesProduktWirdImWarenkorbZusammengefuehrt() {
+        InMemoryProduktRepository repository = new InMemoryProduktRepository();
+        KassenService service = new KassenService(repository, new TestBonHistorieRepository());
+
+        service.positionHinzufuegen(1, 1);
+        service.positionHinzufuegen(1, 2);
+
+        assertEquals(1, service.getWarenkorb().size());
+        assertEquals(3.0, service.getWarenkorb().get(0).getMenge(), 0.001);
     }
 
     private static final class TestBonHistorieRepository implements BonHistorieRepository {
