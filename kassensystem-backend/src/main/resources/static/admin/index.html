@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Kassensystem Verwaltung</title>
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+<header class="topbar">
+    <div>
+        <h1>Verwaltung</h1>
+        <p>Produkte und Lagerbestand</p>
+    </div>
+    <div class="top-actions">
+        <button id="reloadButton" type="button">Aktualisieren</button>
+        <button id="newButton" type="button">Neu</button>
+    </div>
+</header>
+
+<main class="shell">
+    <section class="list-section" aria-label="Produktliste">
+        <div class="toolbar">
+            <input id="searchInput" type="search" placeholder="Suche nach ID, Name, Einheit oder Steuer">
+            <select id="unitFilter">
+                <option value="">Alle Einheiten</option>
+                <option value="STUECK">Stueck</option>
+                <option value="KILOGRAMM">kg</option>
+                <option value="LITER">l</option>
+                <option value="PACKUNG">Packung</option>
+            </select>
+            <select id="taxFilter">
+                <option value="">Alle Steuern</option>
+                <option value="19">19 %</option>
+                <option value="7">7 %</option>
+            </select>
+            <label class="checkbox-line">
+                <input id="stockFilter" type="checkbox">
+                verfuegbar
+            </label>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Preis</th>
+                    <th>Lager</th>
+                    <th>Einheit</th>
+                    <th>USt</th>
+                </tr>
+                </thead>
+                <tbody id="productRows"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <aside class="editor" aria-label="Produkt bearbeiten">
+        <form id="productForm">
+            <input id="productId" type="hidden">
+
+            <label>
+                Name
+                <input id="nameInput" name="name" required>
+            </label>
+
+            <div class="field-grid">
+                <label>
+                    Preis
+                    <input id="priceInput" name="preis" inputmode="decimal" required>
+                </label>
+                <label>
+                    Lager
+                    <input id="stockInput" name="lagerbestand" inputmode="decimal" required>
+                </label>
+            </div>
+
+            <div class="field-grid">
+                <label>
+                    Einheit
+                    <select id="unitInput" name="einheit">
+                        <option value="STUECK">Stueck</option>
+                        <option value="KILOGRAMM">kg</option>
+                        <option value="LITER">l</option>
+                        <option value="PACKUNG">Packung</option>
+                    </select>
+                </label>
+                <label>
+                    USt
+                    <select id="taxInput" name="steuerSatz">
+                        <option value="19">19 %</option>
+                        <option value="7">7 %</option>
+                    </select>
+                </label>
+            </div>
+
+            <label>
+                Bildpfad
+                <input id="imageInput" name="bildPfad">
+            </label>
+
+            <div class="button-row">
+                <button class="primary" type="submit">Speichern</button>
+                <button id="deleteButton" class="danger" type="button">Loeschen</button>
+            </div>
+        </form>
+
+        <div class="stock-box">
+            <label>
+                Warenzugang
+                <input id="stockAddInput" inputmode="decimal" placeholder="Menge">
+            </label>
+            <button id="stockAddButton" type="button">Buchen</button>
+        </div>
+
+        <p id="statusText" role="status"></p>
+    </aside>
+</main>
+
+<script src="admin.js"></script>
+</body>
+</html>

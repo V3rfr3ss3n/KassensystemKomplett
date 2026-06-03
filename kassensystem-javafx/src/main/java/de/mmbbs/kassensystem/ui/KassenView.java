@@ -80,7 +80,14 @@ public class KassenView extends VBox {
         Button clearFilterButton = new Button("x");
         clearFilterButton.getStyleClass().add("secondary-button");
         clearFilterButton.setOnAction(event -> setzeProduktFilterZurueck());
-        HBox filterBar = new HBox(8, produktSucheField, filterButton, clearFilterButton);
+        Button refreshButton = new Button("Aktualisieren");
+        refreshButton.getStyleClass().add("secondary-button");
+        refreshButton.setOnAction(event -> {
+            aktualisiereProduktGrid();
+            aktualisiereBonHistorie();
+            statusLabel.setText("Daten aktualisiert.");
+        });
+        HBox filterBar = new HBox(8, produktSucheField, filterButton, refreshButton, clearFilterButton);
         HBox.setHgrow(produktSucheField, Priority.ALWAYS);
 
         VBox erweiterteFilter = erstelleErweiterteFilter();

@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Optional;
 
 public class MainView extends VBox {
+    private static final String ADMIN_URL = AdminWebView.ADMIN_URL;
     private final ProduktService produktService;
     private final Label valueLabel = new Label("Gesamtwert im Lager: " + GeldFormatter.formatiereBetrag(0));
     private final Label summaryLabel = new Label("Produkte insgesamt: 0");
@@ -127,12 +128,12 @@ public class MainView extends VBox {
 
         try {
             if (Desktop.isDesktopSupported()) {
-                Desktop.getDesktop().browse(new URI("http://localhost:3000"));
+                Desktop.getDesktop().browse(new URI(ADMIN_URL));
             } else {
-                AlertUtil.showInfo("Adminbereich", "Admin-Webadresse: http://localhost:3000");
+                AlertUtil.showInfo("Adminbereich", "Admin-Webadresse: " + ADMIN_URL);
             }
         } catch (Exception ex) {
-            AlertUtil.showWarning("Adminbereich", "Admin-Webadresse: http://localhost:3000");
+            AlertUtil.showWarning("Adminbereich", "Admin-Webadresse: " + ADMIN_URL);
         }
     }
 }

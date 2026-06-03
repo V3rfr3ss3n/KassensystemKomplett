@@ -1120,19 +1120,20 @@ Diese Reihenfolge ist verbindlich, damit keine Zeit verloren geht.
 - [x] Produkte in JSON speichern
 - [x] Produkte aus JSON laden
 - [x] Bons speichern
-- [ ] SQLite-Datenbank einbauen
+- [x] SQLite-Datenbank einbauen
 
 ## Optionale große Erweiterung
 
-- [ ] Spring-Boot-/React-Adminbereich planen
-- [ ] REST-API-Endpunkte definieren
-- [ ] Spring-Boot-Backend für administrative Funktionen erstellen
-- [ ] React-Weboberfläche für Produkt- und Lagerverwaltung erstellen
-- [ ] Produkte über API laden
+- [x] Spring-Boot-/Browser-Adminbereich planen
+- [x] REST-API-Endpunkte definieren
+- [x] Spring-Boot-Backend für administrative Funktionen erstellen
+- [x] Browser-Weboberfläche für Produkt- und Lagerverwaltung erstellen
+- [x] Produkte über API laden
 - [x] Admin-Link aus JavaFX mit Testpasswort schützen
-- [ ] Datenbank an Spring Boot anbinden
+- [x] Datenbank an Spring Boot anbinden
 - [x] Spring Boot für Java 24 auf Version 3.5.14 aktualisieren
 - [x] SQLite-Dialect im Spring-Backend auf Hibernate 6 Community Dialect umstellen
+- [x] JavaFX und Spring nutzen standardmäßig dieselbe SQLite-Datei `data/kassensystem.db`
 
 ---
 
@@ -1167,6 +1168,9 @@ Dieser Abschnitt wird vom Agenten oder Team nach jeder abgeschlossenen Aufgabe a
 - [x] Produkte unterstützen Verkaufseinheiten und Umsatzsteuersätze 19 % / 7 %
 - [x] Bon weist Netto- und Umsatzsteuerbeträge pro Steuersatz aus
 - [x] JavaFX enthält einen Admin-Weblink mit Testpasswort `1234`
+- [x] JavaFX-Hauptnavigation enthält Kasse plus Verwaltung; administrative Masken laufen über den Spring-Adminbereich
+- [x] Spring-Adminbereich bietet Produktliste, Suche/Filter, Produktanlage, Bearbeitung, Löschen und Warenzugang
+- [x] Spring-REST-API schreibt Produkte und Lagerbestand in dieselbe SQLite-Datenbank wie JavaFX
 
 ## Entscheidungen
 
