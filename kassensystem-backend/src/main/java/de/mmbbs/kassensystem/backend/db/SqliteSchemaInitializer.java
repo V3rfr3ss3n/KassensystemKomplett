@@ -8,6 +8,12 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.Statement;
 
+/**
+ * Legt beim Start des Spring-Backends das SQLite-Schema an.
+ *
+ * <p>Das Backend benoetigt dieselben Tabellen wie JavaFX, damit beide Teile
+ * dieselbe Datenbankdatei verwenden koennen.</p>
+ */
 @Component
 public class SqliteSchemaInitializer implements ApplicationRunner {
     private final DataSource dataSource;

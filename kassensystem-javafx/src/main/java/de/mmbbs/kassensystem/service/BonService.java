@@ -9,6 +9,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Erzeugt und formatiert Kassenbons.
+ *
+ * <p>Der Service kapselt Bonnummern, Bonaufbau und die Darstellung der
+ * Umsatzsteueranteile, damit die UI nur fertigen Bontext anzeigen muss.</p>
+ */
 public class BonService {
     private static final DateTimeFormatter DATUM_UHRZEIT_FORMAT =
             DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm 'Uhr'");
@@ -21,6 +27,12 @@ public class BonService {
         this.naechsteBonNummer = Math.max(1, naechsteBonNummer);
     }
 
+    /**
+     * Erstellt einen neuen Bon aus den Warenkorbpositionen.
+     *
+     * @param positionen Positionen des abgeschlossenen Warenkorbs.
+     * @return Neuer Bon mit fortlaufender Bonnummer.
+     */
     public Bon erstelleBon(List<BonPosition> positionen) {
         if (positionen == null || positionen.isEmpty()) {
             throw new IllegalArgumentException("Der Warenkorb ist leer.");
@@ -28,6 +40,12 @@ public class BonService {
         return new Bon(naechsteBonNummer++, positionen);
     }
 
+    /**
+     * Formatiert einen Bon fuer die Anzeige auf dem Bildschirm.
+     *
+     * @param bon Abgeschlossener Bon.
+     * @return Mehrzeiliger Bontext mit Positionen, Steuer und Gesamtbetrag.
+     */
     public String formatiereBon(Bon bon) {
         StringBuilder builder = new StringBuilder();
         builder.append("========================================\n");

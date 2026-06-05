@@ -8,6 +8,12 @@ import de.mmbbs.kassensystem.repository.ProduktRepository;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Fachlogik fuer Produktanlage, Produktpflege und Warenzugang.
+ *
+ * <p>Der Service prueft Eingaben ueber das Produktmodell, schreibt ueber das
+ * Repository und benachrichtigt UI-Ansichten, wenn sich Produktdaten aendern.</p>
+ */
 public class ProduktService {
     private final ProduktRepository repository;
     private final List<ProductChangeListener> listeners = new ArrayList<>();
@@ -39,6 +45,17 @@ public class ProduktService {
                 Verkaufseinheit.STUECK, Steuersatz.REGELSTEUERSATZ.getProzent());
     }
 
+    /**
+     * Legt ein neues Produkt mit allen verwalteten Feldern an.
+     *
+     * @param name Produktname.
+     * @param preis Bruttopreis pro Einheit.
+     * @param anfangsbestand Anfangsbestand im Lager.
+     * @param bildPfad Optionaler Bildpfad.
+     * @param einheit Verkaufseinheit.
+     * @param steuerSatz Umsatzsteuer in Prozent.
+     * @return Gespeichertes Produkt inklusive Produktnummer.
+     */
     public Produkt produktHinzufuegen(String name, double preis, double anfangsbestand, String bildPfad,
                                       Verkaufseinheit einheit, double steuerSatz) {
         Produkt produkt = new Produkt(0, name, preis, anfangsbestand, bildPfad, einheit, steuerSatz);
@@ -51,6 +68,12 @@ public class ProduktService {
         warenzugangErfassen(produktId, (double) menge);
     }
 
+    /**
+     * Bucht einen Warenzugang und erhoeht dadurch den Lagerbestand.
+     *
+     * @param produktId Produktnummer.
+     * @param menge Zugegangene Menge.
+     */
     public void warenzugangErfassen(int produktId, double menge) {
         Produkt produkt = repository.findeNachId(produktId)
                 .orElseThrow(() -> new IllegalArgumentException("Produkt nicht gefunden."));
@@ -83,6 +106,18 @@ public class ProduktService {
                 Verkaufseinheit.STUECK, Steuersatz.REGELSTEUERSATZ.getProzent());
     }
 
+    /**
+     * Aktualisiert ein vorhandenes Produkt.
+     *
+     * @param produktId Produktnummer.
+     * @param name Neuer Produktname.
+     * @param preis Neuer Bruttopreis.
+     * @param lagerbestand Neuer Lagerbestand.
+     * @param bildPfad Optional neuer Bildpfad.
+     * @param einheit Neue Verkaufseinheit.
+     * @param steuerSatz Neuer Umsatzsteuersatz.
+     * @return Gespeichertes Produkt nach der Aktualisierung.
+     */
     public Produkt produktAktualisieren(int produktId, String name, double preis, double lagerbestand, String bildPfad,
                                         Verkaufseinheit einheit, double steuerSatz) {
         Produkt produkt = repository.findeNachId(produktId)
@@ -104,6 +139,13 @@ public class ProduktService {
         return istMengeVerfuegbar(produktId, (double) menge);
     }
 
+    /**
+     * Prueft, ob eine Menge fuer den Verkauf verfuegbar ist.
+     *
+     * @param produktId Produktnummer.
+     * @param menge Gewuenschte Menge.
+     * @return {@code true}, wenn das Produkt existiert und genug Bestand vorhanden ist.
+     */
     public boolean istMengeVerfuegbar(int produktId, double menge) {
         return repository.findeNachId(produktId)
                 .map(produkt -> produkt.getLagerbestand() >= menge)

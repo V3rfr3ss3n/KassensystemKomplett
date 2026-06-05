@@ -3,6 +3,9 @@ package de.mmbbs.kassensystem.util;
 import java.text.NumberFormat;
 import java.util.Locale;
 
+/**
+ * Formatiert Preise und Betraege einheitlich fuer die Benutzeroberflaeche.
+ */
 public final class GeldFormatter {
     private static final Locale DEUTSCHLAND = Locale.GERMANY;
 

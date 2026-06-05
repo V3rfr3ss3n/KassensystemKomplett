@@ -14,8 +14,20 @@ import javafx.scene.control.TabPane;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
 
+/**
+ * Startpunkt der JavaFX-Kassenanwendung.
+ *
+ * <p>Hier werden Repository, Services und die Haupttabs verbunden. Die Kasse
+ * bleibt lokal in JavaFX, waehrend administrative Funktionen ueber den
+ * Verwaltungstab an den Spring-Adminbereich angebunden sind.</p>
+ */
 public class Main extends Application {
 
+    /**
+     * Baut das Hauptfenster mit Kassen- und Verwaltungstab auf.
+     *
+     * @param stage Primaere JavaFX-Stage der Anwendung.
+     */
     @Override
     public void start(Stage stage) {
         ProduktRepository repository = new SqlProduktRepository();

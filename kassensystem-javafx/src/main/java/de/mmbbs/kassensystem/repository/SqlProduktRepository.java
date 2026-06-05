@@ -10,6 +10,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * SQLite-Implementierung der Produktdatenhaltung fuer die JavaFX-Anwendung.
+ *
+ * <p>Dieses Repository nutzt dieselbe Datenbankdatei wie das Spring-Backend.
+ * Dadurch wirken Aenderungen aus der Admin-Weboberflaeche auch in der Kasse.</p>
+ */
 public class SqlProduktRepository implements ProduktRepository {
     private static final String DB_URL = "jdbc:sqlite:" + DatabaseInitializer.getDbPath();
 

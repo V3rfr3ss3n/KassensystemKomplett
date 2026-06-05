@@ -15,6 +15,12 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
+/**
+ * JDBC-Repository fuer Produkte im Spring-Backend.
+ *
+ * <p>Die Klasse arbeitet direkt auf der SQLite-Tabelle `produkte`, damit das
+ * Backend exakt dieselbe Datenstruktur nutzt wie die JavaFX-Kasse.</p>
+ */
 @Repository
 public class ProduktJdbcRepository {
     private static final List<String> ERLAUBTE_EINHEITEN = List.of("STUECK", "KILOGRAMM", "LITER", "PACKUNG");
@@ -37,6 +43,9 @@ public class ProduktJdbcRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /**
+     * Laedt alle Produkte fuer API und Adminoberflaeche.
+     */
     public List<ProduktDto> findeAlle() {
         return jdbcTemplate.query("""
                 SELECT id, name, preis, lagerbestand, bildPfad, einheit, steuerSatz
@@ -58,6 +67,9 @@ public class ProduktJdbcRepository {
         }
     }
 
+    /**
+     * Validiert und speichert ein neues Produkt.
+     */
     public ProduktDto erstellen(ProduktRequest request) {
         ProduktRequest daten = validiere(request, true);
         Integer id = jdbcTemplate.execute((ConnectionCallback<Integer>) connection -> {
@@ -96,6 +108,9 @@ public class ProduktJdbcRepository {
         return findeNachId(id).orElseThrow();
     }
 
+    /**
+     * Erhoeht den Lagerbestand eines Produkts.
+     */
     public ProduktDto warenzugangBuchen(int id, double menge) {
         if (menge <= 0) {
             throw new IllegalArgumentException("Menge muss groesser als 0 sein.");

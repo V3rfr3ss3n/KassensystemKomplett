@@ -1,39 +1,70 @@
-# Kassensystem MVP
+# Kassensystem
 
-Dieses Projekt ist ein kleines JavaFX-Kassensystem mit Maven. Die aktuelle Version enthält die wichtigsten MVP-Funktionen für den Verkauf, die Lagerverwaltung und die Produktanlage.
+JavaFX-Kassensystem mit Spring-Boot-Adminbereich und gemeinsamer SQLite-Datenbank.
 
 ## Funktionen
 
-- Produktübersicht mit Gesamtbestand und Lagerwert
-- Kassenansicht mit Warenkorb und Bonvorschau
-- Lageransicht mit Warenzugang
-- Produkt anlegen mit Eingabeprüfung
-- Produkt bearbeiten und löschen
-- Produktlisten mit Suche und Spaltenfiltern
-- JSON-Speicherung der Produkte in `produkte.json`
-- einfache JavaFX-Oberfläche mit CSS-Styling
+- Kassenansicht mit Produktliste, Suche, Filter und Warenkorb
+- Produkte per Plus-Klick in den Warenkorb legen
+- Warenkorbpositionen einzeln erhoehen, verringern oder entfernen
+- Kaufabschluss mit Lagerpruefung, Bonanzeige und Bon-Historie
+- Produktdaten mit Preis, Bestand, Einheit, Steuer und optionalem Bild
+- Gemeinsame SQLite-Datenbank fuer JavaFX und Spring Boot
+- Spring-Adminbereich fuer Produkt- und Lagerverwaltung
 
 ## Starten
 
-Mit JDK 24 und Maven:
+Voraussetzung: JDK 24 und Maven.
+
+JavaFX-Kasse:
 
 ```bash
-mvn clean compile
-mvn clean javafx:run
+mvn -pl kassensystem-javafx javafx:run
 ```
 
-Falls das Projekt in VS Code gestartet wird, sollte die Java-Umgebung auf JDK 24 zeigen.
+Spring-Adminbereich:
+
+```bash
+mvn -pl kassensystem-backend spring-boot:run
+```
+
+Admin-Weboberflaeche:
+
+```text
+http://localhost:8080/kassensystem/admin/
+```
+
+JavaFX fragt fuer den Verwaltungstab ein Testpasswort ab:
+
+```text
+1234
+```
+
+## Datenbank
+
+Standardpfad:
+
+```text
+data/kassensystem.db
+```
+
+Der Pfad kann gesetzt werden mit:
+
+```text
+-Dkassensystem.db.path=<pfad>
+KASSENSYSTEM_DB_PATH=<pfad>
+```
 
 ## Projektstruktur
 
-- src/main/java/de/mmbbs/kassensystem/Main.java – Einstiegspunkt der JavaFX-Anwendung
-- src/main/java/de/mmbbs/kassensystem/ui/ – JavaFX-Ansichten für Start, Kasse, Lager und Produktanlage
-- src/main/java/de/mmbbs/kassensystem/repository/ – Produktdaten im Speicher oder in JSON
-- src/main/java/de/mmbbs/kassensystem/service/ – Geschäftslogik für Produkte, Kassenvorgänge und Bons
-- src/main/java/de/mmbbs/kassensystem/model/ – Datenmodelle wie Produkt, Bon und BonPosition
-- src/main/resources/styles.css – JavaFX-Styling
-- produkte.json – wird beim ersten Start automatisch erzeugt und danach aktualisiert
+- `kassensystem-javafx` - JavaFX-Kasse
+- `kassensystem-backend` - Spring-Boot-API und Admin-Weboberflaeche
+- `PFLICHTENHEFT.md` - Pflichtenheft zur Aufgabe
+- `TODO.md` - Restarbeiten und optionale Erweiterungen
 
-## Hinweis
+## Tests
 
-Die Produktdaten werden aktuell in `produkte.json` gespeichert. Die Bon-Historie wird zusätzlich in `bon-historie.json` dauerhaft mitgeführt, damit abgeschlossene Käufe nach dem Neustart weiterhin sichtbar bleiben. SQLite ist als spätere Erweiterung geplant.
+```bash
+mvn -pl kassensystem-javafx test
+mvn -pl kassensystem-backend -DskipTests package
+```

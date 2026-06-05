@@ -19,6 +19,12 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+/**
+ * REST-Endpunkte fuer Produkt- und Lagerverwaltung.
+ *
+ * <p>Die Browser-Adminoberflaeche nutzt diesen Controller, um Produkte aus der
+ * gemeinsamen SQLite-Datenbank zu lesen und zu bearbeiten.</p>
+ */
 @RestController
 @RequestMapping("/api/produkte")
 public class ProduktController {
@@ -29,11 +35,17 @@ public class ProduktController {
     }
 
     @GetMapping
+    /**
+     * Gibt alle Produkte fuer die Adminliste zurueck.
+     */
     public ResponseEntity<?> getAllProdukte() {
         return ResponseEntity.ok(repository.findeAlle());
     }
 
     @PostMapping
+    /**
+     * Legt ein neues Produkt an.
+     */
     public ResponseEntity<?> createProdukt(@RequestBody ProduktRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(repository.erstellen(request));
     }
@@ -57,6 +69,9 @@ public class ProduktController {
     }
 
     @PostMapping("/{id}/warenzugang")
+    /**
+     * Bucht einen Warenzugang fuer ein Produkt.
+     */
     public ResponseEntity<?> buchWarenzugang(@PathVariable("id") int id,
                                              @RequestBody(required = false) WarenzugangRequest request,
                                              @RequestParam(name = "menge", required = false) Double menge) {

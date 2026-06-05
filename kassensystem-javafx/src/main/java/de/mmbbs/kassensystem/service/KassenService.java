@@ -12,6 +12,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Fachlogik fuer Kassenvorgaenge.
+ *
+ * <p>Der Service verwaltet den Warenkorb, prueft Lagerbestaende, erzeugt Bons,
+ * reduziert nach dem Kauf den Bestand und speichert die Bon-Historie.</p>
+ */
 public class KassenService {
     private final ProduktRepository repository;
     private final BonHistorieRepository bonHistorieRepository;
@@ -38,6 +44,12 @@ public class KassenService {
         positionHinzufuegen(produktId, (double) menge);
     }
 
+    /**
+     * Fuegt ein Produkt in den Warenkorb ein oder erhoeht eine vorhandene Position.
+     *
+     * @param produktId Produktnummer des gewaehlten Produkts.
+     * @param menge Gewaehlte Menge.
+     */
     public void positionHinzufuegen(int produktId, double menge) {
         Produkt produkt = repository.findeNachId(produktId)
                 .orElseThrow(() -> new IllegalArgumentException("Produkt nicht gefunden."));
@@ -74,10 +86,16 @@ public class KassenService {
         return List.copyOf(warenkorb);
     }
 
+    /**
+     * Entfernt eine einzelne Warenkorbposition.
+     */
     public void positionEntfernen(BonPosition position) {
         warenkorb.remove(position);
     }
 
+    /**
+     * Erhoeht eine Warenkorbposition um eine Einheit, wenn genug Bestand vorhanden ist.
+     */
     public void positionErhoehen(BonPosition position) {
         int index = warenkorb.indexOf(position);
         if (index < 0) {
@@ -98,6 +116,9 @@ public class KassenService {
                 position.getEinzelpreis(), Double.NaN, position.getSteuerSatz()));
     }
 
+    /**
+     * Verringert eine Warenkorbposition um eine Einheit oder entfernt sie bei Menge 0.
+     */
     public void positionVerringern(BonPosition position) {
         int index = warenkorb.indexOf(position);
         if (index < 0) {
@@ -114,10 +135,21 @@ public class KassenService {
                 position.getEinzelpreis(), Double.NaN, position.getSteuerSatz()));
     }
 
+    /**
+     * Berechnet den aktuellen Warenkorbwert.
+     */
     public double berechneGesamtpreis() {
         return warenkorb.stream().mapToDouble(BonPosition::getGesamtpreis).sum();
     }
 
+    /**
+     * Schliesst den Kassenvorgang ab.
+     *
+     * <p>Dabei werden alle benoetigten Lagerbestaende erneut geprueft, die
+     * Bestaende reduziert, ein Bon erzeugt und der Warenkorb geleert.</p>
+     *
+     * @return Erzeugter Bon des abgeschlossenen Kaufs.
+     */
     public Bon kassenvorgangAbschliessen() {
         if (warenkorb.isEmpty()) {
             throw new IllegalArgumentException("Der Warenkorb ist leer.");

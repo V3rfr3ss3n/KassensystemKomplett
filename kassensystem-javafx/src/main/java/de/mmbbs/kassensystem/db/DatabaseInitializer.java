@@ -9,6 +9,12 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
 
+/**
+ * Initialisiert die gemeinsame SQLite-Datenbank fuer die JavaFX-Anwendung.
+ *
+ * <p>Die Klasse legt Tabellen an und migriert fehlende Spalten nach, damit
+ * bestehende lokale Datenbanken weiter nutzbar bleiben.</p>
+ */
 public class DatabaseInitializer {
     private static final String DB_PATH_PROPERTY = "kassensystem.db.path";
     private static final String DB_PATH_ENV = "KASSENSYSTEM_DB_PATH";
