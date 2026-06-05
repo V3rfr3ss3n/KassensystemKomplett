@@ -11,12 +11,23 @@ import de.mmbbs.kassensystem.ui.AdminWebView;
 import de.mmbbs.kassensystem.ui.HauptmenuView;
 import de.mmbbs.kassensystem.ui.KassenView;
 import de.mmbbs.kassensystem.ui.LoginDialog;
+import de.mmbbs.kassensystem.ui.ThemeManager;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import javafx.scene.control.ToggleButton;
 import javafx.scene.image.Image;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.stage.Stage;
 
 import java.util.Optional;
@@ -29,6 +40,8 @@ import java.util.Optional;
  * das Hauptmenue und die Verwaltung.</p>
  */
 public class Main extends Application {
+    private final AuthService authService = new AuthService();
+    private Stage primaryStage;
 
     /**
      * Baut das Hauptfenster nach erfolgreicher Anmeldung auf.
@@ -37,51 +50,125 @@ public class Main extends Application {
      */
     @Override
     public void start(Stage stage) {
-        Optional<Benutzer> angemeldeterBenutzer = new LoginDialog(new AuthService()).showAndWait();
+        this.primaryStage = stage;
+
+        Image icon = new Image(getClass().getResource("/Icon.png").toExternalForm());
+        stage.getIcons().add(icon);
+
+        zeigeLogin();
+    }
+
+    private void zeigeLogin() {
+        Optional<Benutzer> angemeldeterBenutzer = new LoginDialog(authService).showAndWait();
         if (angemeldeterBenutzer.isEmpty()) {
             Platform.exit();
             return;
         }
 
         Benutzer benutzer = angemeldeterBenutzer.get();
+        zeigeAnwendung(benutzer);
+    }
+
+    private void zeigeAnwendung(Benutzer benutzer) {
         ProduktRepository repository = new SqlProduktRepository();
         ProduktService produktService = new ProduktService(repository);
         KassenService kassenService = new KassenService(repository, new SqlBonHistorieRepository(repository));
 
-        Scene scene = new Scene(erstelleAnsicht(stage, benutzer, produktService, kassenService), 1200, 720);
+        Parent root = erstelleAppShell(benutzer, produktService, kassenService);
+        ThemeManager.applyToRoot(root);
+
+        Scene scene = new Scene(root, 1200, 720);
         scene.getStylesheets().add(getClass().getResource("/styles.css").toExternalForm());
 
-        Image icon = new Image(getClass().getResource("/Icon.png").toExternalForm());
-        stage.getIcons().add(icon);
-
-        stage.setTitle("Kassensystem MVP - " + benutzer.benutzername());
-        stage.setScene(scene);
-        stage.show();
+        primaryStage.setTitle("Kassensystem MVP - " + benutzer.benutzername());
+        primaryStage.setScene(scene);
+        primaryStage.show();
     }
 
-    private TabPane erstelleAnsicht(Stage stage, Benutzer benutzer,
+    private BorderPane erstelleAppShell(Benutzer benutzer,
+                                        ProduktService produktService,
+                                        KassenService kassenService) {
+        BorderPane shell = new BorderPane();
+        shell.getStyleClass().add("app-shell");
+        shell.setTop(erstelleKopfzeile(benutzer));
+        shell.setCenter(erstelleAnsicht(benutzer, produktService, kassenService));
+        return shell;
+    }
+
+    private HBox erstelleKopfzeile(Benutzer benutzer) {
+        Label appLabel = new Label("Kassensystem");
+        appLabel.getStyleClass().add("app-title-label");
+
+        Label roleLabel = new Label(benutzer.benutzername() + " - " + benutzer.rolle().getAnzeigename());
+        roleLabel.getStyleClass().add("role-label");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        ToggleButton darkModeButton = new ToggleButton(ThemeManager.isDarkMode() ? "Hellmodus" : "Darkmode");
+        darkModeButton.getStyleClass().add("secondary-button");
+        darkModeButton.setSelected(ThemeManager.isDarkMode());
+        darkModeButton.selectedProperty().addListener((obs, oldValue, selected) -> {
+            ThemeManager.setDarkMode(selected);
+            darkModeButton.setText(selected ? "Hellmodus" : "Darkmode");
+        });
+
+        Button logoutButton = new Button("Ausloggen");
+        logoutButton.getStyleClass().add("secondary-button");
+        logoutButton.setOnAction(event -> zeigeLogin());
+
+        Button beendenButton = new Button("Beenden");
+        beendenButton.getStyleClass().add("danger-button");
+        beendenButton.setOnAction(event -> primaryStage.close());
+
+        HBox kopfzeile = new HBox(12, appLabel, roleLabel, spacer, darkModeButton, logoutButton, beendenButton);
+        kopfzeile.getStyleClass().add("app-topbar");
+        kopfzeile.setAlignment(Pos.CENTER_LEFT);
+        kopfzeile.setPadding(new Insets(10, 16, 10, 16));
+        return kopfzeile;
+    }
+
+    private TabPane erstelleAnsicht(Benutzer benutzer,
                                     ProduktService produktService,
                                     KassenService kassenService) {
         TabPane tabPane = new TabPane();
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
-        Tab kasseTab = new Tab("Kasse", new KassenView(produktService, kassenService));
+        Tab kasseTab = null;
+        if (benutzer.darfKassieren()) {
+            kasseTab = new Tab("Kasse", new KassenView(produktService, kassenService));
+        }
 
-        if (!benutzer.istAdmin()) {
-            tabPane.getTabs().add(kasseTab);
+        Tab verwaltungTab = null;
+        if (benutzer.darfWebVerwaltungNutzen()) {
+            String label = benutzer.istLagerist() ? "Warenzugang" : "Verwaltung";
+            verwaltungTab = new Tab(label, new AdminWebView(benutzer, ThemeManager.darkModeProperty()));
+        }
+
+        if (benutzer.istAdmin() && kasseTab != null && verwaltungTab != null) {
+            Tab finalKasseTab = kasseTab;
+            Tab finalVerwaltungTab = verwaltungTab;
+            Tab menuTab = new Tab("Hauptmenue", new HauptmenuView(
+                    benutzer,
+                    () -> tabPane.getSelectionModel().select(finalKasseTab),
+                    () -> tabPane.getSelectionModel().select(finalVerwaltungTab),
+                    primaryStage::close
+            ));
+
+            tabPane.getTabs().addAll(menuTab, kasseTab, verwaltungTab);
+            tabPane.getSelectionModel().select(menuTab);
             return tabPane;
         }
 
-        Tab adminTab = new Tab("Verwaltung", new AdminWebView());
-        Tab menuTab = new Tab("Hauptmenue", new HauptmenuView(
-                benutzer,
-                () -> tabPane.getSelectionModel().select(kasseTab),
-                () -> tabPane.getSelectionModel().select(adminTab),
-                stage::close
-        ));
-
-        tabPane.getTabs().addAll(menuTab, kasseTab, adminTab);
-        tabPane.getSelectionModel().select(menuTab);
+        if (kasseTab != null) {
+            tabPane.getTabs().add(kasseTab);
+        }
+        if (verwaltungTab != null) {
+            tabPane.getTabs().add(verwaltungTab);
+        }
+        if (!tabPane.getTabs().isEmpty()) {
+            tabPane.getSelectionModel().selectFirst();
+        }
         return tabPane;
     }
 

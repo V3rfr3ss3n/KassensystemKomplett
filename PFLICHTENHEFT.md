@@ -50,7 +50,9 @@ Das Kassensystem ist fuer einen kleinen Laden gedacht. Eine Person an der Kasse 
 - Testnutzer:
   - `admin / 1234`
   - `kassierer / 1234`
+  - `lagerist / 1234`
 - Kassierer werden direkt in die Kasse geleitet und sehen keine Verwaltung.
+- Lageristen sehen keinen Kassenbereich und duerfen Warenzugaenge buchen.
 - Admins sehen ein Hauptmenue mit den Optionen:
   - Kassenvorgang starten
   - Neues Produkt hinzufuegen
@@ -116,13 +118,14 @@ KASSENSYSTEM_DB_PATH=<pfad>
 
 ### JavaFX
 
-Die JavaFX-Anwendung startet mit einer Anmeldung. Kassierer werden direkt in die Kasse geleitet. Admins sehen das Hauptmenue und koennen die Verwaltung oeffnen.
+Die JavaFX-Anwendung startet mit einer Anmeldung. Kassierer werden direkt in die Kasse geleitet. Lageristen erhalten nur Zugriff auf Warenzugang/Verwaltung. Admins sehen das Hauptmenue und koennen Kasse und Verwaltung oeffnen. Admins und Lageristen koennen die Webverwaltung aus JavaFX per signiertem, kurzlebigem Login-Ticket oeffnen, ohne im WebView erneut ein Passwort einzugeben.
 
 Testnutzer:
 
 ```text
 admin / 1234
 kassierer / 1234
+lagerist / 1234
 ```
 
 ### Spring-Boot-Adminbereich
@@ -133,11 +136,14 @@ Der Adminbereich ist erreichbar unter:
 http://localhost:8080/kassensystem/admin/
 ```
 
-Er bietet Produktliste, Filter, Produktformular und Warenzugang. Der Zugriff auf `/admin/**` und `/api/**` ist serverseitig mit Spring Security geschuetzt. Fuer den Browser gilt ebenfalls:
+Er bietet Produktliste, Filter, Produktformular und Warenzugang. Der Zugriff auf `/admin/**` und `/api/**` ist serverseitig mit Spring Security geschuetzt. Fuer den Browser gelten ebenfalls:
 
 ```text
 admin / 1234
+lagerist / 1234
 ```
+
+Admins duerfen Produkte anlegen, bearbeiten, loeschen und Warenzugaenge buchen. Lageristen duerfen Produkte ansehen und Warenzugaenge buchen, aber keine Produkte neu erfassen, aendern oder loeschen.
 
 ## 7. Fehlerbehandlung
 
@@ -169,7 +175,10 @@ Hinweis zur Vorgabe "rein prozedural": Das vorhandene Projekt wurde bereits als 
 | Hauptmenue | Erfuellt ueber Admin-Hauptmenue nach Login |
 | Kassierer nur Kasse | Erfuellt ueber Rolle `KASSIERER` |
 | Admin darf verwalten | Erfuellt ueber Rolle `ADMIN` |
+| Lagerist fuer Warenzugang | Erfuellt ueber Rolle `LAGERIST` |
 | Browser ohne Passwort | Behoben durch Spring Security |
+| JavaFX-Admin ohne zweite Webanmeldung | Erfuellt ueber signiertes SSO-Ticket |
+| Darkmode | Erfuellt fuer JavaFX und Admin-Weboberflaeche |
 | Rein prozedurale Programmierung | Bewusste Abweichung, da grafische OOP-Architektur gewaehlt |
 
 ## 9. Abnahmekriterien

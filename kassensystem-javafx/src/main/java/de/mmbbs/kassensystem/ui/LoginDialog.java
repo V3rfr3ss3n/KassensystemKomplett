@@ -8,6 +8,7 @@ import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleButton;
 import javafx.scene.layout.GridPane;
 
 /**
@@ -25,9 +26,17 @@ public class LoginDialog extends Dialog<Benutzer> {
         setTitle("Anmeldung");
         setHeaderText("Kassensystem anmelden");
 
-        benutzerField.setPromptText("admin oder kassierer");
+        benutzerField.setPromptText("admin, kassierer oder lagerist");
         passwortField.setPromptText("Passwort");
         fehlerLabel.getStyleClass().add("error-label");
+
+        ToggleButton darkModeButton = new ToggleButton(ThemeManager.isDarkMode() ? "Hellmodus" : "Darkmode");
+        darkModeButton.getStyleClass().add("secondary-button");
+        darkModeButton.setSelected(ThemeManager.isDarkMode());
+        darkModeButton.selectedProperty().addListener((obs, oldValue, selected) -> {
+            ThemeManager.setDarkMode(selected);
+            darkModeButton.setText(selected ? "Hellmodus" : "Darkmode");
+        });
 
         GridPane form = new GridPane();
         form.setHgap(10);
@@ -38,8 +47,10 @@ public class LoginDialog extends Dialog<Benutzer> {
         form.add(new Label("Passwort:"), 0, 1);
         form.add(passwortField, 1, 1);
         form.add(fehlerLabel, 1, 2);
+        form.add(darkModeButton, 1, 3);
 
         getDialogPane().setContent(form);
+        ThemeManager.applyToDialogPane(getDialogPane());
         getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
         getDialogPane().lookupButton(ButtonType.OK).addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
             if (authService.anmelden(benutzerField.getText(), passwortField.getText()).isEmpty()) {

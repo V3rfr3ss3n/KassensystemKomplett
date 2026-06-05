@@ -13,7 +13,8 @@ import java.util.Optional;
 public class AuthService {
     private final Map<String, TestNutzer> nutzer = Map.of(
             "admin", new TestNutzer("1234", BenutzerRolle.ADMIN),
-            "kassierer", new TestNutzer("1234", BenutzerRolle.KASSIERER)
+            "kassierer", new TestNutzer("1234", BenutzerRolle.KASSIERER),
+            "lagerist", new TestNutzer("1234", BenutzerRolle.LAGERIST)
     );
 
     /**

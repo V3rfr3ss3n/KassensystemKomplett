@@ -235,6 +235,7 @@ public class LagerView extends VBox {
         dialog.setTitle("Produkt bearbeiten");
         dialog.setHeaderText("Ändern Sie Name, Preis, Lagerbestand und Bild.");
         dialog.getDialogPane().setContent(grid);
+        ThemeManager.applyToDialogPane(dialog.getDialogPane());
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
         dialog.showAndWait().ifPresent(result -> {

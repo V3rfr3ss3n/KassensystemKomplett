@@ -472,6 +472,7 @@ public class KassenView extends VBox {
         content.setAlignment(Pos.CENTER_LEFT);
 
         dialog.getDialogPane().setContent(content);
+        ThemeManager.applyToDialogPane(dialog.getDialogPane());
         dialog.getDialogPane().getButtonTypes().add(ButtonType.OK);
         dialog.showAndWait();
     }

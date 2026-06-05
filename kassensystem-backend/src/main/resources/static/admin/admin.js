@@ -1,8 +1,17 @@
 const apiUrl = '../api/produkte';
+const sessionUrl = '../api/session';
 
 const state = {
     products: [],
-    selectedId: null
+    selectedId: null,
+    session: {
+        username: '',
+        roles: [],
+        permissions: {
+            manageProducts: false,
+            bookStock: false
+        }
+    }
 };
 
 const rows = document.querySelector('#productRows');
@@ -12,11 +21,16 @@ const searchInput = document.querySelector('#searchInput');
 const unitFilter = document.querySelector('#unitFilter');
 const taxFilter = document.querySelector('#taxFilter');
 const stockFilter = document.querySelector('#stockFilter');
+const roleBadge = document.querySelector('#roleBadge');
+const themeButton = document.querySelector('#themeButton');
+const logoutButton = document.querySelector('#logoutButton');
 
 document.querySelector('#reloadButton').addEventListener('click', loadProducts);
 document.querySelector('#newButton').addEventListener('click', clearForm);
 document.querySelector('#deleteButton').addEventListener('click', deleteSelected);
 document.querySelector('#stockAddButton').addEventListener('click', addStock);
+themeButton.addEventListener('click', toggleTheme);
+logoutButton.addEventListener('click', logout);
 form.addEventListener('submit', saveProduct);
 
 for (const input of [searchInput, unitFilter, taxFilter, stockFilter]) {
@@ -24,7 +38,49 @@ for (const input of [searchInput, unitFilter, taxFilter, stockFilter]) {
     input.addEventListener('change', renderRows);
 }
 
-loadProducts();
+window.setThemeFromJavaFx = setTheme;
+initTheme();
+init();
+
+async function init() {
+    await loadSession();
+    applyPermissions();
+    await loadProducts();
+}
+
+async function loadSession() {
+    const response = await fetch(sessionUrl);
+    if (!response.ok) {
+        setStatus('Anmeldung konnte nicht geladen werden.');
+        return;
+    }
+    state.session = await response.json();
+}
+
+function applyPermissions() {
+    const canManageProducts = Boolean(state.session.permissions?.manageProducts);
+    const canBookStock = Boolean(state.session.permissions?.bookStock);
+
+    roleBadge.textContent = `${state.session.username} - ${state.session.roles.join(', ')}`;
+    document.querySelector('#newButton').hidden = !canManageProducts;
+    document.querySelector('#deleteButton').hidden = !canManageProducts;
+    form.classList.toggle('readonly', !canManageProducts);
+    form.querySelector('button[type="submit"]').hidden = !canManageProducts;
+
+    for (const element of [
+        '#nameInput',
+        '#priceInput',
+        '#stockInput',
+        '#unitInput',
+        '#taxInput',
+        '#imageInput'
+    ].map(selector => document.querySelector(selector))) {
+        element.disabled = !canManageProducts;
+    }
+
+    document.querySelector('#stockAddInput').disabled = !canBookStock;
+    document.querySelector('#stockAddButton').disabled = !canBookStock;
+}
 
 async function loadProducts() {
     setStatus('Lade Produkte...');
@@ -91,6 +147,10 @@ function selectProduct(product) {
 }
 
 function clearForm() {
+    if (!state.session.permissions?.manageProducts) {
+        setStatus('Nur Admins duerfen neue Produkte erfassen.');
+        return;
+    }
     state.selectedId = null;
     form.reset();
     document.querySelector('#productId').value = '';
@@ -103,6 +163,10 @@ function clearForm() {
 
 async function saveProduct(event) {
     event.preventDefault();
+    if (!state.session.permissions?.manageProducts) {
+        setStatus('Nur Admins duerfen Produkte speichern.');
+        return;
+    }
     const id = document.querySelector('#productId').value;
     const payload = {
         name: document.querySelector('#nameInput').value,
@@ -134,6 +198,10 @@ async function saveProduct(event) {
 }
 
 async function deleteSelected() {
+    if (!state.session.permissions?.manageProducts) {
+        setStatus('Nur Admins duerfen Produkte loeschen.');
+        return;
+    }
     const id = document.querySelector('#productId').value;
     if (!id) {
         setStatus('Kein Produkt ausgewaehlt.');
@@ -154,6 +222,10 @@ async function deleteSelected() {
 }
 
 async function addStock() {
+    if (!state.session.permissions?.bookStock) {
+        setStatus('Keine Berechtigung fuer Warenzugang.');
+        return;
+    }
     const id = document.querySelector('#productId').value;
     if (!id) {
         setStatus('Kein Produkt ausgewaehlt.');
@@ -202,6 +274,28 @@ function formatAmount(value) {
 
 function setStatus(text) {
     statusText.textContent = text;
+}
+
+function initTheme() {
+    const params = new URLSearchParams(window.location.search);
+    const requestedTheme = params.get('theme') || localStorage.getItem('kassensystem-theme') || 'light';
+    setTheme(requestedTheme);
+}
+
+function toggleTheme() {
+    setTheme(document.body.classList.contains('dark-mode') ? 'light' : 'dark');
+}
+
+function setTheme(theme) {
+    const darkMode = theme === 'dark';
+    document.body.classList.toggle('dark-mode', darkMode);
+    themeButton.textContent = darkMode ? 'Hellmodus' : 'Darkmode';
+    localStorage.setItem('kassensystem-theme', darkMode ? 'dark' : 'light');
+}
+
+async function logout() {
+    await fetch('../logout', {method: 'POST'});
+    window.location.href = '../login?logout';
 }
 
 function escapeHtml(value) {

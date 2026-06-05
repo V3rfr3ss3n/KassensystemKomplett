@@ -11,6 +11,8 @@ JavaFX-Kassensystem mit Spring-Boot-Adminbereich und gemeinsamer SQLite-Datenban
 - Produktdaten mit Preis, Bestand, Einheit, Steuer und optionalem Bild
 - Gemeinsame SQLite-Datenbank fuer JavaFX und Spring Boot
 - Spring-Adminbereich fuer Produkt- und Lagerverwaltung
+- Rollenlogin mit Admin, Kassierer und Lagerist
+- Togglebarer Darkmode in JavaFX und Webverwaltung
 
 ## Starten
 
@@ -39,11 +41,12 @@ Testnutzer in JavaFX:
 ```text
 admin / 1234
 kassierer / 1234
+lagerist / 1234
 ```
 
-`admin` sieht Hauptmenue, Kasse und Verwaltung. `kassierer` wird direkt in die Kasse geleitet und sieht keine Verwaltung.
+`admin` sieht Hauptmenue, Kasse und Verwaltung. `kassierer` wird direkt in die Kasse geleitet und sieht keine Verwaltung. `lagerist` sieht keine Kasse und kann Warenzugaenge in der Verwaltung buchen.
 
-Der Browser-Adminbereich ist zusaetzlich serverseitig geschuetzt. Dort gilt ebenfalls `admin / 1234`.
+Der Browser-Adminbereich ist zusaetzlich serverseitig geschuetzt. Dort gelten `admin / 1234` und `lagerist / 1234`. Wenn Admins oder Lageristen die Verwaltung aus JavaFX oeffnen, wird ein kurzlebiges SSO-Ticket genutzt, damit im WebView keine zweite Anmeldung noetig ist.
 
 ## Datenbank
 

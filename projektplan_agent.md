@@ -1134,6 +1134,10 @@ Diese Reihenfolge ist verbindlich, damit keine Zeit verloren geht.
 - [x] Spring Boot für Java 24 auf Version 3.5.14 aktualisieren
 - [x] SQLite-Dialect im Spring-Backend auf Hibernate 6 Community Dialect umstellen
 - [x] JavaFX und Spring nutzen standardmäßig dieselbe SQLite-Datei `data/kassensystem.db`
+- [x] JavaFX-Rollenlogin mit Admin, Kassierer und Lagerist ergaenzen
+- [x] Webverwaltung per Spring Security fuer Admin und Lagerist absichern
+- [x] JavaFX-SSO zur Webverwaltung ohne zweite Anmeldung ergaenzen
+- [x] Darkmode fuer JavaFX und Browser-Verwaltung ergaenzen
 
 ---
 
@@ -1171,6 +1175,9 @@ Dieser Abschnitt wird vom Agenten oder Team nach jeder abgeschlossenen Aufgabe a
 - [x] JavaFX-Hauptnavigation enthält Kasse plus Verwaltung; administrative Masken laufen über den Spring-Adminbereich
 - [x] Spring-Adminbereich bietet Produktliste, Suche/Filter, Produktanlage, Bearbeitung, Löschen und Warenzugang
 - [x] Spring-REST-API schreibt Produkte und Lagerbestand in dieselbe SQLite-Datenbank wie JavaFX
+- [x] Lagerist darf Warenzugang buchen, aber nicht kassieren oder Produkte neu erfassen
+- [x] Admins und Lageristen koennen die Webverwaltung aus JavaFX per signiertem SSO-Ticket oeffnen
+- [x] JavaFX- und Weboberflaeche besitzen einen umschaltbaren Darkmode
 
 ## Entscheidungen
 

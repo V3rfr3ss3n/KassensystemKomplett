@@ -2,6 +2,7 @@ package de.mmbbs.kassensystem.backend.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -14,9 +15,9 @@ import org.springframework.security.web.SecurityFilterChain;
 /**
  * Testnutzer und Zugriffsregeln fuer den Spring-Adminbereich.
  *
- * <p>Der Adminbereich und die Produkt-API sind nur fuer Nutzer mit Rolle
- * ADMIN erreichbar. Die festen Nutzer sind fuer die Projektphase bewusst klein
- * gehalten und koennen spaeter durch Datenbanknutzer ersetzt werden.</p>
+ * <p>Admins duerfen Produkte pflegen und Warenzugaenge buchen. Lageristen
+ * duerfen die Verwaltung lesen und Warenzugaenge erfassen, aber keine Produkte
+ * anlegen, aendern oder loeschen.</p>
  */
 @Configuration
 public class SecurityConfig {
@@ -25,7 +26,12 @@ public class SecurityConfig {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/admin/**", "/api/**").hasRole("ADMIN")
+                        .requestMatchers("/auth/javafx-login").permitAll()
+                        .requestMatchers("/admin/**").hasAnyRole("ADMIN", "LAGERIST")
+                        .requestMatchers(HttpMethod.GET, "/api/session").hasAnyRole("ADMIN", "LAGERIST")
+                        .requestMatchers(HttpMethod.GET, "/api/produkte/**").hasAnyRole("ADMIN", "LAGERIST")
+                        .requestMatchers(HttpMethod.POST, "/api/produkte/*/warenzugang").hasAnyRole("ADMIN", "LAGERIST")
+                        .requestMatchers("/api/**").hasRole("ADMIN")
                         .anyRequest().permitAll()
                 )
                 .formLogin(Customizer.withDefaults())
@@ -43,6 +49,10 @@ public class SecurityConfig {
                 .password("{noop}1234")
                 .roles("KASSIERER")
                 .build();
-        return new InMemoryUserDetailsManager(admin, kassierer);
+        UserDetails lagerist = User.withUsername("lagerist")
+                .password("{noop}1234")
+                .roles("LAGERIST")
+                .build();
+        return new InMemoryUserDetailsManager(admin, kassierer, lagerist);
     }
 }

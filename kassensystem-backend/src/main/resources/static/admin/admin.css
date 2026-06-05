@@ -4,12 +4,41 @@
     --bg: #eef1f5;
     --surface: #ffffff;
     --line: #d8dee8;
+    --soft-line: #edf0f4;
     --text: #111827;
     --muted: #5f6b7a;
+    --field: #ffffff;
+    --field-border: #c9d2df;
+    --table-head: #f7f9fc;
+    --row-hover: #eaf1ff;
+    --button: #e4e8ef;
+    --button-hover: #d6dce6;
+    --button-text: #1f2937;
     --blue: #2563eb;
     --blue-dark: #1d4ed8;
     --green: #169b52;
     --red: #c43838;
+}
+
+body.dark-mode {
+    color-scheme: dark;
+    --bg: #0f172a;
+    --surface: #172033;
+    --line: #334155;
+    --soft-line: #263244;
+    --text: #e5e7eb;
+    --muted: #a7b0c0;
+    --field: #0f172a;
+    --field-border: #475569;
+    --table-head: #111827;
+    --row-hover: #1e3a5f;
+    --button: #273449;
+    --button-hover: #334155;
+    --button-text: #e5e7eb;
+    --blue: #60a5fa;
+    --blue-dark: #93c5fd;
+    --green: #22c55e;
+    --red: #f87171;
 }
 
 * {
@@ -30,7 +59,7 @@ body {
     justify-content: space-between;
     gap: 16px;
     padding: 0 28px;
-    background: #ffffff;
+    background: var(--surface);
     border-bottom: 1px solid var(--line);
 }
 
@@ -88,9 +117,10 @@ button {
 input,
 select {
     min-width: 0;
-    border: 1px solid #c9d2df;
+    border: 1px solid var(--field-border);
     padding: 0 10px;
-    background: #ffffff;
+    background: var(--field);
+    color: var(--text);
 }
 
 input:focus,
@@ -102,14 +132,19 @@ select:focus {
 button {
     border: 0;
     padding: 0 14px;
-    background: #e4e8ef;
-    color: #1f2937;
+    background: var(--button);
+    color: var(--button-text);
     font-weight: 650;
     cursor: pointer;
 }
 
 button:hover {
-    background: #d6dce6;
+    background: var(--button-hover);
+}
+
+button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
 }
 
 button.primary {
@@ -160,7 +195,7 @@ table {
 th,
 td {
     padding: 11px 12px;
-    border-bottom: 1px solid #edf0f4;
+    border-bottom: 1px solid var(--soft-line);
     text-align: left;
     white-space: nowrap;
 }
@@ -168,7 +203,7 @@ td {
 th {
     position: sticky;
     top: 0;
-    background: #f7f9fc;
+    background: var(--table-head);
     font-size: 12px;
     text-transform: uppercase;
     color: var(--muted);
@@ -181,7 +216,7 @@ tbody tr {
 
 tbody tr:hover,
 tbody tr.selected {
-    background: #eaf1ff;
+    background: var(--row-hover);
 }
 
 .editor {
@@ -199,7 +234,7 @@ label {
     gap: 6px;
     font-size: 13px;
     font-weight: 650;
-    color: #374151;
+    color: var(--text);
 }
 
 .field-grid {
@@ -223,6 +258,22 @@ label {
     min-height: 22px;
     color: var(--blue-dark);
     font-weight: 650;
+}
+
+.role-badge {
+    min-height: 28px;
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0 10px;
+    color: var(--muted);
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.readonly {
+    opacity: 0.92;
 }
 
 @media (max-width: 980px) {

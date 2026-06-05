@@ -16,6 +16,9 @@
 - [x] Hauptmenue fuer Admins ergaenzen
 - [x] Kassiererrolle direkt auf Kasse begrenzen
 - [x] Browser-Adminbereich serverseitig absichern
+- [x] Lageristenrolle fuer Warenzugang ohne Kassenzugriff ergaenzen
+- [x] JavaFX-SSO in die Webverwaltung ohne zweite Anmeldung ergaenzen
+- [x] Darkmode fuer JavaFX und Browserverwaltung ergaenzen
 
 ## Bewusste Abweichung
 
@@ -24,7 +27,8 @@
 ## Optionale Verbesserungen
 
 - [x] Serverseitigen Admin-Login mit Spring Security statt nur JavaFX-Testpasswort umsetzen.
+- [x] Rollenrechte serverseitig trennen: Admin Produktpflege, Lagerist Warenzugang.
 - [ ] API-Tests fuer Spring-Controller ergaenzen.
 - [ ] README mit Screenshots erweitern.
 - [ ] Export oder Druckfunktion fuer Bons ergaenzen.
-- [ ] Admin-Weboberflaeche optisch weiter verfeinern.
+- [x] Admin-Weboberflaeche optisch mit Darkmode verfeinern.
