@@ -34,11 +34,16 @@ Admin-Weboberflaeche:
 http://localhost:8080/kassensystem/admin/
 ```
 
-JavaFX fragt fuer den Verwaltungstab ein Testpasswort ab:
+Testnutzer in JavaFX:
 
 ```text
-1234
+admin / 1234
+kassierer / 1234
 ```
+
+`admin` sieht Hauptmenue, Kasse und Verwaltung. `kassierer` wird direkt in die Kasse geleitet und sieht keine Verwaltung.
+
+Der Browser-Adminbereich ist zusaetzlich serverseitig geschuetzt. Dort gilt ebenfalls `admin / 1234`.
 
 ## Datenbank
 

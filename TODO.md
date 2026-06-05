@@ -13,6 +13,9 @@
 - [x] Fehlerhafte Eingaben abfangen
 - [x] Pflichtenheft erstellen
 - [x] Code mit erklaerenden Javadocs ergaenzen
+- [x] Hauptmenue fuer Admins ergaenzen
+- [x] Kassiererrolle direkt auf Kasse begrenzen
+- [x] Browser-Adminbereich serverseitig absichern
 
 ## Bewusste Abweichung
 
@@ -20,7 +23,7 @@
 
 ## Optionale Verbesserungen
 
-- [ ] Serverseitigen Admin-Login mit Spring Security statt nur JavaFX-Testpasswort umsetzen.
+- [x] Serverseitigen Admin-Login mit Spring Security statt nur JavaFX-Testpasswort umsetzen.
 - [ ] API-Tests fuer Spring-Controller ergaenzen.
 - [ ] README mit Screenshots erweitern.
 - [ ] Export oder Druckfunktion fuer Bons ergaenzen.

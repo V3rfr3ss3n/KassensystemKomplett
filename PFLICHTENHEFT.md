@@ -44,7 +44,22 @@ Das Kassensystem ist fuer einen kleinen Laden gedacht. Eine Person an der Kasse 
 
 ## 4. Produktfunktionen
 
-### 4.1 Kassenfunktion
+### 4.1 Hauptmenue und Berechtigungssystem
+
+- Nach dem Start erscheint eine Anmeldung.
+- Testnutzer:
+  - `admin / 1234`
+  - `kassierer / 1234`
+- Kassierer werden direkt in die Kasse geleitet und sehen keine Verwaltung.
+- Admins sehen ein Hauptmenue mit den Optionen:
+  - Kassenvorgang starten
+  - Neues Produkt hinzufuegen
+  - Warenzugang erfassen
+  - Lagerbestand anzeigen
+  - Programm beenden
+- Administrative Optionen fuehren in den geschuetzten Verwaltungsbereich.
+
+### 4.2 Kassenfunktion
 
 - Produktliste anzeigen
 - Produkte per Klick in den Warenkorb legen
@@ -55,27 +70,27 @@ Das Kassensystem ist fuer einen kleinen Laden gedacht. Eine Person an der Kasse 
 - Kauf abschliessen
 - Bon anzeigen und in der Historie speichern
 
-### 4.2 Produktverwaltung
+### 4.3 Produktverwaltung
 
 - Produkt mit Name, Preis, Anfangsbestand, Einheit, Steuer und optionalem Bild anlegen
 - Produkt bearbeiten
 - Produkt loeschen
 - Produkte suchen und filtern
 
-### 4.3 Warenzugang
+### 4.4 Warenzugang
 
 - Produkt auswaehlen
 - Menge eingeben
 - Lagerbestand erhoehen
 - Aktualisierten Bestand anzeigen
 
-### 4.4 Lagerbestand
+### 4.5 Lagerbestand
 
 - Alle Produkte mit aktuellem Bestand anzeigen
 - Bestand nach Kauf und Warenzugang aktualisieren
 - Einheit passend anzeigen, zum Beispiel Stueck, kg, l oder Packung
 
-### 4.5 Bon
+### 4.6 Bon
 
 - Bonnummer anzeigen
 - Datum und Uhrzeit anzeigen
@@ -101,10 +116,13 @@ KASSENSYSTEM_DB_PATH=<pfad>
 
 ### JavaFX
 
-Die JavaFX-Anwendung enthaelt die Kasse als Hauptarbeitsflaeche. Die Verwaltung kann ueber einen geschuetzten Tab geoeffnet werden. Das Testpasswort lautet:
+Die JavaFX-Anwendung startet mit einer Anmeldung. Kassierer werden direkt in die Kasse geleitet. Admins sehen das Hauptmenue und koennen die Verwaltung oeffnen.
+
+Testnutzer:
 
 ```text
-1234
+admin / 1234
+kassierer / 1234
 ```
 
 ### Spring-Boot-Adminbereich
@@ -115,7 +133,11 @@ Der Adminbereich ist erreichbar unter:
 http://localhost:8080/kassensystem/admin/
 ```
 
-Er bietet Produktliste, Filter, Produktformular und Warenzugang.
+Er bietet Produktliste, Filter, Produktformular und Warenzugang. Der Zugriff auf `/admin/**` und `/api/**` ist serverseitig mit Spring Security geschuetzt. Fuer den Browser gilt ebenfalls:
+
+```text
+admin / 1234
+```
 
 ## 7. Fehlerbehandlung
 
@@ -139,6 +161,16 @@ Er bietet Produktliste, Filter, Produktformular und Warenzugang.
 | Tests | JUnit |
 
 Hinweis zur Vorgabe "rein prozedural": Das vorhandene Projekt wurde bereits als objektorientierte JavaFX-Anwendung umgesetzt. Diese Architektur erfuellt die fachlichen Muss-Anforderungen und trennt UI, Fachlogik und Datenzugriff sauber. Eine strikt prozedurale Konsolenversion waere ein alternatives Abgabeformat, ist aber nicht die aktuell gewaehlte Projektarchitektur.
+
+## 8.1 Abgleich mit dem urspruenglichen Lastenheft
+
+| Punkt | Stand |
+|---|---|
+| Hauptmenue | Erfuellt ueber Admin-Hauptmenue nach Login |
+| Kassierer nur Kasse | Erfuellt ueber Rolle `KASSIERER` |
+| Admin darf verwalten | Erfuellt ueber Rolle `ADMIN` |
+| Browser ohne Passwort | Behoben durch Spring Security |
+| Rein prozedurale Programmierung | Bewusste Abweichung, da grafische OOP-Architektur gewaehlt |
 
 ## 9. Abnahmekriterien
 
