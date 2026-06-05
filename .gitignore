@@ -1,0 +1,11 @@
+# Maven build output
+target/
+*/target/
+
+# Runtime data and local databases
+data/
+*.db
+
+# Local helper files
+.spring-admin.pid
+*.log
