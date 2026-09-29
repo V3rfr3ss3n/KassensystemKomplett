@@ -98,6 +98,8 @@ Das Kassensystem ist fuer einen kleinen Laden gedacht. Eine Person an der Kasse 
 - Datum und Uhrzeit anzeigen
 - Produktname, Menge, Steuer, Bruttobetrag und Gesamtbetrag anzeigen
 - Netto- und Steueranteile je Steuersatz ausweisen
+- Aktuelle und historische Bons als PDF speichern oder drucken
+- Produktname und Einheit zum Kaufzeitpunkt auch nach Produktpflege erhalten
 
 ## 5. Datenhaltung
 
@@ -107,7 +109,7 @@ Die Daten werden in SQLite gespeichert. Standardpfad:
 data/kassensystem.db
 ```
 
-JavaFX und Spring Boot nutzen standardmaessig dieselbe Datei. Alternativ kann der Pfad gesetzt werden ueber:
+Nur Spring Boot greift auf die Datei zu. JavaFX nutzt die REST-API. Alternativ kann der Backend-Pfad gesetzt werden ueber:
 
 ```text
 -Dkassensystem.db.path=<pfad>
@@ -165,6 +167,7 @@ Admins duerfen Produkte anlegen, bearbeiten, loeschen und Warenzugaenge buchen. 
 | Datenbank | SQLite |
 | Build | Maven Multi-Module |
 | Tests | JUnit |
+| Verteilung | Docker Compose, GitHub Actions und Windows-Release-ZIP |
 
 Hinweis zur Vorgabe "rein prozedural": Das vorhandene Projekt wurde bereits als objektorientierte JavaFX-Anwendung umgesetzt. Diese Architektur erfuellt die fachlichen Muss-Anforderungen und trennt UI, Fachlogik und Datenzugriff sauber. Eine strikt prozedurale Konsolenversion waere ein alternatives Abgabeformat, ist aber nicht die aktuell gewaehlte Projektarchitektur.
 
@@ -188,10 +191,14 @@ Hinweis zur Vorgabe "rein prozedural": Das vorhandene Projekt wurde bereits als 
 - Produktliste wird angezeigt.
 - Produkt kann in den Warenkorb gelegt werden.
 - Kaufabschluss erzeugt Bon und senkt Lagerbestand.
+- Bei einem Speicherfehler bleiben Lagerbestand und Bon-Historie unveraendert.
 - Warenzugang erhoeht Lagerbestand.
 - Admin-Weboberflaeche liest und schreibt dieselbe SQLite-Datenbank.
 - Tests laufen erfolgreich.
+- PDF eines aktuellen und eines historischen Bons enthaelt Positionen, Einzelpreise, Steuer und Summe.
+- JavaFX liest Produkte und Bons ueber die API und sendet Kaufabschluesse an das Backend.
+- Der CI-Quality-Gate besteht aus Tests, Coverage-Pruefung, JavaScript-Pruefung und Docker-Build.
 
 ## 10. Offene Punkte
 
-Die fachlichen Mindestanforderungen des Lastenhefts sind umgesetzt. Offene optionale Aufgaben stehen in `TODO.md`.
+Die fachlichen Mindestanforderungen des Lastenhefts sind umgesetzt. Die Webverwaltung zeigt Lagerkennzahlen und unterstuetzt die Tastaturbedienung der Produktliste. API-Integrationstests decken Produktpflege und Warenzugang ab. Die Kasse bietet PDF-Export und Druck fuer Bons. Die manuelle GUI-Abnahme steht in `TODO.md`.

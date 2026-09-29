@@ -103,7 +103,7 @@ public class Produkt {
     }
 
     public void setPreis(double preis) {
-        if (preis <= 0) {
+        if (!Double.isFinite(preis) || preis <= 0) {
             throw new IllegalArgumentException("Preis muss größer als 0 sein.");
         }
         this.preis = preis;
@@ -123,7 +123,7 @@ public class Produkt {
     }
 
     public void setLagerbestand(double lagerbestand) {
-        if (lagerbestand < 0) {
+        if (!Double.isFinite(lagerbestand) || lagerbestand < 0) {
             throw new IllegalArgumentException("Lagerbestand darf nicht negativ sein.");
         }
         this.lagerbestand = lagerbestand;
@@ -156,7 +156,7 @@ public class Produkt {
      * @param menge Zuzubuchende Menge; muss groesser als 0 sein.
      */
     public void bestandErhoehen(double menge) {
-        if (menge <= 0) {
+        if (!Double.isFinite(menge) || menge <= 0) {
             throw new IllegalArgumentException("Menge muss größer als 0 sein.");
         }
         setLagerbestand(this.lagerbestand + menge);
@@ -168,7 +168,7 @@ public class Produkt {
      * @param menge Verkaufte Menge; muss verfuegbar und groesser als 0 sein.
      */
     public void bestandVerringern(double menge) {
-        if (menge <= 0) {
+        if (!Double.isFinite(menge) || menge <= 0) {
             throw new IllegalArgumentException("Menge muss größer als 0 sein.");
         }
         if (this.lagerbestand < menge) {

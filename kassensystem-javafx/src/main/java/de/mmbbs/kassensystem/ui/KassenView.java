@@ -6,6 +6,7 @@ import de.mmbbs.kassensystem.model.Produkt;
 import de.mmbbs.kassensystem.model.Steuersatz;
 import de.mmbbs.kassensystem.model.Verkaufseinheit;
 import de.mmbbs.kassensystem.service.BonService;
+import de.mmbbs.kassensystem.service.BonPdfService;
 import de.mmbbs.kassensystem.service.KassenService;
 import de.mmbbs.kassensystem.service.ProduktService;
 import de.mmbbs.kassensystem.util.GeldFormatter;
@@ -19,12 +20,15 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 
 import java.time.format.DateTimeFormatter;
+import java.io.File;
+import javafx.stage.FileChooser;
 
 public class KassenView extends VBox {
     private static final DateTimeFormatter BON_HISTORIE_FORMAT = DateTimeFormatter.ofPattern("dd.MM. HH:mm");
     private final ProduktService produktService;
     private final KassenService kassenService;
     private final BonService bonFormatService = new BonService();
+    private final BonPdfService bonPdfService = new BonPdfService();
 
     private final FlowPane produktGrid = new FlowPane();
     private final ListView<BonPosition> warenkorbListe = new ListView<>();
@@ -42,6 +46,9 @@ public class KassenView extends VBox {
     private final Button checkoutButton = new Button("Kauf abschließen");
 
     private Produkt selectedProdukt = null;
+    private Bon angezeigterBon;
+    private final Button pdfButton = new Button("Als PDF speichern");
+    private final Button printButton = new Button("Drucken");
 
     public KassenView(ProduktService produktService, KassenService kassenService) {
         this.produktService = produktService;
@@ -161,6 +168,14 @@ public class KassenView extends VBox {
 
         infoBox.getChildren().add(bonArea);
 
+        pdfButton.getStyleClass().add("secondary-button");
+        printButton.getStyleClass().add("secondary-button");
+        pdfButton.setDisable(true);
+        printButton.setDisable(true);
+        pdfButton.setOnAction(event -> exportiereBon());
+        printButton.setOnAction(event -> druckeBon());
+        HBox bonAktionen = new HBox(8, pdfButton, printButton);
+
         Label bonLabel = new Label("Bon");
         bonLabel.getStyleClass().add("section-label");
 
@@ -182,7 +197,7 @@ public class KassenView extends VBox {
         });
         bonHistorieListe.getSelectionModel().selectedItemProperty().addListener((obs, oldBon, bon) -> {
             if (bon != null) {
-                bonArea.setText(bonFormatService.formatiereBon(bon));
+                zeigeBon(bon);
             }
         });
 
@@ -191,7 +206,7 @@ public class KassenView extends VBox {
         leftContent.setPrefWidth(720);
         HBox.setHgrow(leftContent, Priority.ALWAYS);
 
-        VBox rightContent = new VBox(10, bonLabel, infoBox, historieLabel, bonHistorieListe);
+        VBox rightContent = new VBox(10, bonLabel, infoBox, bonAktionen, historieLabel, bonHistorieListe);
         rightContent.setPrefWidth(390);
 
         HBox arbeitsbereich = new HBox(24, leftContent, rightContent);
@@ -349,17 +364,58 @@ public class KassenView extends VBox {
     private void abschliessen() {
         try {
             Bon bon = kassenService.kassenvorgangAbschliessen();
-            bonArea.setText(bonFormatService.formatiereBon(bon));
             aktualisiereWarenkorb();
             aktualisiereBonHistorie();
+            bonHistorieListe.getSelectionModel().select(bon);
+            zeigeBon(bon);
 
             AlertUtil.showInfo("Kauf erfolgreich abgeschlossen",
                     "Bon Nr. " + bon.getBonnummer() + "\nGesamtpreis: " + GeldFormatter.formatiereBetrag(bon.getGesamtpreis()));
 
             statusLabel.setText("Kauf abgeschlossen. Lagerbestand wurde aktualisiert.");
             aktualisiereProduktGrid();
-        } catch (IllegalArgumentException ex) {
+        } catch (IllegalArgumentException | IllegalStateException ex) {
             statusLabel.setText(ex.getMessage());
+        }
+    }
+
+    private void zeigeBon(Bon bon) {
+        angezeigterBon = bon;
+        bonArea.setText(bonFormatService.formatiereBon(bon));
+        pdfButton.setDisable(false);
+        printButton.setDisable(false);
+    }
+
+    private void exportiereBon() {
+        if (angezeigterBon == null) {
+            return;
+        }
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Bon als PDF speichern");
+        chooser.setInitialFileName("bon-" + angezeigterBon.getBonnummer() + ".pdf");
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF-Datei", "*.pdf"));
+        File ziel = chooser.showSaveDialog(getScene().getWindow());
+        if (ziel == null) {
+            return;
+        }
+        try {
+            bonPdfService.exportiere(angezeigterBon, ziel.toPath());
+            statusLabel.setText("Bon " + angezeigterBon.getBonnummer() + " als PDF gespeichert.");
+        } catch (Exception ex) {
+            statusLabel.setText("PDF konnte nicht gespeichert werden: " + ex.getMessage());
+        }
+    }
+
+    private void druckeBon() {
+        if (angezeigterBon == null) {
+            return;
+        }
+        try {
+            if (bonPdfService.drucke(angezeigterBon)) {
+                statusLabel.setText("Bon " + angezeigterBon.getBonnummer() + " an den Drucker gesendet.");
+            }
+        } catch (Exception ex) {
+            statusLabel.setText("Bon konnte nicht gedruckt werden: " + ex.getMessage());
         }
     }
 

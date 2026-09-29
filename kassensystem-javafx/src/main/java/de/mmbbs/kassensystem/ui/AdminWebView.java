@@ -42,11 +42,12 @@ public class AdminWebView extends BorderPane {
         getStyleClass().add("admin-web-view");
         setPadding(new Insets(18));
 
-        Button loadButton = new Button("Admin laden");
+        String titel = verwaltungsTitel();
+        Button loadButton = new Button(titel + " laden");
         loadButton.getStyleClass().add("primary-button");
         loadButton.setOnAction(event -> ladeAdminseite());
 
-        Button startLoadButton = new Button("Verwaltung laden");
+        Button startLoadButton = new Button(titel + " laden");
         startLoadButton.getStyleClass().add("primary-button");
         startLoadButton.setOnAction(event -> ladeAdminseite());
 
@@ -63,9 +64,9 @@ public class AdminWebView extends BorderPane {
         toolbar.setPadding(new Insets(0, 0, 12, 0));
         HBox.setHgrow(statusLabel, Priority.ALWAYS);
 
-        Label title = new Label("Verwaltung");
+        Label title = new Label(titel);
         title.getStyleClass().add("title-label");
-        Label hint = new Label("Admin-Webadresse: " + ADMIN_URL);
+        Label hint = new Label("Webadresse: " + ADMIN_URL);
         hint.getStyleClass().add("subtitle-label");
         hint.setWrapText(true);
 
@@ -89,7 +90,7 @@ public class AdminWebView extends BorderPane {
     private void ladeAdminseite() {
         webView.getEngine().load(erstelleSsoUrl());
         setCenter(webView);
-        statusLabel.setText("Verwaltung wird mit JavaFX-Anmeldung geoeffnet.");
+        statusLabel.setText(verwaltungsTitel() + " wird mit JavaFX-Anmeldung geoeffnet.");
     }
 
     private void oeffneImBrowser() {
@@ -108,6 +109,10 @@ public class AdminWebView extends BorderPane {
         String ticket = URLEncoder.encode(ssoTicketService.erstelleTicket(benutzer), StandardCharsets.UTF_8);
         String theme = darkModeProperty.get() ? "dark" : "light";
         return SSO_LOGIN_URL + "?ticket=" + ticket + "&theme=" + theme;
+    }
+
+    private String verwaltungsTitel() {
+        return benutzer.istLagerist() ? "Warenzugang" : "Verwaltung";
     }
 
     private void synchronisiereWebTheme() {

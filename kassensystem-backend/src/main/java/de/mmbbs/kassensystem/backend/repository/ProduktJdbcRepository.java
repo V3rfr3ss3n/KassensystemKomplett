@@ -112,10 +112,13 @@ public class ProduktJdbcRepository {
      * Erhoeht den Lagerbestand eines Produkts.
      */
     public ProduktDto warenzugangBuchen(int id, double menge) {
-        if (menge <= 0) {
+        if (!Double.isFinite(menge) || menge <= 0) {
             throw new IllegalArgumentException("Menge muss groesser als 0 sein.");
         }
         ProduktDto produkt = findeNachId(id).orElseThrow(() -> new NoSuchElementException("Produkt nicht gefunden."));
+        if (!Double.isFinite(produkt.lagerbestand() + menge)) {
+            throw new IllegalArgumentException("Der resultierende Lagerbestand ist zu gross.");
+        }
         jdbcTemplate.update("UPDATE produkte SET lagerbestand = lagerbestand + ? WHERE id = ?", menge, id);
         return findeNachId(produkt.id()).orElseThrow();
     }
@@ -134,14 +137,14 @@ public class ProduktJdbcRepository {
         if (request.name() == null || request.name().isBlank()) {
             throw new IllegalArgumentException("Name fehlt.");
         }
-        if (request.preis() == null || request.preis() <= 0) {
+        if (request.preis() == null || !Double.isFinite(request.preis()) || request.preis() <= 0) {
             throw new IllegalArgumentException("Preis muss groesser als 0 sein.");
         }
         if (lagerbestandPflicht && request.lagerbestand() == null) {
             throw new IllegalArgumentException("Lagerbestand fehlt.");
         }
         double lagerbestand = request.lagerbestand() == null ? 0.0 : request.lagerbestand();
-        if (lagerbestand < 0) {
+        if (!Double.isFinite(lagerbestand) || lagerbestand < 0) {
             throw new IllegalArgumentException("Lagerbestand darf nicht negativ sein.");
         }
 

@@ -1,0 +1,6 @@
+kassensystem-javafx/target
+kassensystem-backend/target/*
+!kassensystem-backend/target/kassensystem-backend-1.0-SNAPSHOT.jar
+.git
+data
+*.db

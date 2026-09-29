@@ -37,7 +37,11 @@ public class BonService {
         if (positionen == null || positionen.isEmpty()) {
             throw new IllegalArgumentException("Der Warenkorb ist leer.");
         }
-        return new Bon(naechsteBonNummer++, positionen);
+        return new Bon(naechsteBonNummer, positionen);
+    }
+
+    public void bonGespeichert() {
+        naechsteBonNummer++;
     }
 
     /**
@@ -52,14 +56,17 @@ public class BonService {
         builder.append("Bon Nr. ").append(bon.getBonnummer()).append("\n");
         builder.append("Datum: ").append(DATUM_UHRZEIT_FORMAT.format(bon.getDatumUhrzeit())).append("\n");
         builder.append("----------------------------------------\n");
-        builder.append(String.format("%-14s %7s %4s %10s%n", "Produkt", "Menge", "USt", "Brutto"));
+        builder.append("Produkt / Menge x Einzelpreis / USt / Brutto\n");
         builder.append("----------------------------------------\n");
         for (BonPosition position : bon.getPositionen()) {
-            builder.append(String.format("%-14s %7s %4s %10s%n",
-                    kuerzeProduktname(position.getProdukt().getName()),
-                    de.mmbbs.kassensystem.util.MengenFormatter.formatiereMenge(position.getMenge()),
-                    formatiereSteuersatz(position.getSteuerSatz()),
-                    GeldFormatter.formatiereBetrag(position.getGesamtpreis())));
+            builder.append(position.getProdukt().getName()).append('\n');
+            builder.append("  ")
+                    .append(de.mmbbs.kassensystem.util.MengenFormatter.formatiereMenge(
+                            position.getMenge(), position.getProdukt().getEinheitLabel()))
+                    .append(" x ").append(GeldFormatter.formatiereBetrag(position.getEinzelpreis()))
+                    .append(" · ").append(formatiereSteuersatz(position.getSteuerSatz()))
+                    .append(" = ").append(GeldFormatter.formatiereBetrag(position.getGesamtpreis()))
+                    .append('\n');
         }
         builder.append("----------------------------------------\n");
         for (SteuerSumme steuerSumme : berechneSteuerSummen(bon).values()) {
@@ -73,13 +80,6 @@ public class BonService {
         builder.append(String.format("%-24s %14s%n", "Gesamt:", GeldFormatter.formatiereBetrag(bon.getGesamtpreis())));
         builder.append("========================================");
         return builder.toString();
-    }
-
-    private String kuerzeProduktname(String name) {
-        if (name.length() <= 14) {
-            return name;
-        }
-        return name.substring(0, 11) + "...";
     }
 
     private Map<Double, SteuerSumme> berechneSteuerSummen(Bon bon) {

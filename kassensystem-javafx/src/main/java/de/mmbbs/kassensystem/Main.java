@@ -3,8 +3,9 @@ package de.mmbbs.kassensystem;
 import de.mmbbs.kassensystem.auth.AuthService;
 import de.mmbbs.kassensystem.auth.Benutzer;
 import de.mmbbs.kassensystem.repository.ProduktRepository;
-import de.mmbbs.kassensystem.repository.SqlBonHistorieRepository;
-import de.mmbbs.kassensystem.repository.SqlProduktRepository;
+import de.mmbbs.kassensystem.repository.ApiClient;
+import de.mmbbs.kassensystem.repository.ApiBonHistorieRepository;
+import de.mmbbs.kassensystem.repository.ApiProduktRepository;
 import de.mmbbs.kassensystem.service.KassenService;
 import de.mmbbs.kassensystem.service.ProduktService;
 import de.mmbbs.kassensystem.ui.AdminWebView;
@@ -59,20 +60,28 @@ public class Main extends Application {
     }
 
     private void zeigeLogin() {
-        Optional<Benutzer> angemeldeterBenutzer = new LoginDialog(authService).showAndWait();
+        Optional<LoginDialog.Anmeldung> angemeldeterBenutzer = new LoginDialog(authService).showAndWait();
         if (angemeldeterBenutzer.isEmpty()) {
             Platform.exit();
             return;
         }
 
-        Benutzer benutzer = angemeldeterBenutzer.get();
-        zeigeAnwendung(benutzer);
+        LoginDialog.Anmeldung anmeldung = angemeldeterBenutzer.get();
+        try {
+            zeigeAnwendung(anmeldung.benutzer(), anmeldung.passwort());
+        } catch (RuntimeException fehler) {
+            de.mmbbs.kassensystem.ui.AlertUtil.showError("Backend nicht erreichbar", fehler.getMessage());
+            zeigeLogin();
+        }
     }
 
-    private void zeigeAnwendung(Benutzer benutzer) {
-        ProduktRepository repository = new SqlProduktRepository();
+    private void zeigeAnwendung(Benutzer benutzer, String passwort) {
+        ApiClient api = new ApiClient(benutzer.benutzername(), passwort);
+        api.get("/api/session");
+        ProduktRepository repository = new ApiProduktRepository(api);
         ProduktService produktService = new ProduktService(repository);
-        KassenService kassenService = new KassenService(repository, new SqlBonHistorieRepository(repository));
+        KassenService kassenService = benutzer.darfKassieren()
+                ? new KassenService(repository, new ApiBonHistorieRepository(api)) : null;
 
         Parent root = erstelleAppShell(benutzer, produktService, kassenService);
         ThemeManager.applyToRoot(root);
@@ -115,7 +124,7 @@ public class Main extends Application {
 
         Button logoutButton = new Button("Ausloggen");
         logoutButton.getStyleClass().add("secondary-button");
-        logoutButton.setOnAction(event -> zeigeLogin());
+        logoutButton.setOnAction(event -> logout());
 
         Button beendenButton = new Button("Beenden");
         beendenButton.getStyleClass().add("danger-button");
@@ -126,6 +135,11 @@ public class Main extends Application {
         kopfzeile.setAlignment(Pos.CENTER_LEFT);
         kopfzeile.setPadding(new Insets(10, 16, 10, 16));
         return kopfzeile;
+    }
+
+    private void logout() {
+        primaryStage.hide();
+        zeigeLogin();
     }
 
     private TabPane erstelleAnsicht(Benutzer benutzer,

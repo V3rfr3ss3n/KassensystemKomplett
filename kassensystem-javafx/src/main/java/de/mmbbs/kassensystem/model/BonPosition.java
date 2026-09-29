@@ -35,13 +35,17 @@ public class BonPosition {
         if (produkt == null) {
             throw new IllegalArgumentException("Bitte Produkt auswählen.");
         }
-        if (menge <= 0) {
+        if (!Double.isFinite(menge) || menge <= 0 || !Double.isFinite(einzelpreis) || einzelpreis <= 0) {
             throw new IllegalArgumentException("Menge muss größer als 0 sein.");
         }
-        this.produkt = produkt;
+        this.produkt = new Produkt(produkt.getId(), produkt.getName(), einzelpreis, 0,
+                produkt.getBildPfad(), produkt.getEinheit(), produkt.getSteuerSatz());
         this.menge = menge;
         this.einzelpreis = einzelpreis;
         this.gesamtpreis = Double.isNaN(gesamtpreis) ? this.einzelpreis * menge : gesamtpreis;
+        if (!Double.isFinite(this.gesamtpreis) || this.gesamtpreis <= 0) {
+            throw new IllegalArgumentException("Positionsbetrag ist ungueltig.");
+        }
         this.steuerSatz = Steuersatz.fromProzent(steuerSatz).getProzent();
     }
 

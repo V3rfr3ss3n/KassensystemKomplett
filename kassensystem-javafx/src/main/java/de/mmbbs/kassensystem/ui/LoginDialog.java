@@ -14,7 +14,8 @@ import javafx.scene.layout.GridPane;
 /**
  * Login-Dialog fuer die lokalen Testnutzer.
  */
-public class LoginDialog extends Dialog<Benutzer> {
+public class LoginDialog extends Dialog<LoginDialog.Anmeldung> {
+    public record Anmeldung(Benutzer benutzer, String passwort) {}
     private final AuthService authService;
     private final TextField benutzerField = new TextField();
     private final PasswordField passwortField = new PasswordField();
@@ -63,7 +64,8 @@ public class LoginDialog extends Dialog<Benutzer> {
             if (button != ButtonType.OK) {
                 return null;
             }
-            return authService.anmelden(benutzerField.getText(), passwortField.getText()).orElse(null);
+            return authService.anmelden(benutzerField.getText(), passwortField.getText())
+                    .map(benutzer -> new Anmeldung(benutzer, passwortField.getText())).orElse(null);
         });
     }
 }

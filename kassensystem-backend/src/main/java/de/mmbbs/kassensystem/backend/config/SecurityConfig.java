@@ -28,13 +28,15 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/javafx-login").permitAll()
                         .requestMatchers("/admin/**").hasAnyRole("ADMIN", "LAGERIST")
-                        .requestMatchers(HttpMethod.GET, "/api/session").hasAnyRole("ADMIN", "LAGERIST")
-                        .requestMatchers(HttpMethod.GET, "/api/produkte/**").hasAnyRole("ADMIN", "LAGERIST")
+                        .requestMatchers(HttpMethod.GET, "/api/session").hasAnyRole("ADMIN", "LAGERIST", "KASSIERER")
+                        .requestMatchers(HttpMethod.GET, "/api/produkte/**").hasAnyRole("ADMIN", "LAGERIST", "KASSIERER")
+                        .requestMatchers("/api/bons/**", "/api/kasse/**").hasAnyRole("ADMIN", "KASSIERER")
                         .requestMatchers(HttpMethod.POST, "/api/produkte/*/warenzugang").hasAnyRole("ADMIN", "LAGERIST")
                         .requestMatchers("/api/**").hasRole("ADMIN")
                         .anyRequest().permitAll()
                 )
                 .formLogin(Customizer.withDefaults())
+                .httpBasic(Customizer.withDefaults())
                 .logout(logout -> logout.logoutSuccessUrl("/"))
                 .build();
     }

@@ -13,7 +13,7 @@ public class ValidationUtil {
     public static boolean isValidPrice(String priceStr) {
         try {
             double price = Double.parseDouble(priceStr.replace(",", "."));
-            return price > 0;
+            return Double.isFinite(price) && price > 0;
         } catch (NumberFormatException e) {
             return false;
         }
@@ -26,7 +26,7 @@ public class ValidationUtil {
     public static boolean isValidStock(String stockStr) {
         try {
             double stock = Double.parseDouble(stockStr.trim().replace(",", "."));
-            return stock >= 0;
+            return Double.isFinite(stock) && stock >= 0;
         } catch (NumberFormatException e) {
             return false;
         }
@@ -39,7 +39,7 @@ public class ValidationUtil {
     public static boolean isValidQuantity(String quantityStr) {
         try {
             double quantity = Double.parseDouble(quantityStr.trim().replace(",", "."));
-            return quantity > 0;
+            return Double.isFinite(quantity) && quantity > 0;
         } catch (NumberFormatException e) {
             return false;
         }

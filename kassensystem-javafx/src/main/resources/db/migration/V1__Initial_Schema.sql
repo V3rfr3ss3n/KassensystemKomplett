@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS bon_positionen (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     bonnummer INTEGER NOT NULL,
     produkt_id INTEGER NOT NULL,
+    produkt_name TEXT,
+    einheit TEXT,
     menge REAL NOT NULL,
     einzelpreis REAL NOT NULL,
     steuerSatz REAL NOT NULL DEFAULT 19.0,
