@@ -12,7 +12,7 @@ docker compose up --build -d
 mvn -pl kassensystem-javafx javafx:run
 ```
 
-Die Verwaltung ist unter `http://localhost:8080/kassensystem/admin/` erreichbar. Die Daten liegen im Docker-Volume `kassensystem-data`. `docker compose down` stoppt das Backend und erhält die Daten. Die Kasse erreicht das Backend standardmäßig auf Port 8080.
+Die Verwaltung ist unter `http://127.0.0.1:8080/kassensystem/admin/` erreichbar. Die Daten liegen im Docker-Volume `kassensystem-data`. `docker compose down` stoppt das Backend und erhält die Daten. Die Kasse erreicht das Backend standardmäßig über `127.0.0.1:8080`; eine Hotspot-Verbindung ändert diese lokale Adresse nicht. Die Server-Wurzel `/` zeigt keine Seite.
 
 Für ein anderes Backend `KASSENSYSTEM_API_URL` oder `-Dkassensystem.api.url=<URL>` setzen. Die URL enthält den Kontextpfad, etwa `http://localhost:8080/kassensystem`. Bei einer Release-ZIP die App mit `Kassensystem.exe` starten; Docker/Backend muss zuvor laufen.
 

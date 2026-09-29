@@ -2,6 +2,7 @@ package de.mmbbs.kassensystem.ui;
 
 import de.mmbbs.kassensystem.auth.Benutzer;
 import de.mmbbs.kassensystem.auth.SsoTicketService;
+import de.mmbbs.kassensystem.repository.ApiClient;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.concurrent.Worker;
 import javafx.geometry.Insets;
@@ -26,8 +27,8 @@ import java.nio.charset.StandardCharsets;
  * selbst ist zusaetzlich serverseitig ueber Spring Security geschuetzt.</p>
  */
 public class AdminWebView extends BorderPane {
-    public static final String ADMIN_URL = "http://localhost:8080/kassensystem/admin/";
-    private static final String SSO_LOGIN_URL = "http://localhost:8080/kassensystem/auth/javafx-login";
+    public static final String ADMIN_URL = ApiClient.basisUrl() + "/admin/";
+    private static final String SSO_LOGIN_URL = ApiClient.basisUrl() + "/auth/javafx-login";
 
     private final Benutzer benutzer;
     private final ReadOnlyBooleanProperty darkModeProperty;

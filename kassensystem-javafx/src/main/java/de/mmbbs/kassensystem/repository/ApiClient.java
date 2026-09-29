@@ -20,11 +20,15 @@ public class ApiClient {
     private final String authorization;
 
     public ApiClient(String benutzer, String passwort) {
-        String configured = System.getProperty("kassensystem.api.url", System.getenv().getOrDefault(
-                "KASSENSYSTEM_API_URL", "http://localhost:8080/kassensystem"));
-        this.basis = configured.replaceAll("/+$", "");
+        this.basis = basisUrl();
         this.authorization = "Basic " + Base64.getEncoder().encodeToString(
                 (benutzer + ":" + passwort).getBytes(StandardCharsets.UTF_8));
+    }
+
+    public static String basisUrl() {
+        String configured = System.getProperty("kassensystem.api.url", System.getenv().getOrDefault(
+                "KASSENSYSTEM_API_URL", "http://127.0.0.1:8080/kassensystem"));
+        return configured.replaceAll("/+$", "");
     }
 
     public JsonNode get(String path) { return sende("GET", path, null); }
