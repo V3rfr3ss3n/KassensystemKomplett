@@ -46,4 +46,5 @@
 - [x] CI-Quality-Gate mit Tests, Coverage, JavaScript-Prüfung und Docker-Build ergänzen.
 - [x] Release-Workflow für Windows-App und GitHub Container Registry ergänzen.
 - [x] Docker-Build im GitHub-Quality-Gate und Release-Workflow mit Windows-ZIP und GHCR-Image prüfen.
-- [ ] Docker Compose mit lokal installiertem Docker Desktop starten und Kasse gegen den Container manuell bedienen.
+- [x] Docker Compose lokal starten; API-Rollen und einen Testkauf mit Bon-Snapshot in einem fluechtigen Container pruefen.
+- [ ] JavaFX-Kasse manuell gegen den laufenden Docker-Container bedienen und GUI-Abnahme abschliessen.
