@@ -45,4 +45,5 @@
 - [x] Docker-Image und Compose für das Backend ergänzen.
 - [x] CI-Quality-Gate mit Tests, Coverage, JavaScript-Prüfung und Docker-Build ergänzen.
 - [x] Release-Workflow für Windows-App und GitHub Container Registry ergänzen.
-- [ ] Docker- und GitHub-Release-Workflow nach Push auf GitHub praktisch prüfen.
+- [x] Docker-Build im GitHub-Quality-Gate und Release-Workflow mit Windows-ZIP und GHCR-Image prüfen.
+- [ ] Docker Compose mit lokal installiertem Docker Desktop starten und Kasse gegen den Container manuell bedienen.
