@@ -102,8 +102,61 @@
     -fx-background-radius: 12;
     -fx-padding: 16;
     -fx-cursor: hand;
-    -fx-min-width: 200;
-    -fx-min-height: 100;
+    -fx-min-width: 195;
+    -fx-min-height: 250;
+}
+
+.product-picker-image {
+    -fx-background-color: -app-surface-soft;
+    -fx-background-radius: 8;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 8;
+}
+
+.product-picker-image .label {
+    -fx-text-fill: -app-muted;
+    -fx-font-size: 13px;
+}
+
+.selected-product-image {
+    -fx-background-color: -app-surface;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-min-width: 76;
+    -fx-min-height: 76;
+}
+
+.selected-product-image .label {
+    -fx-text-fill: -app-muted;
+    -fx-font-size: 11px;
+}
+
+.product-card-price {
+    -fx-text-fill: -app-heading;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+
+.product-card-unavailable {
+    -fx-opacity: 0.65;
+}
+
+.selected-product-box {
+    -fx-background-color: -app-surface-soft;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-padding: 14;
+    -fx-min-height: 96;
+}
+
+.page-scroll,
+.page-scroll > .viewport,
+.product-picker-scroll,
+.product-picker-scroll > .viewport {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
 }
 
 .product-card:hover {

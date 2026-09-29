@@ -6,13 +6,11 @@ import de.mmbbs.kassensystem.repository.ApiClient;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.concurrent.Worker;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
 import javafx.scene.web.WebView;
 
 import java.awt.Desktop;
@@ -34,7 +32,8 @@ public class AdminWebView extends BorderPane {
     private final ReadOnlyBooleanProperty darkModeProperty;
     private final SsoTicketService ssoTicketService = new SsoTicketService();
     private final WebView webView = new WebView();
-    private final Label statusLabel = new Label("Spring Boot muss fuer die Verwaltung laufen.");
+    private final Label statusLabel = new Label("Verwaltung wird geladen …");
+    private boolean geladen;
 
     public AdminWebView(Benutzer benutzer, ReadOnlyBooleanProperty darkModeProperty) {
         this.benutzer = benutzer;
@@ -44,54 +43,41 @@ public class AdminWebView extends BorderPane {
         setPadding(new Insets(18));
 
         String titel = verwaltungsTitel();
-        Button loadButton = new Button(titel + " laden");
-        loadButton.getStyleClass().add("primary-button");
-        loadButton.setOnAction(event -> ladeAdminseite());
-
-        Button startLoadButton = new Button(titel + " laden");
-        startLoadButton.getStyleClass().add("primary-button");
-        startLoadButton.setOnAction(event -> ladeAdminseite());
-
         Button reloadButton = new Button("Neu laden");
         reloadButton.getStyleClass().add("secondary-button");
         reloadButton.setOnAction(event -> ladeAdminseite());
 
-        Button browserButton = new Button("Im Browser oeffnen");
+        Button browserButton = new Button("Im Browser öffnen");
         browserButton.getStyleClass().add("secondary-button");
         browserButton.setOnAction(event -> oeffneImBrowser());
 
-        HBox toolbar = new HBox(10, loadButton, reloadButton, browserButton, statusLabel);
-        toolbar.setAlignment(Pos.CENTER_LEFT);
+        HBox toolbar = new HBox(10, reloadButton, browserButton, statusLabel);
+        toolbar.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         toolbar.setPadding(new Insets(0, 0, 12, 0));
         HBox.setHgrow(statusLabel, Priority.ALWAYS);
 
-        Label title = new Label(titel);
-        title.getStyleClass().add("title-label");
-        Label hint = new Label("Webadresse: " + ADMIN_URL);
-        hint.getStyleClass().add("subtitle-label");
-        hint.setWrapText(true);
-
         setTop(toolbar);
-        VBox startBox = new VBox(12, title, hint, startLoadButton);
-        startBox.setAlignment(Pos.CENTER);
-        startBox.setPadding(new Insets(40));
-        setCenter(startBox);
+        setCenter(webView);
 
         webView.getEngine().getLoadWorker().stateProperty().addListener((obs, oldState, state) -> {
             if (state == Worker.State.SUCCEEDED) {
                 synchronisiereWebTheme();
-                statusLabel.setText("Verwaltung geladen fuer " + benutzer.benutzername() + ".");
+                statusLabel.setText("Verwaltung geladen für " + benutzer.benutzername() + ".");
             } else if (state == Worker.State.FAILED) {
-                statusLabel.setText("Verwaltung konnte nicht geladen werden. Laeuft Spring Boot?");
+                statusLabel.setText("Verwaltung konnte nicht geladen werden. Läuft das Backend?");
             }
         });
         darkModeProperty.addListener((obs, oldValue, newValue) -> synchronisiereWebTheme());
     }
 
+    public void ladeWennNoetig() {
+        if (!geladen) ladeAdminseite();
+    }
+
     private void ladeAdminseite() {
+        geladen = true;
         webView.getEngine().load(erstelleSsoUrl());
-        setCenter(webView);
-        statusLabel.setText(verwaltungsTitel() + " wird mit JavaFX-Anmeldung geoeffnet.");
+        statusLabel.setText(verwaltungsTitel() + " wird geöffnet …");
     }
 
     private void oeffneImBrowser() {

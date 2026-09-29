@@ -54,7 +54,7 @@ public class KassenService {
      */
     public void positionHinzufuegen(int produktId, double menge) {
         if (!Double.isFinite(menge) || menge <= 0) {
-            throw new IllegalArgumentException("Menge muss groesser als 0 sein.");
+            throw new IllegalArgumentException("Menge muss größer als 0 sein.");
         }
         Produkt produkt = repository.findeNachId(produktId)
                 .orElseThrow(() -> new IllegalArgumentException("Produkt nicht gefunden."));

@@ -4,6 +4,7 @@ const sessionUrl = '../api/session';
 const state = {
     products: [],
     selectedProduct: null,
+    imageUploading: false,
     session: {
         username: '',
         roles: [],
@@ -40,6 +41,8 @@ const dom = {
     unitInput: document.querySelector('#unitInput'),
     taxInput: document.querySelector('#taxInput'),
     imageInput: document.querySelector('#imageInput'),
+    imageFile: document.querySelector('#imageFile'),
+    imagePreview: document.querySelector('#imagePreview'),
     stockPanel: document.querySelector('#stockPanel'),
     selectedProductSummary: document.querySelector('#selectedProductSummary'),
     stockAddInput: document.querySelector('#stockAddInput'),
@@ -59,6 +62,8 @@ function bindEvents() {
     dom.themeButton.addEventListener('click', toggleTheme);
     dom.logoutButton.addEventListener('click', logout);
     dom.form.addEventListener('submit', saveProduct);
+    dom.imageFile.addEventListener('change', uploadImage);
+    dom.imageInput.addEventListener('input', updateImagePreview);
     dom.stockAddInput.addEventListener('keydown', event => {
         if (event.key === 'Enter') {
             event.preventDefault();
@@ -104,7 +109,7 @@ function applyPermissions() {
     dom.stockPanel.hidden = !canBookStock;
     document.body.classList.toggle('stock-only', !canManageProducts && canBookStock);
 
-    for (const element of [dom.nameInput, dom.priceInput, dom.stockInput, dom.unitInput, dom.taxInput, dom.imageInput]) {
+    for (const element of [dom.nameInput, dom.priceInput, dom.stockInput, dom.unitInput, dom.taxInput, dom.imageInput, dom.imageFile]) {
         element.disabled = !canManageProducts;
     }
 
@@ -121,7 +126,7 @@ async function loadProducts() {
         }
         state.products = await response.json();
     } catch (error) {
-        setStatus('Verbindung zur Verwaltung fehlgeschlagen. Bitte Backend pruefen.');
+        setStatus('Verbindung zur Verwaltung fehlgeschlagen. Bitte Backend prüfen.');
         return;
     }
     renderOverview();
@@ -182,7 +187,7 @@ function renderRows() {
         const cell = document.createElement('td');
         cell.colSpan = 6;
         cell.className = 'empty-row';
-        cell.textContent = state.products.length ? 'Keine Produkte fuer diese Filter gefunden.' : 'Noch keine Produkte vorhanden.';
+        cell.textContent = state.products.length ? 'Keine Produkte für diese Filter gefunden.' : 'Noch keine Produkte vorhanden.';
         row.appendChild(cell);
         dom.rows.appendChild(row);
     }
@@ -217,12 +222,14 @@ function fillProductForm(product) {
     dom.unitInput.value = product.einheit;
     dom.taxInput.value = String(product.steuerSatz);
     dom.imageInput.value = product.bildPfad || '';
+    dom.imageFile.value = '';
+    updateImagePreview();
     dom.stockAddInput.value = '';
 }
 
 function updateSelectedProduct() {
     if (!state.selectedProduct) {
-        dom.selectedProductSummary.textContent = 'Kein Produkt ausgewaehlt';
+        dom.selectedProductSummary.textContent = 'Kein Produkt ausgewählt';
         updateStockControls();
         return;
     }
@@ -230,7 +237,7 @@ function updateSelectedProduct() {
     const product = state.selectedProduct;
     dom.selectedProductSummary.innerHTML = `
         <strong>${escapeHtml(product.name)}</strong>
-        <span>Lager: ${formatAmount(product.lagerbestand)} ${escapeHtml(product.einheitLabel)}</span>
+        <span>Lagerbestand: ${formatAmount(product.lagerbestand)} ${escapeHtml(product.einheitLabel)}</span>
         <span>Preis: ${formatMoney(product.preis)} / ${escapeHtml(product.einheitLabel)}</span>
     `;
     updateStockControls();
@@ -243,7 +250,7 @@ function updateStockControls() {
 
 function clearForm() {
     if (!hasPermission('manageProducts')) {
-        setStatus('Nur Admins duerfen neue Produkte erfassen.');
+        setStatus('Nur Admins dürfen neue Produkte erfassen.');
         return;
     }
     state.selectedProduct = null;
@@ -252,6 +259,7 @@ function clearForm() {
     dom.unitInput.value = 'STUECK';
     dom.taxInput.value = '19';
     dom.stockAddInput.value = '';
+    updateImagePreview();
     updateSelectedProduct();
     renderRows();
     setStatus('Neues Produkt.');
@@ -259,8 +267,12 @@ function clearForm() {
 
 async function saveProduct(event) {
     event.preventDefault();
+    if (state.imageUploading) {
+        setStatus('Bitte warten, bis das Produktbild hochgeladen ist.');
+        return;
+    }
     if (!hasPermission('manageProducts')) {
-        setStatus('Nur Admins duerfen Produkte speichern.');
+        setStatus('Nur Admins dürfen Produkte speichern.');
         return;
     }
 
@@ -275,7 +287,7 @@ async function saveProduct(event) {
     };
 
     if (!Number.isFinite(payload.preis) || payload.preis <= 0) {
-        setStatus('Preis muss eine Zahl groesser als 0 sein.');
+        setStatus('Preis muss eine Zahl größer als 0 sein.');
         dom.priceInput.focus();
         return;
     }
@@ -294,7 +306,7 @@ async function saveProduct(event) {
             body: JSON.stringify(payload)
         });
     } catch (error) {
-        setStatus('Produkt konnte nicht gespeichert werden. Verbindung pruefen.');
+        setStatus('Produkt konnte nicht gespeichert werden. Verbindung prüfen.');
         return;
     }
 
@@ -313,14 +325,14 @@ async function saveProduct(event) {
 
 async function deleteSelected() {
     if (!hasPermission('manageProducts')) {
-        setStatus('Nur Admins duerfen Produkte loeschen.');
+        setStatus('Nur Admins dürfen Produkte löschen.');
         return;
     }
     if (!state.selectedProduct) {
-        setStatus('Kein Produkt ausgewaehlt.');
+        setStatus('Kein Produkt ausgewählt.');
         return;
     }
-    if (!confirm('Produkt wirklich loeschen?')) {
+    if (!confirm('Produkt wirklich löschen?')) {
         return;
     }
 
@@ -331,7 +343,7 @@ async function deleteSelected() {
             credentials: 'same-origin'
         });
     } catch (error) {
-        setStatus('Produkt konnte nicht geloescht werden. Verbindung pruefen.');
+        setStatus('Produkt konnte nicht gelöscht werden. Verbindung prüfen.');
         return;
     }
     if (!response.ok) {
@@ -340,22 +352,22 @@ async function deleteSelected() {
     }
     clearForm();
     await loadProducts();
-    setStatus('Produkt geloescht.');
+    setStatus('Produkt gelöscht.');
 }
 
 async function addStock() {
     if (!hasPermission('bookStock')) {
-        setStatus('Keine Berechtigung fuer Warenzugang.');
+        setStatus('Keine Berechtigung für Warenzugang.');
         return;
     }
     if (!state.selectedProduct) {
-        setStatus('Bitte Produkt aus der Liste auswaehlen.');
+        setStatus('Bitte Produkt aus der Liste auswählen.');
         return;
     }
 
     const menge = parseNumber(dom.stockAddInput.value);
     if (!Number.isFinite(menge) || menge <= 0) {
-        setStatus('Menge muss groesser als 0 sein.');
+        setStatus('Menge muss größer als 0 sein.');
         return;
     }
 
@@ -368,7 +380,7 @@ async function addStock() {
             body: JSON.stringify({menge})
         });
     } catch (error) {
-        setStatus('Warenzugang konnte nicht gebucht werden. Verbindung pruefen.');
+        setStatus('Warenzugang konnte nicht gebucht werden. Verbindung prüfen.');
         return;
     }
     if (!response.ok) {
@@ -378,7 +390,49 @@ async function addStock() {
     const updated = await response.json();
     await loadProducts();
     selectProduct(updated);
-    setStatus(`Warenzugang fuer ${updated.name} gebucht.`);
+    setStatus(`Warenzugang für ${updated.name} gebucht.`);
+}
+
+async function uploadImage() {
+    const datei = dom.imageFile.files[0];
+    if (!datei) return;
+    const produktId = dom.productId.value;
+    state.imageUploading = true;
+    dom.saveButton.disabled = true;
+    setStatus('Produktbild wird hochgeladen …');
+    try {
+        const daten = new FormData();
+        daten.append('datei', datei);
+        const response = await fetch('../api/bilder', {
+            method: 'POST',
+            credentials: 'same-origin',
+            body: daten
+        });
+        if (!response.ok) {
+            await showError(response);
+            return;
+        }
+        const bild = await response.json();
+        if (dom.productId.value === produktId) {
+            dom.imageInput.value = bild.url;
+            updateImagePreview();
+            setStatus('Bild hochgeladen. Speichern Sie jetzt das Produkt.');
+        }
+    } catch (error) {
+        setStatus('Bild konnte nicht hochgeladen werden. Verbindung prüfen.');
+    } finally {
+        state.imageUploading = false;
+        dom.saveButton.disabled = !hasPermission('manageProducts');
+    }
+}
+
+function updateImagePreview() {
+    const pfad = dom.imageInput.value.trim();
+    const url = pfad.startsWith('api/bilder/') ? `../${pfad}`
+        : /^https?:\/\//i.test(pfad) ? pfad : '';
+    dom.imagePreview.hidden = !url;
+    if (url) dom.imagePreview.src = url;
+    else dom.imagePreview.removeAttribute('src');
 }
 
 async function showError(response) {

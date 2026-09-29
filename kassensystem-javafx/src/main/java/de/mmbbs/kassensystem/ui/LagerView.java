@@ -130,7 +130,7 @@ public class LagerView extends VBox {
                 selectedLabel.setText("Ausgewählt: nichts");
             } else {
                 selectedLabel.setText("Ausgewählt: " + selected.getName()
-                        + " · Lager: " + MengenFormatter.formatiereMenge(selected.getLagerbestand(), selected.getEinheitLabel()));
+                        + " · Lagerbestand: " + MengenFormatter.formatiereMenge(selected.getLagerbestand(), selected.getEinheitLabel()));
             }
         });
 

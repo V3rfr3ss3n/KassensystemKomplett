@@ -113,7 +113,7 @@ public class ProduktJdbcRepository {
      */
     public ProduktDto warenzugangBuchen(int id, double menge) {
         if (!Double.isFinite(menge) || menge <= 0) {
-            throw new IllegalArgumentException("Menge muss groesser als 0 sein.");
+            throw new IllegalArgumentException("Menge muss größer als 0 sein.");
         }
         ProduktDto produkt = findeNachId(id).orElseThrow(() -> new NoSuchElementException("Produkt nicht gefunden."));
         if (!Double.isFinite(produkt.lagerbestand() + menge)) {
@@ -138,7 +138,7 @@ public class ProduktJdbcRepository {
             throw new IllegalArgumentException("Name fehlt.");
         }
         if (request.preis() == null || !Double.isFinite(request.preis()) || request.preis() <= 0) {
-            throw new IllegalArgumentException("Preis muss groesser als 0 sein.");
+            throw new IllegalArgumentException("Preis muss größer als 0 sein.");
         }
         if (lagerbestandPflicht && request.lagerbestand() == null) {
             throw new IllegalArgumentException("Lagerbestand fehlt.");
@@ -191,7 +191,7 @@ public class ProduktJdbcRepository {
             case "KILOGRAMM" -> "kg";
             case "LITER" -> "l";
             case "PACKUNG" -> "Packung";
-            default -> "Stueck";
+            default -> "Stück";
         };
     }
 

@@ -52,8 +52,10 @@ public class LoginDialog extends Dialog<LoginDialog.Anmeldung> {
 
         getDialogPane().setContent(form);
         ThemeManager.applyToDialogPane(getDialogPane());
-        getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-        getDialogPane().lookupButton(ButtonType.OK).addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
+        ButtonType anmelden = new ButtonType("Anmelden", javafx.scene.control.ButtonBar.ButtonData.OK_DONE);
+        ButtonType abbrechen = new ButtonType("Abbrechen", javafx.scene.control.ButtonBar.ButtonData.CANCEL_CLOSE);
+        getDialogPane().getButtonTypes().addAll(anmelden, abbrechen);
+        getDialogPane().lookupButton(anmelden).addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
             if (authService.anmelden(benutzerField.getText(), passwortField.getText()).isEmpty()) {
                 fehlerLabel.setText("Benutzer oder Passwort ist falsch.");
                 event.consume();
@@ -61,7 +63,7 @@ public class LoginDialog extends Dialog<LoginDialog.Anmeldung> {
         });
 
         setResultConverter(button -> {
-            if (button != ButtonType.OK) {
+            if (button != anmelden) {
                 return null;
             }
             return authService.anmelden(benutzerField.getText(), passwortField.getText())

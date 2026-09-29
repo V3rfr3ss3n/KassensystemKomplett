@@ -25,7 +25,7 @@ public class KaufJdbcRepository {
         Map<Integer, Double> mengen = new LinkedHashMap<>();
         for (KaufRequest.Position position : request.positionen()) {
             if (position == null || position.produktId() <= 0 || !Double.isFinite(position.menge()) || position.menge() <= 0) {
-                throw new IllegalArgumentException("Produkt und Menge muessen gueltig sein.");
+                throw new IllegalArgumentException("Produkt und Menge müssen gültig sein.");
             }
             mengen.merge(position.produktId(), position.menge(), Double::sum);
             if (!Double.isFinite(mengen.get(position.produktId()))) {
@@ -41,11 +41,11 @@ public class KaufJdbcRepository {
                     ProduktStand produkt = produkt(connection, entry.getKey());
                     double menge = entry.getValue();
                     if (produkt.bestand < menge) {
-                        throw new IllegalArgumentException("Nicht genuegend Bestand fuer " + produkt.name + ".");
+                        throw new IllegalArgumentException("Nicht genügend Bestand für " + produkt.name + ".");
                     }
                     double betrag = Math.round(produkt.preis * menge * 100.0) / 100.0;
                     if (!Double.isFinite(betrag) || betrag <= 0) {
-                        throw new IllegalArgumentException("Positionsbetrag ist ungueltig.");
+                        throw new IllegalArgumentException("Positionsbetrag ist ungültig.");
                     }
                     gesamt += betrag;
                     positionen.add(new BonDto.Position(entry.getKey(), produkt.name, produkt.einheit,
@@ -61,7 +61,7 @@ public class KaufJdbcRepository {
                         update.setInt(2, position.produktId());
                         update.setDouble(3, position.menge());
                         if (update.executeUpdate() != 1) {
-                            throw new IllegalArgumentException("Nicht genuegend Bestand vorhanden.");
+                            throw new IllegalArgumentException("Nicht genügend Bestand vorhanden.");
                         }
                     }
                 }

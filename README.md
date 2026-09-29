@@ -45,11 +45,11 @@ In einer IDE das Maven-Projekt am Wurzelordner öffnen, JDK 24 konfigurieren und
 | `kassierer` | `1234` | Nur Kasse |
 | `lagerist` | `1234` | Produktliste und Warenzugang |
 
-**Verkauf:** In der Kasse ein Produkt suchen oder filtern, per `+` direkt hinzufügen oder auswählen und eine Menge eingeben. Im Warenkorb Mengen ändern und „Kauf abschließen“ wählen. Der Bon erscheint rechts und bleibt in der Historie erhalten.
+**Verkauf:** In der Kasse „Produkte mit Bildern ansehen“ öffnen, bei Bedarf suchen oder filtern und ein Produkt auswählen. Die Auswahl zeigt höchstens 18 Produkte pro Seite; mit „Weiter“ und „Zurück“ durch das Sortiment blättern. Danach eine Menge eingeben und „Zum Warenkorb hinzufügen“ wählen. Im Warenkorb Mengen ändern und „Kauf abschließen“ wählen. Der Bon erscheint rechts und bleibt in der Historie erhalten.
 
 **Bon ausgeben:** Den aktuellen Bon oder einen Eintrag der Bon-Historie auswählen. „Als PDF speichern“ öffnet die Dateiauswahl, „Drucken“ den Systemdruckdialog. Ein abgebrochener Dialog verändert den Bon nicht.
 
-**Verwaltung:** Admins können Produkte anlegen, auswählen, bearbeiten und löschen. Admins und Lageristen wählen ein Produkt und buchen im Bereich „Warenzugang“ eine positive Menge. Die Produktliste kann auch mit Tab und Enter bedient werden. Nach Änderungen in der Webverwaltung die Produktliste der Kasse über „Aktualisieren“ neu laden.
+**Verwaltung:** Der Verwaltungstab lädt sich beim Öffnen automatisch. Admins können Produkte anlegen, auswählen, bearbeiten und löschen. Für ein Produktbild eine PNG-, JPEG- oder GIF-Datei bis 5 MB auswählen; nach dem Upload das Produkt speichern. Die Bilder liegen zusammen mit der Datenbank im Docker-Volume beziehungsweise im lokalen Datenverzeichnis. Admins und Lageristen wählen ein Produkt und buchen im Bereich „Warenzugang“ eine positive Menge. Die Produktliste kann auch mit Tab und Enter bedient werden. Nach Änderungen in der Webverwaltung die Produktliste der Kasse über „Aktualisieren“ neu laden. Der Hell- oder Dunkelmodus bleibt nach einem Neustart erhalten und gilt bereits bei der Anmeldung.
 
 ## Daten und Tests
 

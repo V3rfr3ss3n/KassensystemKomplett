@@ -89,7 +89,7 @@ public class Main extends Application {
         Scene scene = new Scene(root, 1200, 720);
         scene.getStylesheets().add(getClass().getResource("/styles.css").toExternalForm());
 
-        primaryStage.setTitle("Kassensystem MVP - " + benutzer.benutzername());
+        primaryStage.setTitle("Kassensystem – " + benutzer.benutzername());
         primaryStage.setScene(scene);
         primaryStage.show();
     }
@@ -156,13 +156,17 @@ public class Main extends Application {
         Tab verwaltungTab = null;
         if (benutzer.darfWebVerwaltungNutzen()) {
             String label = benutzer.istLagerist() ? "Warenzugang" : "Verwaltung";
-            verwaltungTab = new Tab(label, new AdminWebView(benutzer, ThemeManager.darkModeProperty()));
+            AdminWebView verwaltung = new AdminWebView(benutzer, ThemeManager.darkModeProperty());
+            verwaltungTab = new Tab(label, verwaltung);
+            verwaltungTab.selectedProperty().addListener((obs, oldValue, selected) -> {
+                if (selected) verwaltung.ladeWennNoetig();
+            });
         }
 
         if (benutzer.istAdmin() && kasseTab != null && verwaltungTab != null) {
             Tab finalKasseTab = kasseTab;
             Tab finalVerwaltungTab = verwaltungTab;
-            Tab menuTab = new Tab("Hauptmenue", new HauptmenuView(
+            Tab menuTab = new Tab("Hauptmenü", new HauptmenuView(
                     benutzer,
                     () -> tabPane.getSelectionModel().select(finalKasseTab),
                     () -> tabPane.getSelectionModel().select(finalVerwaltungTab),
@@ -182,6 +186,9 @@ public class Main extends Application {
         }
         if (!tabPane.getTabs().isEmpty()) {
             tabPane.getSelectionModel().selectFirst();
+            if (verwaltungTab != null && tabPane.getSelectionModel().getSelectedItem() == verwaltungTab) {
+                ((AdminWebView) verwaltungTab.getContent()).ladeWennNoetig();
+            }
         }
         return tabPane;
     }

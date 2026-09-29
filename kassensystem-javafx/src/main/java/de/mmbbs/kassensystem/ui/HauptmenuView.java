@@ -26,14 +26,14 @@ public class HauptmenuView extends VBox {
         mainContainer.getStyleClass().add("main-container");
         mainContainer.setMaxWidth(520);
 
-        Label title = new Label("Hauptmenue");
+        Label title = new Label("Hauptmenü");
         title.getStyleClass().add("title-label");
 
         Label info = new Label("Angemeldet als " + benutzer.benutzername() + " (" + benutzer.rolle() + ")");
         info.getStyleClass().add("subtitle-label");
 
         Button kasseButton = menuButton("Kassenvorgang starten", kasseOeffnen);
-        Button produktButton = menuButton("Neues Produkt hinzufuegen", verwaltungOeffnen);
+        Button produktButton = menuButton("Neues Produkt hinzufügen", verwaltungOeffnen);
         Button zugangButton = menuButton("Warenzugang erfassen", verwaltungOeffnen);
         Button lagerButton = menuButton("Lagerbestand anzeigen", verwaltungOeffnen);
         Button beendenButton = menuButton("Programm beenden", beenden);

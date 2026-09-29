@@ -44,7 +44,7 @@ public class BonPosition {
         this.einzelpreis = einzelpreis;
         this.gesamtpreis = Double.isNaN(gesamtpreis) ? this.einzelpreis * menge : gesamtpreis;
         if (!Double.isFinite(this.gesamtpreis) || this.gesamtpreis <= 0) {
-            throw new IllegalArgumentException("Positionsbetrag ist ungueltig.");
+            throw new IllegalArgumentException("Positionsbetrag ist ungültig.");
         }
         this.steuerSatz = Steuersatz.fromProzent(steuerSatz).getProzent();
     }

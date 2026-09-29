@@ -27,6 +27,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/javafx-login").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/bilder/**").permitAll()
                         .requestMatchers("/admin/**").hasAnyRole("ADMIN", "LAGERIST")
                         .requestMatchers(HttpMethod.GET, "/api/session").hasAnyRole("ADMIN", "LAGERIST", "KASSIERER")
                         .requestMatchers(HttpMethod.GET, "/api/produkte/**").hasAnyRole("ADMIN", "LAGERIST", "KASSIERER")

@@ -35,7 +35,7 @@ public class JavaFxSsoController {
                                        HttpServletRequest request,
                                        HttpServletResponse response) {
         JavaFxSsoTicketService.Ticket validiertesTicket = ticketService.validiere(ticket)
-                .orElseThrow(() -> new ResponseStatusException(FORBIDDEN, "SSO-Ticket ist ungueltig."));
+                .orElseThrow(() -> new ResponseStatusException(FORBIDDEN, "SSO-Ticket ist ungültig."));
 
         if (!"ADMIN".equals(validiertesTicket.rolle()) && !"LAGERIST".equals(validiertesTicket.rolle())) {
             throw new ResponseStatusException(FORBIDDEN, "Rolle darf die Verwaltung nicht nutzen.");

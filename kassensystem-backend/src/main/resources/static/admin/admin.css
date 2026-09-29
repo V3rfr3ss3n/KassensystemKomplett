@@ -319,6 +319,15 @@ label {
     gap: 12px;
 }
 
+.image-preview {
+    width: 100%;
+    max-height: 190px;
+    object-fit: contain;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--field);
+}
+
 .button-row {
     justify-content: flex-end;
     margin-top: 2px;
