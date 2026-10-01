@@ -19,7 +19,7 @@
         <maven.compiler.source>24</maven.compiler.source>
         <maven.compiler.target>24</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <javafx.version>24.0.1</javafx.version>
+        <javafx.version>26</javafx.version>
         <jackson.version>2.17.2</jackson.version>
         <junit.version>5.10.2</junit.version>
     </properties>

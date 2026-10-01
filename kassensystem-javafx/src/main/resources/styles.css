@@ -63,6 +63,11 @@
     -fx-font-size: 13px;
 }
 
+.build-label {
+    -fx-text-fill: -app-muted;
+    -fx-font-size: 11px;
+}
+
 .main-container {
     -fx-background-color: -app-surface;
     -fx-background-radius: 16;
@@ -228,6 +233,27 @@
     -fx-padding: 0;
     -fx-font-size: 16px;
     -fx-alignment: center;
+}
+
+.window-control {
+    -fx-min-width: 42px;
+    -fx-pref-width: 42px;
+    -fx-min-height: 34px;
+    -fx-pref-height: 34px;
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+    -fx-text-fill: -app-text;
+    -fx-font-size: 17px;
+    -fx-alignment: center;
+}
+
+.window-control:hover {
+    -fx-background-color: -app-primary-soft;
+}
+
+.window-control-close:hover {
+    -fx-background-color: #dc2626;
+    -fx-text-fill: white;
 }
 
 .dark-mode .secondary-button {

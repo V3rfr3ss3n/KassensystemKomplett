@@ -13,7 +13,9 @@ import de.mmbbs.kassensystem.ui.HauptmenuView;
 import de.mmbbs.kassensystem.ui.KassenView;
 import de.mmbbs.kassensystem.ui.LoginDialog;
 import de.mmbbs.kassensystem.ui.ThemeManager;
+import javafx.beans.binding.Bindings;
 import javafx.application.Application;
+import javafx.application.ConditionalFeature;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -29,15 +31,21 @@ import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.ContextMenu;
 import javafx.geometry.Side;
 import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.image.PixelReader;
 import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
 import javafx.scene.paint.Color;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HeaderBar;
+import javafx.scene.layout.HeaderButtonType;
+import javafx.scene.layout.HeaderDragType;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.input.KeyCode;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 
 import java.util.Optional;
 
@@ -54,6 +62,7 @@ public class Main extends Application {
     private Image dunklesIcon;
     private Stage primaryStage;
     private AdminWebView verwaltungAnsicht;
+    private boolean erweiterteTitelleiste;
 
     /**
      * Baut das Hauptfenster nach erfolgreicher Anmeldung auf.
@@ -63,6 +72,12 @@ public class Main extends Application {
     @Override
     public void start(Stage stage) {
         this.primaryStage = stage;
+        erweiterteTitelleiste = System.getProperty("os.name", "").startsWith("Windows")
+                && Platform.isSupported(ConditionalFeature.EXTENDED_WINDOW);
+        if (erweiterteTitelleiste) {
+            stage.initStyle(StageStyle.EXTENDED);
+            HeaderBar.setPrefButtonHeight(stage, 0);
+        }
         hellesIcon = new Image(getClass().getResource("/Icon.png").toExternalForm());
         dunklesIcon = erstelleDunklesIcon(hellesIcon);
 
@@ -122,6 +137,8 @@ public class Main extends Application {
         ThemeManager.applyToRoot(root);
 
         Scene scene = new Scene(root, 1200, 720);
+        scene.fillProperty().bind(Bindings.when(ThemeManager.darkModeProperty())
+                .then(Color.web("#172033")).otherwise(Color.WHITE));
         scene.getStylesheets().add(getClass().getResource("/styles.css").toExternalForm());
 
         String build = System.getProperty("kassensystem.build", "").trim();
@@ -141,7 +158,7 @@ public class Main extends Application {
         return shell;
     }
 
-    private HBox erstelleKopfzeile(Benutzer benutzer) {
+    private Region erstelleKopfzeile(Benutzer benutzer) {
         Label appLabel = new Label("Kassensystem");
         appLabel.getStyleClass().add("app-title-label");
 
@@ -178,20 +195,80 @@ public class Main extends Application {
         });
         einstellungen.getStyleClass().addAll("secondary-button", "header-icon-button");
 
-        HBox kopfzeile = new HBox(8, appLabel, roleLabel, spacer);
+        HBox kopfzeile = new HBox(8);
+        if (erweiterteTitelleiste) {
+            ImageView appIcon = new ImageView(ThemeManager.isDarkMode() ? dunklesIcon : hellesIcon);
+            appIcon.setFitWidth(20);
+            appIcon.setFitHeight(20);
+            appIcon.setPreserveRatio(true);
+            ThemeManager.darkModeProperty().addListener((obs, vorher, aktuell) ->
+                    appIcon.setImage(aktuell ? dunklesIcon : hellesIcon));
+            kopfzeile.getChildren().add(appIcon);
+        }
+        kopfzeile.getChildren().addAll(appLabel, roleLabel);
+        String build = System.getProperty("kassensystem.build", "").trim();
+        if (erweiterteTitelleiste && !build.isEmpty()) {
+            Label version = new Label(build);
+            version.getStyleClass().add("build-label");
+            kopfzeile.getChildren().add(version);
+        }
+        kopfzeile.getChildren().add(spacer);
         if (verwaltungAnsicht != null) {
             Button browser = new Button("🌐");
             browser.setTooltip(new Tooltip("Verwaltung im Browser öffnen"));
             browser.setAccessibleText("Verwaltung im Browser öffnen");
             browser.setOnAction(event -> verwaltungAnsicht.oeffneImBrowser());
             browser.getStyleClass().addAll("secondary-button", "header-icon-button");
+            if (erweiterteTitelleiste) HeaderBar.setDragType(browser, HeaderDragType.NONE);
             kopfzeile.getChildren().add(browser);
         }
+        if (erweiterteTitelleiste) HeaderBar.setDragType(einstellungen, HeaderDragType.NONE);
         kopfzeile.getChildren().add(einstellungen);
-        kopfzeile.getStyleClass().add("app-topbar");
         kopfzeile.setAlignment(Pos.CENTER_LEFT);
-        kopfzeile.setPadding(new Insets(10, 16, 10, 16));
-        return kopfzeile;
+        if (!erweiterteTitelleiste) {
+            kopfzeile.getStyleClass().add("app-topbar");
+            kopfzeile.setPadding(new Insets(10, 16, 10, 16));
+            return kopfzeile;
+        }
+
+        Button minimieren = fensterButton("−", "Minimieren", HeaderButtonType.ICONIFY);
+        Button maximieren = fensterButton("□", "Maximieren", HeaderButtonType.MAXIMIZE);
+        maximieren.textProperty().bind(primaryStage.maximizedProperty().map(maximiert -> maximiert ? "❐" : "□"));
+        Button schliessen = fensterButton("×", "Schließen", HeaderButtonType.CLOSE);
+        schliessen.getStyleClass().add("window-control-close");
+        HBox fensterAktionen = new HBox(minimieren, maximieren, schliessen);
+        fensterAktionen.setAlignment(Pos.CENTER);
+        kopfzeile.getChildren().add(fensterAktionen);
+        kopfzeile.setPadding(new Insets(6, 6, 6, 16));
+        HeaderBar.setDragType(kopfzeile, HeaderDragType.DRAGGABLE_SUBTREE);
+        HeaderBar.setDragType(fensterAktionen, HeaderDragType.NONE);
+
+        HeaderBar titelleiste = new HeaderBar();
+        titelleiste.getStyleClass().add("app-topbar");
+        titelleiste.setLeftSystemPadding(false);
+        titelleiste.setRightSystemPadding(false);
+        titelleiste.setCenter(kopfzeile);
+        return titelleiste;
+    }
+
+    private Button fensterButton(String symbol, String beschreibung, HeaderButtonType typ) {
+        Button button = new Button(symbol);
+        button.setTooltip(new Tooltip(beschreibung));
+        button.setAccessibleText(beschreibung);
+        button.getStyleClass().add("window-control");
+        HeaderBar.setButtonType(button, typ);
+        HeaderBar.setDragType(button, HeaderDragType.NONE);
+        button.setFocusTraversable(true);
+        button.setOnKeyPressed(event -> {
+            if (event.getCode() != KeyCode.ENTER && event.getCode() != KeyCode.SPACE) return;
+            switch (typ) {
+                case ICONIFY -> primaryStage.setIconified(true);
+                case MAXIMIZE -> primaryStage.setMaximized(!primaryStage.isMaximized());
+                case CLOSE -> primaryStage.close();
+            }
+            event.consume();
+        });
+        return button;
     }
 
     private void logout() {
