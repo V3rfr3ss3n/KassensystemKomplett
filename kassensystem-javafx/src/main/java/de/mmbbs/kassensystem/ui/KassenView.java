@@ -46,6 +46,8 @@ public class KassenView extends VBox {
     private final FlowPane produktGrid = new FlowPane();
     private final FlowPane schnellauswahl = new FlowPane(8, 8);
     private final StackPane produktOverlay = new StackPane();
+    private final StackPane abschlussOverlay = new StackPane();
+    private final Label abschlussDetails = new Label();
     private final Preferences einstellungen = Preferences.userNodeForPackage(KassenView.class);
     private final Set<Integer> favoriten = new LinkedHashSet<>();
     private final Label ergebnisLabel = new Label();
@@ -134,6 +136,7 @@ public class KassenView extends VBox {
         produktGrid.setVgap(15);
         produktGrid.setPadding(new Insets(12));
         baueProduktauswahl(filterBar, erweiterteFilter);
+        baueAbschlussOverlay();
         ladeProdukte();
 
         Button auswahlButton = new Button("Produktauswahl");
@@ -275,9 +278,11 @@ public class KassenView extends VBox {
         ScrollPane seitenScroll = new ScrollPane(seite);
         seitenScroll.setFitToWidth(true);
         seitenScroll.getStyleClass().add("page-scroll");
-        StackPane ansicht = new StackPane(seitenScroll, produktOverlay);
+        StackPane ansicht = new StackPane(seitenScroll, produktOverlay, abschlussOverlay);
         produktOverlay.setVisible(false);
         produktOverlay.setManaged(false);
+        abschlussOverlay.setVisible(false);
+        abschlussOverlay.setManaged(false);
         getChildren().add(ansicht);
         VBox.setVgrow(ansicht, Priority.ALWAYS);
         aktualisiereWarenkorb();
@@ -441,6 +446,37 @@ public class KassenView extends VBox {
         produktOverlay.setManaged(false);
     }
 
+    private void baueAbschlussOverlay() {
+        Label titel = new Label("Kauf abgeschlossen");
+        titel.getStyleClass().add("title-label");
+        abschlussDetails.getStyleClass().add("subtitle-label");
+        Button weiter = new Button("Weiter kassieren");
+        weiter.getStyleClass().add("primary-button");
+        weiter.setOnAction(event -> schliesseAbschlussOverlay());
+        Button bonSpeichern = new Button("Bon speichern");
+        bonSpeichern.getStyleClass().add("secondary-button");
+        bonSpeichern.setOnAction(event -> {
+            schliesseAbschlussOverlay();
+            exportiereBon();
+        });
+        HBox aktionen = new HBox(10, weiter, bonSpeichern);
+        aktionen.setAlignment(Pos.CENTER_RIGHT);
+        VBox karte = new VBox(16, titel, abschlussDetails, aktionen);
+        karte.getStyleClass().add("checkout-panel");
+        karte.setMaxWidth(420);
+        abschlussOverlay.getStyleClass().add("checkout-overlay");
+        abschlussOverlay.setFocusTraversable(true);
+        abschlussOverlay.getChildren().add(karte);
+        abschlussOverlay.setOnKeyPressed(event -> {
+            if (event.getCode() == javafx.scene.input.KeyCode.ESCAPE) schliesseAbschlussOverlay();
+        });
+    }
+
+    private void schliesseAbschlussOverlay() {
+        abschlussOverlay.setVisible(false);
+        abschlussOverlay.setManaged(false);
+    }
+
     private boolean matchesProduktSuche(Produkt produkt) {
         String suche = produktSucheField.getText();
         if (suche != null && !suche.isBlank()) {
@@ -564,8 +600,11 @@ public class KassenView extends VBox {
             bonHistorieListe.getSelectionModel().select(bon);
             zeigeBon(bon);
 
-            AlertUtil.showInfo("Kauf erfolgreich abgeschlossen",
-                    "Bon Nr. " + bon.getBonnummer() + "\nGesamtpreis: " + GeldFormatter.formatiereBetrag(bon.getGesamtpreis()));
+            abschlussDetails.setText("Bon Nr. " + bon.getBonnummer() + " · Gesamtpreis: "
+                    + GeldFormatter.formatiereBetrag(bon.getGesamtpreis()));
+            abschlussOverlay.setVisible(true);
+            abschlussOverlay.setManaged(true);
+            abschlussOverlay.requestFocus();
 
             statusLabel.setText("Kauf abgeschlossen. Lagerbestand wurde aktualisiert.");
             ladeProdukte();

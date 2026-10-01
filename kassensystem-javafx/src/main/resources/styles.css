@@ -461,3 +461,38 @@
 }
 
 .quick-product-card .button { -fx-padding: 5 7; }
+
+.settings-popup {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d1d5db;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 5;
+}
+
+.settings-popup .menu-item .label { -fx-text-fill: #111827; }
+.settings-popup .menu-item:focused { -fx-background-color: #eaf1ff; }
+.settings-popup .check-menu-item:checked > .left-container > .check { -fx-background-color: #2563eb; }
+
+.settings-popup.dark-mode {
+    -fx-background-color: #172033;
+    -fx-border-color: #475569;
+}
+
+.settings-popup.dark-mode .menu-item .label { -fx-text-fill: #e5e7eb; }
+.settings-popup.dark-mode .menu-item:focused { -fx-background-color: #1e3a5f; }
+.settings-popup.dark-mode .check-menu-item:checked > .left-container > .check { -fx-background-color: #93c5fd; }
+
+.checkout-overlay {
+    -fx-background-color: rgba(5, 12, 25, 0.72);
+    -fx-padding: 18;
+}
+
+.checkout-panel {
+    -fx-background-color: -app-surface;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 14;
+    -fx-background-radius: 14;
+    -fx-padding: 26;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,.3), 24, 0, 0, 10);
+}

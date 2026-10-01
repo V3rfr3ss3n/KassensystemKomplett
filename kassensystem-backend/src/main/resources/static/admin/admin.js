@@ -33,7 +33,9 @@ const dom = {
     availableProducts: document.querySelector('#availableProducts'),
     outOfStockProducts: document.querySelector('#outOfStockProducts'),
     themeButton: document.querySelector('#themeButton'),
-    newButton: document.querySelector('#newButton'),
+    newProductButton: document.querySelector('#newProductButton'),
+    productEditorTitle: document.querySelector('#productEditorTitle'),
+    inventoryTitle: document.querySelector('#inventoryTitle'),
     deleteButton: document.querySelector('#deleteButton'),
     saveButton: document.querySelector('#saveButton'),
     logoutButton: document.querySelector('#logoutButton'),
@@ -59,7 +61,7 @@ initTheme();
 init();
 
 function bindEvents() {
-    dom.newButton.addEventListener('click', clearForm);
+    dom.newProductButton.addEventListener('click', clearForm);
     dom.deleteButton.addEventListener('click', deleteSelected);
     dom.stockAddButton.addEventListener('click', addStock);
     dom.themeButton.addEventListener('click', toggleTheme);
@@ -86,21 +88,28 @@ function bindEvents() {
 }
 
 window.refreshProducts = () => loadProducts(true);
-window.focusAdminArea = area => {
+window.focusAdminArea = async area => {
     if (!ready) {
         pendingArea = area;
         return;
     }
+    await loadProducts(true);
     if (area === 'new') {
         clearForm();
+        dom.productEditorPanel.open = true;
+        dom.productEditorPanel.scrollIntoView({behavior: 'smooth', block: 'start'});
         dom.nameInput.focus();
     } else if (area === 'stock') {
+        dom.stockPanel.open = true;
         dom.stockPanel.scrollIntoView({behavior: 'smooth', block: 'center'});
         dom.stockPanel.classList.add('attention');
         window.setTimeout(() => dom.stockPanel.classList.remove('attention'), 1800);
     } else {
-        document.querySelector('.list-section').scrollIntoView({behavior: 'smooth'});
+        dom.inventoryTitle.scrollIntoView({behavior: 'smooth', block: 'start'});
+        document.querySelector('.list-section').classList.add('attention');
+        window.setTimeout(() => document.querySelector('.list-section').classList.remove('attention'), 1800);
         dom.searchInput.focus();
+        setStatus('Lagerbestand wird in der Produktliste angezeigt.');
     }
 };
 
@@ -135,11 +144,11 @@ function applyPermissions() {
 
     dom.roleBadge.textContent = formatUserLabel();
     document.querySelector('.topbar h1').textContent = canManageProducts ? 'Verwaltung' : 'Warenzugang';
-    dom.newButton.hidden = !canManageProducts;
     dom.productEditorPanel.hidden = !canManageProducts;
     dom.deleteButton.hidden = !canManageProducts;
     dom.saveButton.hidden = !canManageProducts;
     dom.stockPanel.hidden = !canBookStock;
+    if (!canManageProducts && canBookStock) dom.stockPanel.open = true;
     document.body.classList.toggle('stock-only', !canManageProducts && canBookStock);
 
     for (const element of [dom.nameInput, dom.categoryInput, dom.priceInput, dom.stockInput, dom.unitInput, dom.taxInput, dom.imageInput, dom.imageFile]) {
@@ -259,6 +268,7 @@ function matchesFilter(product, filter, unit, category, tax, onlyStock) {
 function selectProduct(product) {
     state.selectedProduct = product;
     fillProductForm(product);
+    if (hasPermission('manageProducts')) dom.productEditorPanel.open = true;
     updateSelectedProduct();
     renderRows();
 }
@@ -280,11 +290,17 @@ function fillProductForm(product) {
 function updateSelectedProduct() {
     if (!state.selectedProduct) {
         dom.selectedProductSummary.textContent = 'Kein Produkt ausgewählt';
+        dom.productEditorTitle.textContent = 'Neues Produkt';
+        dom.newProductButton.hidden = true;
+        dom.deleteButton.hidden = true;
         updateStockControls();
         return;
     }
 
     const product = state.selectedProduct;
+    dom.productEditorTitle.textContent = 'Produkt bearbeiten: ' + product.name;
+    dom.newProductButton.hidden = !hasPermission('manageProducts');
+    dom.deleteButton.hidden = !hasPermission('manageProducts');
     dom.selectedProductSummary.innerHTML = `
         <strong>${escapeHtml(product.name)}</strong>
         <span>Lagerbestand: ${formatAmount(product.lagerbestand)} ${escapeHtml(product.einheitLabel)}</span>
@@ -304,6 +320,7 @@ function clearForm() {
         return;
     }
     state.selectedProduct = null;
+    dom.productEditorPanel.open = true;
     dom.form.reset();
     dom.productId.value = '';
     dom.unitInput.value = 'STUECK';

@@ -23,9 +23,10 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
-import javafx.scene.control.MenuButton;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.CheckMenuItem;
+import javafx.scene.control.ContextMenu;
+import javafx.geometry.Side;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
@@ -138,9 +139,24 @@ public class Main extends Application {
         darkModeEintrag.selectedProperty().addListener((obs, vorher, aktuell) -> ThemeManager.setDarkMode(aktuell));
         MenuItem logoutEintrag = new MenuItem("Abmelden");
         logoutEintrag.setOnAction(event -> logout());
-        MenuItem backendInfo = new MenuItem("Backend: " + ApiClient.basisUrl());
-        backendInfo.setDisable(true);
-        MenuButton einstellungen = new MenuButton("⚙ Einstellungen", null, darkModeEintrag, backendInfo, logoutEintrag);
+        ContextMenu einstellungsMenue = new ContextMenu(darkModeEintrag, logoutEintrag);
+        einstellungsMenue.getStyleClass().add("settings-popup");
+        String stylesheet = getClass().getResource("/styles.css").toExternalForm();
+        einstellungsMenue.setOnShowing(event -> {
+            if (!einstellungsMenue.getScene().getStylesheets().contains(stylesheet)) {
+                einstellungsMenue.getScene().getStylesheets().add(stylesheet);
+            }
+        });
+        if (ThemeManager.isDarkMode()) einstellungsMenue.getStyleClass().add("dark-mode");
+        ThemeManager.darkModeProperty().addListener((obs, vorher, aktuell) -> {
+            einstellungsMenue.getStyleClass().remove("dark-mode");
+            if (aktuell) einstellungsMenue.getStyleClass().add("dark-mode");
+        });
+        Button einstellungen = new Button("⚙ Einstellungen");
+        einstellungen.setOnAction(event -> {
+            if (einstellungsMenue.isShowing()) einstellungsMenue.hide();
+            else einstellungsMenue.show(einstellungen, Side.BOTTOM, 0, 4);
+        });
         einstellungen.getStyleClass().add("secondary-button");
 
         HBox kopfzeile = new HBox(12, appLabel, roleLabel, spacer, einstellungen);

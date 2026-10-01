@@ -293,16 +293,38 @@ tbody tr:focus-visible {
     align-self: start;
 }
 
-.editor-panel,
 form,
-.stock-box {
+.stock-content {
     display: grid;
     gap: 14px;
 }
 
-.editor-panel h2,
-.stock-box h2 {
+.editor-panel summary,
+.stock-box summary {
     margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    cursor: pointer;
+    list-style: none;
+    border-radius: 6px;
+    padding: 4px 2px;
+}
+
+.editor-panel summary::-webkit-details-marker,
+.stock-box summary::-webkit-details-marker { display: none; }
+
+.editor-panel summary::after,
+.stock-box summary::after { content: '▾'; float: right; color: var(--muted); }
+.editor-panel:not([open]) summary::after,
+.stock-box:not([open]) summary::after { content: '▸'; }
+
+.editor-panel form,
+.stock-content { margin-top: 14px; }
+
+.list-title {
+    margin: 0;
+    padding: 16px 16px 0;
     font-size: 16px;
     color: var(--text);
 }

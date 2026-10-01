@@ -63,9 +63,7 @@ public class AdminWebView extends BorderPane {
                 if (istAdminseite()) {
                     webView.getEngine().executeScript("document.querySelector('.settings-menu').hidden = true");
                     if (zielNachLaden != null) {
-                        String ziel = zielNachLaden;
-                        zielNachLaden = null;
-                        navigiereZu(ziel);
+                        navigiereZu(zielNachLaden);
                     } else {
                         aktualisiereProdukte();
                     }
@@ -88,8 +86,9 @@ public class AdminWebView extends BorderPane {
         if (!geladen) {
             ladeAdminseite();
         } else if (istAdminseite()) {
-            webView.getEngine().executeScript("window.focusAdminArea && window.focusAdminArea('" + ziel + "')");
-            zielNachLaden = null;
+            Object ausgefuehrt = webView.getEngine().executeScript(
+                    "typeof window.focusAdminArea === 'function' && (window.focusAdminArea('" + ziel + "'), true)");
+            if (Boolean.TRUE.equals(ausgefuehrt)) zielNachLaden = null;
         }
     }
 
