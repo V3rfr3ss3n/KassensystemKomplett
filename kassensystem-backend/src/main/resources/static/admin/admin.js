@@ -1,5 +1,7 @@
 const apiUrl = '../api/produkte';
 const sessionUrl = '../api/session';
+let ready = false;
+let pendingArea = null;
 
 const state = {
     products: [],
@@ -22,6 +24,8 @@ const dom = {
     statusText: document.querySelector('#statusText'),
     searchInput: document.querySelector('#searchInput'),
     unitFilter: document.querySelector('#unitFilter'),
+    categoryFilter: document.querySelector('#categoryFilter'),
+    knownCategories: document.querySelector('#knownCategories'),
     taxFilter: document.querySelector('#taxFilter'),
     stockFilter: document.querySelector('#stockFilter'),
     roleBadge: document.querySelector('#roleBadge'),
@@ -29,13 +33,13 @@ const dom = {
     availableProducts: document.querySelector('#availableProducts'),
     outOfStockProducts: document.querySelector('#outOfStockProducts'),
     themeButton: document.querySelector('#themeButton'),
-    reloadButton: document.querySelector('#reloadButton'),
     newButton: document.querySelector('#newButton'),
     deleteButton: document.querySelector('#deleteButton'),
     saveButton: document.querySelector('#saveButton'),
     logoutButton: document.querySelector('#logoutButton'),
     productId: document.querySelector('#productId'),
     nameInput: document.querySelector('#nameInput'),
+    categoryInput: document.querySelector('#categoryInput'),
     priceInput: document.querySelector('#priceInput'),
     stockInput: document.querySelector('#stockInput'),
     unitInput: document.querySelector('#unitInput'),
@@ -55,7 +59,6 @@ initTheme();
 init();
 
 function bindEvents() {
-    dom.reloadButton.addEventListener('click', loadProducts);
     dom.newButton.addEventListener('click', clearForm);
     dom.deleteButton.addEventListener('click', deleteSelected);
     dom.stockAddButton.addEventListener('click', addStock);
@@ -71,17 +74,47 @@ function bindEvents() {
         }
     });
 
-    for (const input of [dom.searchInput, dom.unitFilter, dom.taxFilter, dom.stockFilter]) {
+    for (const input of [dom.searchInput, dom.unitFilter, dom.categoryFilter, dom.taxFilter, dom.stockFilter]) {
         input.addEventListener('input', renderRows);
         input.addEventListener('change', renderRows);
     }
+    window.addEventListener('focus', () => loadProducts(true));
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) loadProducts(true);
+    });
+    window.setInterval(() => { if (!document.hidden) loadProducts(true); }, 30000);
 }
+
+window.refreshProducts = () => loadProducts(true);
+window.focusAdminArea = area => {
+    if (!ready) {
+        pendingArea = area;
+        return;
+    }
+    if (area === 'new') {
+        clearForm();
+        dom.nameInput.focus();
+    } else if (area === 'stock') {
+        dom.stockPanel.scrollIntoView({behavior: 'smooth', block: 'center'});
+        dom.stockPanel.classList.add('attention');
+        window.setTimeout(() => dom.stockPanel.classList.remove('attention'), 1800);
+    } else {
+        document.querySelector('.list-section').scrollIntoView({behavior: 'smooth'});
+        dom.searchInput.focus();
+    }
+};
 
 async function init() {
     try {
         await loadSession();
         applyPermissions();
         await loadProducts();
+        ready = true;
+        if (pendingArea) {
+            const area = pendingArea;
+            pendingArea = null;
+            window.focusAdminArea(area);
+        }
     } catch (error) {
         setStatus('Verwaltung konnte nicht geladen werden.');
     }
@@ -109,15 +142,15 @@ function applyPermissions() {
     dom.stockPanel.hidden = !canBookStock;
     document.body.classList.toggle('stock-only', !canManageProducts && canBookStock);
 
-    for (const element of [dom.nameInput, dom.priceInput, dom.stockInput, dom.unitInput, dom.taxInput, dom.imageInput, dom.imageFile]) {
+    for (const element of [dom.nameInput, dom.categoryInput, dom.priceInput, dom.stockInput, dom.unitInput, dom.taxInput, dom.imageInput, dom.imageFile]) {
         element.disabled = !canManageProducts;
     }
 
     updateStockControls();
 }
 
-async function loadProducts() {
-    setStatus('Lade Produkte...');
+async function loadProducts(silent = false) {
+    if (!silent) setStatus('Lade Produkte...');
     try {
         const response = await fetch(apiUrl, {credentials: 'same-origin'});
         if (!response.ok) {
@@ -130,12 +163,25 @@ async function loadProducts() {
         return;
     }
     renderOverview();
+    renderCategories();
     if (state.selectedProduct) {
         state.selectedProduct = state.products.find(product => product.id === state.selectedProduct.id) || null;
     }
     renderRows();
     updateSelectedProduct();
-    setStatus(`${state.products.length} Produkte geladen.`);
+    if (!silent) setStatus(`${state.products.length} Produkte geladen.`);
+}
+
+function renderCategories() {
+    const selected = dom.categoryFilter.value;
+    const categories = [...new Set(state.products.map(p => p.kategorie || 'Sonstiges'))].sort((a, b) => a.localeCompare(b, 'de'));
+    dom.categoryFilter.replaceChildren(new Option('Alle Kategorien', ''), ...categories.map(value => new Option(value, value)));
+    dom.categoryFilter.value = categories.includes(selected) ? selected : '';
+    dom.knownCategories.replaceChildren(...categories.map(value => {
+        const option = document.createElement('option');
+        option.value = value;
+        return option;
+    }));
 }
 
 function renderOverview() {
@@ -148,13 +194,14 @@ function renderOverview() {
 function renderRows() {
     const filter = dom.searchInput.value.trim().toLowerCase();
     const unit = dom.unitFilter.value;
+    const category = dom.categoryFilter.value;
     const tax = dom.taxFilter.value;
     const onlyStock = dom.stockFilter.checked;
 
     dom.rows.innerHTML = '';
     let sichtbar = 0;
     for (const product of state.products) {
-        if (!matchesFilter(product, filter, unit, tax, onlyStock)) {
+        if (!matchesFilter(product, filter, unit, category, tax, onlyStock)) {
             continue;
         }
 
@@ -167,6 +214,7 @@ function renderRows() {
         row.innerHTML = `
             <td>${product.id}</td>
             <td>${escapeHtml(product.name)}</td>
+            <td>${escapeHtml(product.kategorie || 'Sonstiges')}</td>
             <td>${formatMoney(product.preis)}</td>
             <td>${formatAmount(product.lagerbestand)}</td>
             <td>${escapeHtml(product.einheitLabel)}</td>
@@ -185,7 +233,7 @@ function renderRows() {
     if (sichtbar === 0) {
         const row = document.createElement('tr');
         const cell = document.createElement('td');
-        cell.colSpan = 6;
+        cell.colSpan = 7;
         cell.className = 'empty-row';
         cell.textContent = state.products.length ? 'Keine Produkte für diese Filter gefunden.' : 'Noch keine Produkte vorhanden.';
         row.appendChild(cell);
@@ -193,14 +241,15 @@ function renderRows() {
     }
 }
 
-function matchesFilter(product, filter, unit, tax, onlyStock) {
-    const searchable = `${product.id} ${product.name} ${product.einheit} ${product.einheitLabel} ${product.steuerSatz}`.toLowerCase();
+function matchesFilter(product, filter, unit, category, tax, onlyStock) {
+    const searchable = `${product.id} ${product.name} ${product.kategorie || ''} ${product.einheit} ${product.einheitLabel} ${product.steuerSatz}`.toLowerCase();
     if (filter && !searchable.includes(filter)) {
         return false;
     }
     if (unit && product.einheit !== unit) {
         return false;
     }
+    if (category && (product.kategorie || 'Sonstiges') !== category) return false;
     if (tax && Number(product.steuerSatz) !== Number(tax)) {
         return false;
     }
@@ -217,6 +266,7 @@ function selectProduct(product) {
 function fillProductForm(product) {
     dom.productId.value = product.id;
     dom.nameInput.value = product.name;
+    dom.categoryInput.value = product.kategorie || 'Sonstiges';
     dom.priceInput.value = formatInput(product.preis);
     dom.stockInput.value = formatInput(product.lagerbestand);
     dom.unitInput.value = product.einheit;
@@ -257,6 +307,7 @@ function clearForm() {
     dom.form.reset();
     dom.productId.value = '';
     dom.unitInput.value = 'STUECK';
+    dom.categoryInput.value = '';
     dom.taxInput.value = '19';
     dom.stockAddInput.value = '';
     updateImagePreview();
@@ -279,6 +330,7 @@ async function saveProduct(event) {
     const id = dom.productId.value;
     const payload = {
         name: dom.nameInput.value,
+        kategorie: dom.categoryInput.value,
         preis: parseNumber(dom.priceInput.value),
         lagerbestand: parseNumber(dom.stockInput.value),
         einheit: dom.unitInput.value,
@@ -489,7 +541,7 @@ function setStatus(text) {
 function initTheme() {
     const params = new URLSearchParams(window.location.search);
     const savedTheme = readThemeFromStorage();
-    setTheme(params.get('theme') || savedTheme || 'light');
+    setTheme(params.get('theme') || savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
 }
 
 function toggleTheme() {
@@ -500,7 +552,7 @@ function setTheme(theme) {
     const darkMode = theme === 'dark';
     document.documentElement.classList.toggle('dark-mode', darkMode);
     document.body.classList.toggle('dark-mode', darkMode);
-    dom.themeButton.textContent = darkMode ? 'Hellmodus' : 'Darkmode';
+    dom.themeButton.textContent = darkMode ? 'Hellmodus einschalten' : 'Dunkelmodus einschalten';
     writeThemeToStorage(darkMode ? 'dark' : 'light');
 }
 

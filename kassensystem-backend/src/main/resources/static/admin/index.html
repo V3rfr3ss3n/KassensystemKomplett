@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Kassensystem Verwaltung</title>
-    <link rel="stylesheet" href="admin.css?v=20260929-2">
+    <link rel="stylesheet" href="admin.css?v=20261001-1">
 </head>
 <body>
 <header class="topbar">
@@ -14,10 +14,14 @@
     </div>
     <div class="top-actions">
         <span id="roleBadge" class="role-badge">...</span>
-        <button id="themeButton" type="button">Darkmode</button>
-        <button id="reloadButton" type="button">Aktualisieren</button>
         <button id="newButton" type="button">Neu</button>
-        <button id="logoutButton" type="button">Logout</button>
+        <details class="settings-menu">
+            <summary>⚙ Einstellungen</summary>
+            <div class="settings-content">
+                <button id="themeButton" type="button">Dunkelmodus</button>
+                <button id="logoutButton" type="button">Abmelden</button>
+            </div>
+        </details>
     </div>
 </header>
 
@@ -46,6 +50,9 @@
                 <option value="LITER">l</option>
                 <option value="PACKUNG">Packung</option>
             </select>
+            <select id="categoryFilter" aria-label="Kategorie filtern">
+                <option value="">Alle Kategorien</option>
+            </select>
             <select id="taxFilter">
                 <option value="">Alle Steuern</option>
                 <option value="19">19 %</option>
@@ -63,6 +70,7 @@
                 <tr>
                     <th>ID</th>
                     <th>Name</th>
+                    <th>Kategorie</th>
                     <th>Preis</th>
                     <th>Lagerbestand</th>
                     <th>Einheit</th>
@@ -83,6 +91,11 @@
                 <label>
                     Name
                     <input id="nameInput" name="name" required>
+                </label>
+                <label>
+                    Kategorie
+                    <input id="categoryInput" name="kategorie" maxlength="60" placeholder="z. B. Obst oder Elektronik" list="knownCategories">
+                    <datalist id="knownCategories"></datalist>
                 </label>
 
                 <div class="field-grid">
@@ -146,6 +159,6 @@
     </aside>
 </main>
 
-<script src="admin.js?v=20260929-2"></script>
+<script src="admin.js?v=20261001-1"></script>
 </body>
 </html>

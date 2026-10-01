@@ -35,6 +35,7 @@ public class SqliteSchemaInitializer implements ApplicationRunner {
                         preis REAL NOT NULL,
                         lagerbestand REAL NOT NULL,
                         bildPfad TEXT,
+                        kategorie TEXT NOT NULL DEFAULT 'Sonstiges',
                         einheit TEXT NOT NULL DEFAULT 'STUECK',
                         steuerSatz REAL NOT NULL DEFAULT 19.0,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -64,6 +65,7 @@ public class SqliteSchemaInitializer implements ApplicationRunner {
                     )
                     """);
             ensureColumn(statement, "produkte", "einheit", "TEXT NOT NULL DEFAULT 'STUECK'");
+            ensureColumn(statement, "produkte", "kategorie", "TEXT NOT NULL DEFAULT 'Sonstiges'");
             ensureColumn(statement, "produkte", "steuerSatz", "REAL NOT NULL DEFAULT 19.0");
             ensureColumn(statement, "bon_positionen", "steuerSatz", "REAL NOT NULL DEFAULT 19.0");
             ensureColumn(statement, "bon_positionen", "produkt_name", "TEXT");

@@ -201,4 +201,4 @@ Hinweis zur Vorgabe "rein prozedural": Das vorhandene Projekt wurde bereits als 
 
 ## 10. Offene Punkte
 
-Die fachlichen Mindestanforderungen des Lastenhefts sind umgesetzt. Die Webverwaltung zeigt Lagerkennzahlen und unterstuetzt die Tastaturbedienung der Produktliste. API-Integrationstests decken Produktpflege und Warenzugang ab. Die Kasse bietet PDF-Export und Druck fuer Bons. Die manuelle GUI-Abnahme steht in `TODO.md`.
+Die fachlichen Mindestanforderungen des Lastenhefts sind umgesetzt. Die Webverwaltung zeigt Lagerkennzahlen und unterstuetzt die Tastaturbedienung der Produktliste. API-Integrationstests decken Produktpflege und Warenzugang ab. Die Kasse speichert aktuelle und historische Bons als PDF oder TXT. Das Programm wird ueber die Fenstersteuerung beendet. Die manuelle GUI-Abnahme steht in `TODO.md`.

@@ -45,11 +45,11 @@ In einer IDE das Maven-Projekt am Wurzelordner öffnen, JDK 24 konfigurieren und
 | `kassierer` | `1234` | Nur Kasse |
 | `lagerist` | `1234` | Produktliste und Warenzugang |
 
-**Verkauf:** In der Kasse „Produkte mit Bildern ansehen“ öffnen, bei Bedarf suchen oder filtern und ein Produkt auswählen. Die Auswahl zeigt höchstens 18 Produkte pro Seite; mit „Weiter“ und „Zurück“ durch das Sortiment blättern. Danach eine Menge eingeben und „Zum Warenkorb hinzufügen“ wählen. Im Warenkorb Mengen ändern und „Kauf abschließen“ wählen. Der Bon erscheint rechts und bleibt in der Historie erhalten.
+**Verkauf:** Fünf Schnellplätze zeigen angeheftete Favoriten und danach häufig verkaufte verfügbare Produkte. Der Produktname wählt das Produkt für eine eigene Menge aus; „+ 1“ legt direkt eine Einheit in den Warenkorb. Im eingeblendeten Bereich „Produktauswahl“ sind Bilder, Suche und Filter nach Kategorie, Einheit, Steuer, Preis und Verfügbarkeit verfügbar. Die Auswahl zeigt höchstens 18 Produkte pro Seite; „☆ Merken“ heftet bis zu fünf Favoriten lokal an. Im Warenkorb Mengen ändern und „Kauf abschließen“ wählen. Der Bon erscheint rechts und bleibt in der Historie erhalten.
 
-**Bon ausgeben:** Den aktuellen Bon oder einen Eintrag der Bon-Historie auswählen. „Als PDF speichern“ öffnet die Dateiauswahl, „Drucken“ den Systemdruckdialog. Ein abgebrochener Dialog verändert den Bon nicht.
+**Bon speichern:** Den aktuellen Bon oder einen Eintrag der Bon-Historie auswählen. „Speichern“ öffnet die Dateiauswahl mit PDF und TXT. Der gewählte Dateityp bestimmt das Ausgabeformat. Ein abgebrochener Dialog verändert den Bon nicht.
 
-**Verwaltung:** Der Verwaltungstab lädt sich beim Öffnen automatisch. Admins können Produkte anlegen, auswählen, bearbeiten und löschen. Für ein Produktbild eine PNG-, JPEG- oder GIF-Datei bis 5 MB auswählen; nach dem Upload das Produkt speichern. Die Bilder liegen zusammen mit der Datenbank im Docker-Volume beziehungsweise im lokalen Datenverzeichnis. Admins und Lageristen wählen ein Produkt und buchen im Bereich „Warenzugang“ eine positive Menge. Die Produktliste kann auch mit Tab und Enter bedient werden. Nach Änderungen in der Webverwaltung die Produktliste der Kasse über „Aktualisieren“ neu laden. Der Hell- oder Dunkelmodus bleibt nach einem Neustart erhalten und gilt bereits bei der Anmeldung.
+**Verwaltung:** Der Verwaltungstab lädt sich beim Öffnen automatisch und aktualisiert die Produkte beim Wechsel zum Tab sowie regelmäßig im Hintergrund. Die Startseitenaktionen springen zum Produktformular, Warenzugang oder Bestand. Admins können Produkte anlegen, auswählen, bearbeiten und löschen. Die freie Kategorie (etwa Obst oder Elektronik) lässt sich in der Verwaltung und Kasse filtern; ältere Produkte erscheinen als „Sonstiges“. Für ein Produktbild eine PNG-, JPEG- oder GIF-Datei bis 5 MB auswählen; nach dem Upload das Produkt speichern. Die Bilder liegen zusammen mit der Datenbank im Docker-Volume beziehungsweise im lokalen Datenverzeichnis. Admins und Lageristen wählen ein Produkt und buchen im Bereich „Warenzugang“ eine positive Menge. Die Produktliste kann auch mit Tab und Enter bedient werden. Der Dunkelmodus richtet sich beim ersten Start unter Windows nach der Systemeinstellung; eine spätere Auswahl bleibt gespeichert. Einstellungen und Abmelden liegen im Zahnradmenü, das Fenster wird über das Fenstersymbol geschlossen.
 
 ## Daten und Tests
 
@@ -76,7 +76,7 @@ Die Screenshots können nach der manuellen Abnahme unter `docs/screenshots/` abg
 
 ## Projektteile
 
-- `kassensystem-javafx`: Kasse, Bon-Historie, PDF und Druck
+- `kassensystem-javafx`: Kasse, Bon-Historie, PDF- und TXT-Speicherung
 - `kassensystem-backend`: REST-API und Browser-Verwaltung
 - `PFLICHTENHEFT.md`: Anforderungen und Abnahme
 - `TODO.md`: laufende Restarbeiten

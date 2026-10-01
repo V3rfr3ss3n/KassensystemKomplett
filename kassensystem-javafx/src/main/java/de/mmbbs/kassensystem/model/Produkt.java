@@ -25,6 +25,7 @@ public class Produkt {
     private double preis;
     private double lagerbestand;
     private String bildPfad;
+    private String kategorie = "Sonstiges";
     private Verkaufseinheit einheit;
     private double steuerSatz;
 
@@ -120,6 +121,14 @@ public class Produkt {
 
     public void setBildPfad(String bildPfad) {
         this.bildPfad = bildPfad;
+    }
+
+    public String getKategorie() {
+        return kategorie;
+    }
+
+    public void setKategorie(String kategorie) {
+        this.kategorie = kategorie == null || kategorie.isBlank() ? "Sonstiges" : kategorie.trim();
     }
 
     public void setLagerbestand(double lagerbestand) {

@@ -27,7 +27,8 @@ public class ApiProduktRepository implements ProduktRepository {
     @Override public Produkt speichern(Produkt produkt) {
         Map<String, Object> daten = Map.of("name", produkt.getName(), "preis", produkt.getPreis(),
                 "lagerbestand", produkt.getLagerbestand(), "bildPfad", produkt.getBildPfad() == null ? "" : produkt.getBildPfad(),
-                "einheit", produkt.getEinheit().name(), "steuerSatz", produkt.getSteuerSatz());
+                "einheit", produkt.getEinheit().name(), "steuerSatz", produkt.getSteuerSatz(),
+                "kategorie", produkt.getKategorie());
         return lese(produkt.getId() == 0 ? api.post("/api/produkte", daten)
                 : api.put("/api/produkte/" + produkt.getId(), daten));
     }
@@ -35,8 +36,10 @@ public class ApiProduktRepository implements ProduktRepository {
     @Override public void loeschen(int id) { api.delete("/api/produkte/" + id); }
 
     private static Produkt lese(JsonNode node) {
-        return new Produkt(node.path("id").asInt(), node.path("name").asText(), node.path("preis").asDouble(),
+        Produkt produkt = new Produkt(node.path("id").asInt(), node.path("name").asText(), node.path("preis").asDouble(),
                 node.path("lagerbestand").asDouble(), node.path("bildPfad").asText(null),
                 Verkaufseinheit.valueOf(node.path("einheit").asText("STUECK")), node.path("steuerSatz").asDouble(19));
+        produkt.setKategorie(node.path("kategorie").asText("Sonstiges"));
+        return produkt;
     }
 }

@@ -23,8 +23,13 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
-import javafx.scene.control.ToggleButton;
+import javafx.scene.control.MenuButton;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.CheckMenuItem;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
+import javafx.scene.paint.Color;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -53,10 +58,24 @@ public class Main extends Application {
     public void start(Stage stage) {
         this.primaryStage = stage;
 
-        Image icon = new Image(getClass().getResource("/Icon.png").toExternalForm());
-        stage.getIcons().add(icon);
+        aktualisiereFensterIcon();
+        ThemeManager.darkModeProperty().addListener((obs, vorher, aktuell) -> aktualisiereFensterIcon());
 
         zeigeLogin();
+    }
+
+    private void aktualisiereFensterIcon() {
+        Canvas canvas = new Canvas(64, 64);
+        GraphicsContext grafik = canvas.getGraphicsContext2D();
+        boolean dunkel = ThemeManager.isDarkMode();
+        grafik.setFill(dunkel ? Color.web("#172033") : Color.web("#eaf1ff"));
+        grafik.fillRoundRect(2, 2, 60, 60, 14, 14);
+        grafik.setFill(dunkel ? Color.web("#93c5fd") : Color.web("#2563eb"));
+        grafik.fillRoundRect(14, 10, 36, 44, 5, 5);
+        grafik.setFill(dunkel ? Color.web("#172033") : Color.WHITE);
+        grafik.fillRoundRect(20, 17, 24, 11, 2, 2);
+        for (int i = 0; i < 3; i++) grafik.fillRoundRect(20, 33 + i * 6, 24, 2, 1, 1);
+        primaryStage.getIcons().setAll(canvas.snapshot(null, null));
     }
 
     private void zeigeLogin() {
@@ -114,23 +133,17 @@ public class Main extends Application {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        ToggleButton darkModeButton = new ToggleButton(ThemeManager.isDarkMode() ? "Hellmodus" : "Darkmode");
-        darkModeButton.getStyleClass().add("secondary-button");
-        darkModeButton.setSelected(ThemeManager.isDarkMode());
-        darkModeButton.selectedProperty().addListener((obs, oldValue, selected) -> {
-            ThemeManager.setDarkMode(selected);
-            darkModeButton.setText(selected ? "Hellmodus" : "Darkmode");
-        });
+        CheckMenuItem darkModeEintrag = new CheckMenuItem("Dunkelmodus");
+        darkModeEintrag.setSelected(ThemeManager.isDarkMode());
+        darkModeEintrag.selectedProperty().addListener((obs, vorher, aktuell) -> ThemeManager.setDarkMode(aktuell));
+        MenuItem logoutEintrag = new MenuItem("Abmelden");
+        logoutEintrag.setOnAction(event -> logout());
+        MenuItem backendInfo = new MenuItem("Backend: " + ApiClient.basisUrl());
+        backendInfo.setDisable(true);
+        MenuButton einstellungen = new MenuButton("⚙ Einstellungen", null, darkModeEintrag, backendInfo, logoutEintrag);
+        einstellungen.getStyleClass().add("secondary-button");
 
-        Button logoutButton = new Button("Ausloggen");
-        logoutButton.getStyleClass().add("secondary-button");
-        logoutButton.setOnAction(event -> logout());
-
-        Button beendenButton = new Button("Beenden");
-        beendenButton.getStyleClass().add("danger-button");
-        beendenButton.setOnAction(event -> primaryStage.close());
-
-        HBox kopfzeile = new HBox(12, appLabel, roleLabel, spacer, darkModeButton, logoutButton, beendenButton);
+        HBox kopfzeile = new HBox(12, appLabel, roleLabel, spacer, einstellungen);
         kopfzeile.getStyleClass().add("app-topbar");
         kopfzeile.setAlignment(Pos.CENTER_LEFT);
         kopfzeile.setPadding(new Insets(10, 16, 10, 16));
@@ -150,27 +163,35 @@ public class Main extends Application {
 
         Tab kasseTab = null;
         if (benutzer.darfKassieren()) {
-            kasseTab = new Tab("Kasse", new KassenView(produktService, kassenService));
+            KassenView kasse = new KassenView(produktService, kassenService);
+            kasseTab = new Tab("Kasse", kasse);
+            kasseTab.selectedProperty().addListener((obs, vorher, ausgewaehlt) -> {
+                if (ausgewaehlt) kasse.aktualisiereDaten();
+            });
         }
 
         Tab verwaltungTab = null;
+        AdminWebView verwaltung = null;
         if (benutzer.darfWebVerwaltungNutzen()) {
             String label = benutzer.istLagerist() ? "Warenzugang" : "Verwaltung";
-            AdminWebView verwaltung = new AdminWebView(benutzer, ThemeManager.darkModeProperty());
+            verwaltung = new AdminWebView(benutzer, ThemeManager.darkModeProperty());
             verwaltungTab = new Tab(label, verwaltung);
+            AdminWebView verwaltungAnsicht = verwaltung;
             verwaltungTab.selectedProperty().addListener((obs, oldValue, selected) -> {
-                if (selected) verwaltung.ladeWennNoetig();
+                if (selected) verwaltungAnsicht.ladeWennNoetig();
             });
         }
 
         if (benutzer.istAdmin() && kasseTab != null && verwaltungTab != null) {
             Tab finalKasseTab = kasseTab;
             Tab finalVerwaltungTab = verwaltungTab;
+            AdminWebView finalVerwaltung = verwaltung;
             Tab menuTab = new Tab("Hauptmenü", new HauptmenuView(
                     benutzer,
                     () -> tabPane.getSelectionModel().select(finalKasseTab),
-                    () -> tabPane.getSelectionModel().select(finalVerwaltungTab),
-                    primaryStage::close
+                    () -> { tabPane.getSelectionModel().select(finalVerwaltungTab); finalVerwaltung.navigiereZu("new"); },
+                    () -> { tabPane.getSelectionModel().select(finalVerwaltungTab); finalVerwaltung.navigiereZu("stock"); },
+                    () -> { tabPane.getSelectionModel().select(finalVerwaltungTab); finalVerwaltung.navigiereZu("inventory"); }
             ));
 
             tabPane.getTabs().addAll(menuTab, kasseTab, verwaltungTab);

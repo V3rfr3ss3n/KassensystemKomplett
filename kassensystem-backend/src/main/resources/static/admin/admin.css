@@ -150,6 +150,7 @@ body.stock-only .shell {
 .toolbar {
     padding: 14px;
     border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
 }
 
 input,
@@ -222,6 +223,7 @@ body.dark-mode button.danger:hover {
 
 #searchInput {
     flex: 1;
+    min-width: 190px;
 }
 
 .checkbox-line {
@@ -406,3 +408,9 @@ body.stock-only .stock-box {
         grid-template-columns: 1fr;
     }
 }
+.settings-menu { position: relative; }
+.settings-menu summary { cursor: pointer; list-style: none; padding: 9px 14px; border-radius: 8px; background: var(--button); }
+.settings-menu summary::-webkit-details-marker { display: none; }
+.settings-content { position: absolute; right: 0; top: calc(100% + 8px); z-index: 20; min-width: 210px; display: grid; gap: 6px; padding: 10px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 12px 30px rgba(0,0,0,.25); }
+.settings-content button { width: 100%; text-align: left; }
+.attention { outline: 3px solid #3b82f6; outline-offset: 4px; transition: outline-color .5s; }

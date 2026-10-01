@@ -34,6 +34,7 @@ public class AdminWebView extends BorderPane {
     private final WebView webView = new WebView();
     private final Label statusLabel = new Label("Verwaltung wird geladen …");
     private boolean geladen;
+    private String zielNachLaden;
 
     public AdminWebView(Benutzer benutzer, ReadOnlyBooleanProperty darkModeProperty) {
         this.benutzer = benutzer;
@@ -43,15 +44,11 @@ public class AdminWebView extends BorderPane {
         setPadding(new Insets(18));
 
         String titel = verwaltungsTitel();
-        Button reloadButton = new Button("Neu laden");
-        reloadButton.getStyleClass().add("secondary-button");
-        reloadButton.setOnAction(event -> ladeAdminseite());
-
         Button browserButton = new Button("Im Browser öffnen");
         browserButton.getStyleClass().add("secondary-button");
         browserButton.setOnAction(event -> oeffneImBrowser());
 
-        HBox toolbar = new HBox(10, reloadButton, browserButton, statusLabel);
+        HBox toolbar = new HBox(10, browserButton, statusLabel);
         toolbar.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         toolbar.setPadding(new Insets(0, 0, 12, 0));
         HBox.setHgrow(statusLabel, Priority.ALWAYS);
@@ -63,7 +60,18 @@ public class AdminWebView extends BorderPane {
             if (state == Worker.State.SUCCEEDED) {
                 synchronisiereWebTheme();
                 statusLabel.setText("Verwaltung geladen für " + benutzer.benutzername() + ".");
+                if (istAdminseite()) {
+                    webView.getEngine().executeScript("document.querySelector('.settings-menu').hidden = true");
+                    if (zielNachLaden != null) {
+                        String ziel = zielNachLaden;
+                        zielNachLaden = null;
+                        navigiereZu(ziel);
+                    } else {
+                        aktualisiereProdukte();
+                    }
+                }
             } else if (state == Worker.State.FAILED) {
+                geladen = false;
                 statusLabel.setText("Verwaltung konnte nicht geladen werden. Läuft das Backend?");
             }
         });
@@ -72,6 +80,28 @@ public class AdminWebView extends BorderPane {
 
     public void ladeWennNoetig() {
         if (!geladen) ladeAdminseite();
+        else aktualisiereProdukte();
+    }
+
+    public void navigiereZu(String ziel) {
+        zielNachLaden = ziel;
+        if (!geladen) {
+            ladeAdminseite();
+        } else if (istAdminseite()) {
+            webView.getEngine().executeScript("window.focusAdminArea && window.focusAdminArea('" + ziel + "')");
+            zielNachLaden = null;
+        }
+    }
+
+    private void aktualisiereProdukte() {
+        if (istAdminseite()) {
+            webView.getEngine().executeScript("window.refreshProducts && window.refreshProducts()");
+        }
+    }
+
+    private boolean istAdminseite() {
+        String url = webView.getEngine().getLocation();
+        return url != null && url.contains("/admin/");
     }
 
     private void ladeAdminseite() {
