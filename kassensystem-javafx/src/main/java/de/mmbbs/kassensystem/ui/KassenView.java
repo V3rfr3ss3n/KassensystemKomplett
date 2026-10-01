@@ -15,6 +15,7 @@ import de.mmbbs.kassensystem.util.MengenFormatter;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -47,7 +48,12 @@ public class KassenView extends VBox {
     private final FlowPane schnellauswahl = new FlowPane(8, 8);
     private final StackPane produktOverlay = new StackPane();
     private final StackPane abschlussOverlay = new StackPane();
+    private final Label abschlussTitel = new Label("Kauf abgeschlossen");
     private final Label abschlussDetails = new Label();
+    private final ProgressIndicator abschlussFortschritt = new ProgressIndicator();
+    private final HBox abschlussAktionen = new HBox(10);
+    private final Button abschlussWeiterButton = new Button("Weiter kassieren");
+    private final Button abschlussSpeichernButton = new Button("Bon speichern");
     private final Preferences einstellungen = Preferences.userNodeForPackage(KassenView.class);
     private final Set<Integer> favoriten = new LinkedHashSet<>();
     private final Label ergebnisLabel = new Label();
@@ -77,6 +83,8 @@ public class KassenView extends VBox {
 
     private Produkt selectedProdukt = null;
     private Bon angezeigterBon;
+    private ScrollPane seitenScroll;
+    private boolean abschlussLaeuft;
     private final Button speichernButton = new Button("Speichern");
 
     public KassenView(ProduktService produktService, KassenService kassenService) {
@@ -275,7 +283,7 @@ public class KassenView extends VBox {
         StackPane seite = new StackPane(mainContainer);
         seite.setPadding(new Insets(24));
         StackPane.setAlignment(mainContainer, Pos.TOP_CENTER);
-        ScrollPane seitenScroll = new ScrollPane(seite);
+        seitenScroll = new ScrollPane(seite);
         seitenScroll.setFitToWidth(true);
         seitenScroll.getStyleClass().add("page-scroll");
         StackPane ansicht = new StackPane(seitenScroll, produktOverlay, abschlussOverlay);
@@ -311,26 +319,32 @@ public class KassenView extends VBox {
     }
 
     private void ladeProdukte() {
+        if (abschlussLaeuft) return;
         try {
-            produktKatalog = produktService.alleProdukte();
-            List<String> kategorien = produktKatalog.stream().map(Produkt::getKategorie).distinct().sorted(String.CASE_INSENSITIVE_ORDER).toList();
-            String gewaehlteKategorie = kategorieFilterBox.getValue();
-            kategorieFilterBox.getItems().setAll("Alle Kategorien");
-            kategorieFilterBox.getItems().addAll(kategorien);
-            kategorieFilterBox.setValue(kategorien.contains(gewaehlteKategorie) ? gewaehlteKategorie : "Alle Kategorien");
-            if (selectedProdukt != null) {
-                int id = selectedProdukt.getId();
-                selectedProdukt = produktKatalog.stream().filter(p -> p.getId() == id).findFirst().orElse(null);
-            }
-            aktualisiereAuswahl();
-            aktualisiereProduktGrid();
-            aktualisiereSchnellauswahl();
+            uebernehmeProdukte(produktService.alleProdukte());
         } catch (RuntimeException ex) {
             statusLabel.setText("Produkte konnten nicht geladen werden: " + ex.getMessage());
         }
     }
 
+    private void uebernehmeProdukte(List<Produkt> produkte) {
+        produktKatalog = produkte;
+        List<String> kategorien = produktKatalog.stream().map(Produkt::getKategorie).distinct().sorted(String.CASE_INSENSITIVE_ORDER).toList();
+        String gewaehlteKategorie = kategorieFilterBox.getValue();
+        kategorieFilterBox.getItems().setAll("Alle Kategorien");
+        kategorieFilterBox.getItems().addAll(kategorien);
+        kategorieFilterBox.setValue(kategorien.contains(gewaehlteKategorie) ? gewaehlteKategorie : "Alle Kategorien");
+        if (selectedProdukt != null) {
+            int id = selectedProdukt.getId();
+            selectedProdukt = produktKatalog.stream().filter(p -> p.getId() == id).findFirst().orElse(null);
+        }
+        aktualisiereAuswahl();
+        aktualisiereProduktGrid();
+        aktualisiereSchnellauswahl();
+    }
+
     public void aktualisiereDaten() {
+        if (abschlussLaeuft) return;
         ladeProdukte();
         aktualisiereBonHistorie();
     }
@@ -447,34 +461,39 @@ public class KassenView extends VBox {
     }
 
     private void baueAbschlussOverlay() {
-        Label titel = new Label("Kauf abgeschlossen");
-        titel.getStyleClass().add("title-label");
+        abschlussTitel.getStyleClass().add("title-label");
         abschlussDetails.getStyleClass().add("subtitle-label");
-        Button weiter = new Button("Weiter kassieren");
-        weiter.getStyleClass().add("primary-button");
-        weiter.setOnAction(event -> schliesseAbschlussOverlay());
-        Button bonSpeichern = new Button("Bon speichern");
-        bonSpeichern.getStyleClass().add("secondary-button");
-        bonSpeichern.setOnAction(event -> {
+        abschlussDetails.setWrapText(true);
+        abschlussFortschritt.setPrefSize(30, 30);
+        abschlussFortschritt.setMaxSize(30, 30);
+        abschlussFortschritt.setVisible(false);
+        abschlussFortschritt.setManaged(false);
+        abschlussWeiterButton.getStyleClass().add("primary-button");
+        abschlussWeiterButton.setOnAction(event -> schliesseAbschlussOverlay());
+        abschlussSpeichernButton.getStyleClass().add("secondary-button");
+        abschlussSpeichernButton.setOnAction(event -> {
             schliesseAbschlussOverlay();
             exportiereBon();
         });
-        HBox aktionen = new HBox(10, weiter, bonSpeichern);
-        aktionen.setAlignment(Pos.CENTER_RIGHT);
-        VBox karte = new VBox(16, titel, abschlussDetails, aktionen);
+        abschlussAktionen.getChildren().addAll(abschlussWeiterButton, abschlussSpeichernButton);
+        abschlussAktionen.setAlignment(Pos.CENTER_RIGHT);
+        VBox karte = new VBox(16, abschlussTitel, abschlussDetails, abschlussFortschritt, abschlussAktionen);
         karte.getStyleClass().add("checkout-panel");
         karte.setMaxWidth(420);
+        karte.setMaxHeight(Region.USE_PREF_SIZE);
         abschlussOverlay.getStyleClass().add("checkout-overlay");
         abschlussOverlay.setFocusTraversable(true);
         abschlussOverlay.getChildren().add(karte);
         abschlussOverlay.setOnKeyPressed(event -> {
-            if (event.getCode() == javafx.scene.input.KeyCode.ESCAPE) schliesseAbschlussOverlay();
+            if (!abschlussLaeuft && event.getCode() == javafx.scene.input.KeyCode.ESCAPE) schliesseAbschlussOverlay();
         });
     }
 
     private void schliesseAbschlussOverlay() {
+        if (abschlussLaeuft) return;
         abschlussOverlay.setVisible(false);
         abschlussOverlay.setManaged(false);
+        seitenScroll.setDisable(false);
     }
 
     private boolean matchesProduktSuche(Produkt produkt) {
@@ -593,24 +612,76 @@ public class KassenView extends VBox {
     }
 
     private void abschliessen() {
-        try {
-            Bon bon = kassenService.kassenvorgangAbschliessen();
+        if (abschlussLaeuft || kassenService.getWarenkorb().isEmpty()) return;
+        abschlussLaeuft = true;
+        seitenScroll.setDisable(true);
+        abschlussTitel.setText("Kauf wird abgeschlossen");
+        abschlussDetails.setText("Bon und Lagerbestand werden gespeichert.");
+        abschlussFortschritt.setVisible(true);
+        abschlussFortschritt.setManaged(true);
+        abschlussAktionen.setVisible(false);
+        abschlussAktionen.setManaged(false);
+        abschlussOverlay.setVisible(true);
+        abschlussOverlay.setManaged(true);
+        abschlussOverlay.requestFocus();
+        statusLabel.setText("");
+
+        Task<Bon> kauf = new Task<>() {
+            @Override
+            protected Bon call() {
+                return kassenService.kassenvorgangAbschliessen();
+            }
+        };
+        kauf.setOnSucceeded(event -> {
+            abschlussLaeuft = false;
+            Bon bon = kauf.getValue();
             aktualisiereWarenkorb();
             aktualisiereBonHistorie();
             bonHistorieListe.getSelectionModel().select(bon);
             zeigeBon(bon);
-
+            abschlussTitel.setText("Kauf abgeschlossen");
             abschlussDetails.setText("Bon Nr. " + bon.getBonnummer() + " · Gesamtpreis: "
                     + GeldFormatter.formatiereBetrag(bon.getGesamtpreis()));
-            abschlussOverlay.setVisible(true);
-            abschlussOverlay.setManaged(true);
-            abschlussOverlay.requestFocus();
-
+            abschlussWeiterButton.setText("Weiter kassieren");
+            abschlussSpeichernButton.setVisible(true);
+            abschlussSpeichernButton.setManaged(true);
+            zeigeAbschlussAktionen();
             statusLabel.setText("Kauf abgeschlossen. Lagerbestand wurde aktualisiert.");
-            ladeProdukte();
-        } catch (IllegalArgumentException | IllegalStateException ex) {
-            statusLabel.setText(ex.getMessage());
-        }
+            ladeProdukteImHintergrund();
+        });
+        kauf.setOnFailed(event -> {
+            abschlussLaeuft = false;
+            Throwable fehler = kauf.getException();
+            String meldung = fehler.getMessage() == null ? "Unbekannter Fehler." : fehler.getMessage();
+            abschlussTitel.setText("Kauf nicht bestätigt");
+            abschlussDetails.setText(meldung + "\nBitte Bestand und Bon-Historie prüfen, bevor Sie den Kauf erneut versuchen.");
+            abschlussWeiterButton.setText("Zur Kasse");
+            abschlussSpeichernButton.setVisible(false);
+            abschlussSpeichernButton.setManaged(false);
+            zeigeAbschlussAktionen();
+            statusLabel.setText(meldung);
+        });
+        Thread.ofVirtual().name("kasse-kaufabschluss").start(kauf);
+    }
+
+    private void zeigeAbschlussAktionen() {
+        abschlussFortschritt.setVisible(false);
+        abschlussFortschritt.setManaged(false);
+        abschlussAktionen.setVisible(true);
+        abschlussAktionen.setManaged(true);
+    }
+
+    private void ladeProdukteImHintergrund() {
+        Task<List<Produkt>> laden = new Task<>() {
+            @Override
+            protected List<Produkt> call() {
+                return produktService.alleProdukte();
+            }
+        };
+        laden.setOnSucceeded(event -> uebernehmeProdukte(laden.getValue()));
+        laden.setOnFailed(event -> statusLabel.setText(
+                "Kauf abgeschlossen. Produkte konnten nicht aktualisiert werden: " + laden.getException().getMessage()));
+        Thread.ofVirtual().name("kasse-produkte-aktualisieren").start(laden);
     }
 
     private void zeigeBon(Bon bon) {
