@@ -116,6 +116,7 @@ public class MainView extends VBox {
         dialog.setTitle("Adminzugang");
         dialog.setHeaderText("Adminbereich öffnen");
         dialog.setContentText("Passwort:");
+        ThemeManager.applyToDialogPane(dialog.getDialogPane());
 
         Optional<String> passwort = dialog.showAndWait();
         if (passwort.isEmpty()) {

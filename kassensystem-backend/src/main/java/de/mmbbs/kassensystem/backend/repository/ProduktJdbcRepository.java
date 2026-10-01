@@ -15,6 +15,12 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
+/**
+ * JDBC-Repository fuer Produkte im Spring-Backend.
+ *
+ * <p>Die Klasse arbeitet direkt auf der SQLite-Tabelle `produkte`, damit das
+ * Backend exakt dieselbe Datenstruktur nutzt wie die JavaFX-Kasse.</p>
+ */
 @Repository
 public class ProduktJdbcRepository {
     private static final List<String> ERLAUBTE_EINHEITEN = List.of("STUECK", "KILOGRAMM", "LITER", "PACKUNG");
@@ -37,6 +43,9 @@ public class ProduktJdbcRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /**
+     * Laedt alle Produkte fuer API und Adminoberflaeche.
+     */
     public List<ProduktDto> findeAlle() {
         return jdbcTemplate.query("""
                 SELECT id, name, preis, lagerbestand, bildPfad, einheit, steuerSatz
@@ -58,6 +67,9 @@ public class ProduktJdbcRepository {
         }
     }
 
+    /**
+     * Validiert und speichert ein neues Produkt.
+     */
     public ProduktDto erstellen(ProduktRequest request) {
         ProduktRequest daten = validiere(request, true);
         Integer id = jdbcTemplate.execute((ConnectionCallback<Integer>) connection -> {
@@ -96,11 +108,17 @@ public class ProduktJdbcRepository {
         return findeNachId(id).orElseThrow();
     }
 
+    /**
+     * Erhoeht den Lagerbestand eines Produkts.
+     */
     public ProduktDto warenzugangBuchen(int id, double menge) {
-        if (menge <= 0) {
-            throw new IllegalArgumentException("Menge muss groesser als 0 sein.");
+        if (!Double.isFinite(menge) || menge <= 0) {
+            throw new IllegalArgumentException("Menge muss größer als 0 sein.");
         }
         ProduktDto produkt = findeNachId(id).orElseThrow(() -> new NoSuchElementException("Produkt nicht gefunden."));
+        if (!Double.isFinite(produkt.lagerbestand() + menge)) {
+            throw new IllegalArgumentException("Der resultierende Lagerbestand ist zu gross.");
+        }
         jdbcTemplate.update("UPDATE produkte SET lagerbestand = lagerbestand + ? WHERE id = ?", menge, id);
         return findeNachId(produkt.id()).orElseThrow();
     }
@@ -119,14 +137,14 @@ public class ProduktJdbcRepository {
         if (request.name() == null || request.name().isBlank()) {
             throw new IllegalArgumentException("Name fehlt.");
         }
-        if (request.preis() == null || request.preis() <= 0) {
-            throw new IllegalArgumentException("Preis muss groesser als 0 sein.");
+        if (request.preis() == null || !Double.isFinite(request.preis()) || request.preis() <= 0) {
+            throw new IllegalArgumentException("Preis muss größer als 0 sein.");
         }
         if (lagerbestandPflicht && request.lagerbestand() == null) {
             throw new IllegalArgumentException("Lagerbestand fehlt.");
         }
         double lagerbestand = request.lagerbestand() == null ? 0.0 : request.lagerbestand();
-        if (lagerbestand < 0) {
+        if (!Double.isFinite(lagerbestand) || lagerbestand < 0) {
             throw new IllegalArgumentException("Lagerbestand darf nicht negativ sein.");
         }
 
@@ -173,7 +191,7 @@ public class ProduktJdbcRepository {
             case "KILOGRAMM" -> "kg";
             case "LITER" -> "l";
             case "PACKUNG" -> "Packung";
-            default -> "Stueck";
+            default -> "Stück";
         };
     }
 

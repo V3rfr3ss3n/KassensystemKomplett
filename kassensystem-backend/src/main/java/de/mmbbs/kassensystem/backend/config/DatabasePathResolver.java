@@ -6,6 +6,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
+/**
+ * Ermittelt den gemeinsamen SQLite-Pfad fuer Spring Boot.
+ *
+ * <p>Ohne explizite Konfiguration wird `data/kassensystem.db` im Workspace
+ * genutzt. Dadurch greifen JavaFX und Backend auf dieselbe Datenbasis zu.</p>
+ */
 public final class DatabasePathResolver {
     public static final String DB_PATH_PROPERTY = "kassensystem.db.path";
     private static final String DB_PATH_ENV = "KASSENSYSTEM_DB_PATH";
@@ -13,6 +19,9 @@ public final class DatabasePathResolver {
     private DatabasePathResolver() {
     }
 
+    /**
+     * Liefert den absoluten Pfad zur SQLite-Datenbank und legt den Ordner an.
+     */
     public static Path resolve() {
         String configuredPath = System.getProperty(DB_PATH_PROPERTY);
         if (configuredPath == null || configuredPath.isBlank()) {
@@ -40,6 +49,9 @@ public final class DatabasePathResolver {
         return path;
     }
 
+    /**
+     * Liefert die JDBC-URL fuer Spring Boot.
+     */
     public static String jdbcUrl() {
         return "jdbc:sqlite:" + resolve();
     }

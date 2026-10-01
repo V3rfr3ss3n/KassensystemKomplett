@@ -3,6 +3,9 @@ package de.mmbbs.kassensystem.util;
 import java.text.NumberFormat;
 import java.util.Locale;
 
+/**
+ * Formatiert und liest Mengen im deutschen Zahlenformat.
+ */
 public final class MengenFormatter {
     private static final Locale DEUTSCHLAND = Locale.GERMANY;
 

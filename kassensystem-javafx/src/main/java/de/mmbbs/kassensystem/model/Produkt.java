@@ -8,6 +8,13 @@ import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.StringProperty;
 
+/**
+ * Fachmodell fuer ein Produkt im Kassensystem.
+ *
+ * <p>Ein Produkt enthaelt die fuer das Lastenheft geforderten Kerndaten
+ * Produktnummer, Name, Preis und Lagerbestand. Zusaetzlich verwaltet das
+ * Projekt Einheit, Steuersatz und optional einen Bildpfad.</p>
+ */
 public class Produkt {
     private final int id;
     private final IntegerProperty idProperty;
@@ -33,6 +40,17 @@ public class Produkt {
         this(id, name, preis, lagerbestand, bildPfad, Verkaufseinheit.STUECK, Steuersatz.REGELSTEUERSATZ.getProzent());
     }
 
+    /**
+     * Erstellt ein vollstaendiges Produktobjekt.
+     *
+     * @param id Produktnummer; 0 bedeutet, dass das Repository eine neue ID vergibt.
+     * @param name Anzeigename des Produkts.
+     * @param preis Bruttopreis pro Verkaufseinheit.
+     * @param lagerbestand Aktueller Lagerbestand.
+     * @param bildPfad Optionaler Pfad zum Produktbild.
+     * @param einheit Verkaufseinheit, zum Beispiel Stueck, kg oder l.
+     * @param steuerSatz Umsatzsteuersatz in Prozent.
+     */
     public Produkt(int id, String name, double preis, double lagerbestand, String bildPfad,
                    Verkaufseinheit einheit, double steuerSatz) {
         this.id = id;
@@ -85,7 +103,7 @@ public class Produkt {
     }
 
     public void setPreis(double preis) {
-        if (preis <= 0) {
+        if (!Double.isFinite(preis) || preis <= 0) {
             throw new IllegalArgumentException("Preis muss größer als 0 sein.");
         }
         this.preis = preis;
@@ -105,7 +123,7 @@ public class Produkt {
     }
 
     public void setLagerbestand(double lagerbestand) {
-        if (lagerbestand < 0) {
+        if (!Double.isFinite(lagerbestand) || lagerbestand < 0) {
             throw new IllegalArgumentException("Lagerbestand darf nicht negativ sein.");
         }
         this.lagerbestand = lagerbestand;
@@ -132,15 +150,25 @@ public class Produkt {
         this.steuerSatz = Steuersatz.fromProzent(steuerSatz).getProzent();
     }
 
+    /**
+     * Erhoeht den Lagerbestand, zum Beispiel bei einem Warenzugang.
+     *
+     * @param menge Zuzubuchende Menge; muss groesser als 0 sein.
+     */
     public void bestandErhoehen(double menge) {
-        if (menge <= 0) {
+        if (!Double.isFinite(menge) || menge <= 0) {
             throw new IllegalArgumentException("Menge muss größer als 0 sein.");
         }
         setLagerbestand(this.lagerbestand + menge);
     }
 
+    /**
+     * Verringert den Lagerbestand nach einem Verkauf.
+     *
+     * @param menge Verkaufte Menge; muss verfuegbar und groesser als 0 sein.
+     */
     public void bestandVerringern(double menge) {
-        if (menge <= 0) {
+        if (!Double.isFinite(menge) || menge <= 0) {
             throw new IllegalArgumentException("Menge muss größer als 0 sein.");
         }
         if (this.lagerbestand < menge) {

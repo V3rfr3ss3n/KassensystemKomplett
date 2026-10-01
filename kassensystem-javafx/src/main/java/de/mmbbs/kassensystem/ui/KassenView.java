@@ -6,6 +6,7 @@ import de.mmbbs.kassensystem.model.Produkt;
 import de.mmbbs.kassensystem.model.Steuersatz;
 import de.mmbbs.kassensystem.model.Verkaufseinheit;
 import de.mmbbs.kassensystem.service.BonService;
+import de.mmbbs.kassensystem.service.BonPdfService;
 import de.mmbbs.kassensystem.service.KassenService;
 import de.mmbbs.kassensystem.service.ProduktService;
 import de.mmbbs.kassensystem.util.GeldFormatter;
@@ -13,20 +14,37 @@ import de.mmbbs.kassensystem.util.ImageUtil;
 import de.mmbbs.kassensystem.util.MengenFormatter;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.application.Platform;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import java.util.List;
 
 import java.time.format.DateTimeFormatter;
+import java.io.File;
+import javafx.stage.FileChooser;
 
 public class KassenView extends VBox {
     private static final DateTimeFormatter BON_HISTORIE_FORMAT = DateTimeFormatter.ofPattern("dd.MM. HH:mm");
+    private static final int PRODUKTE_PRO_SEITE = 18;
     private final ProduktService produktService;
     private final KassenService kassenService;
     private final BonService bonFormatService = new BonService();
+    private final BonPdfService bonPdfService = new BonPdfService();
 
     private final FlowPane produktGrid = new FlowPane();
+    private final Dialog<ButtonType> produktDialog = new Dialog<>();
+    private final Label ergebnisLabel = new Label();
+    private final Label seitenLabel = new Label();
+    private final Button vorherigeSeiteButton = new Button("Zurück");
+    private final Button naechsteSeiteButton = new Button("Weiter");
+    private final ImageView auswahlBild = new ImageView();
+    private final Label auswahlBildHinweis = new Label("Kein Bild");
+    private final Label auswahlName = new Label("Noch kein Produkt ausgewählt");
+    private final Label auswahlDetails = new Label("Öffnen Sie die Produktauswahl, um ein Produkt zu wählen.");
+    private List<Produkt> produktKatalog = List.of();
+    private int produktSeite;
     private final ListView<BonPosition> warenkorbListe = new ListView<>();
     private final ListView<Bon> bonHistorieListe = new ListView<>();
     private final Label gesamtPreisLabel = new Label("Gesamtpreis: " + GeldFormatter.formatiereBetrag(0));
@@ -42,17 +60,20 @@ public class KassenView extends VBox {
     private final Button checkoutButton = new Button("Kauf abschließen");
 
     private Produkt selectedProdukt = null;
+    private Bon angezeigterBon;
+    private final Button pdfButton = new Button("Als PDF speichern");
+    private final Button printButton = new Button("Drucken");
 
     public KassenView(ProduktService produktService, KassenService kassenService) {
         this.produktService = produktService;
         this.kassenService = kassenService;
 
         // Listener registrieren für automatische Aktualisierung
-        produktService.addListener(() -> aktualisiereProduktGrid());
+        produktService.addListener(this::ladeProdukte);
 
         // root setup
         setSpacing(0);
-        setPadding(new Insets(40));
+        setPadding(Insets.EMPTY);
         setAlignment(Pos.TOP_CENTER);
 
         // Main Container (the white card in the screenshot)
@@ -70,24 +91,24 @@ public class KassenView extends VBox {
         hint.setWrapText(true);
 
         // Products Section
-        Label prodLabel = new Label("Produkte:");
+        Label prodLabel = new Label("Produkt auswählen");
         prodLabel.getStyleClass().add("section-label");
 
         produktSucheField.setPromptText("Produkt suchen...");
-        produktSucheField.textProperty().addListener((obs, oldValue, newValue) -> aktualisiereProduktGrid());
+        produktSucheField.textProperty().addListener((obs, oldValue, newValue) -> filterGeaendert());
         Button filterButton = new Button("Filter");
         filterButton.getStyleClass().add("secondary-button");
-        Button clearFilterButton = new Button("x");
+        Button clearFilterButton = new Button("Filter zurücksetzen");
         clearFilterButton.getStyleClass().add("secondary-button");
         clearFilterButton.setOnAction(event -> setzeProduktFilterZurueck());
         Button refreshButton = new Button("Aktualisieren");
         refreshButton.getStyleClass().add("secondary-button");
         refreshButton.setOnAction(event -> {
-            aktualisiereProduktGrid();
+            ladeProdukte();
             aktualisiereBonHistorie();
             statusLabel.setText("Daten aktualisiert.");
         });
-        HBox filterBar = new HBox(8, produktSucheField, filterButton, refreshButton, clearFilterButton);
+        HBox filterBar = new HBox(8, produktSucheField, filterButton, clearFilterButton);
         HBox.setHgrow(produktSucheField, Priority.ALWAYS);
 
         VBox erweiterteFilter = erstelleErweiterteFilter();
@@ -101,8 +122,32 @@ public class KassenView extends VBox {
 
         produktGrid.setHgap(15);
         produktGrid.setVgap(15);
-        produktGrid.setPadding(new Insets(10, 0, 20, 0));
-        aktualisiereProduktGrid();
+        produktGrid.setPadding(new Insets(12));
+        baueProduktDialog(filterBar, erweiterteFilter);
+        ladeProdukte();
+
+        Button auswahlButton = new Button("Produkte mit Bildern ansehen");
+        auswahlButton.getStyleClass().add("primary-button");
+        auswahlButton.setOnAction(event -> {
+            ladeProdukte();
+            produktDialog.showAndWait();
+        });
+        HBox auswahlAktionen = new HBox(10, auswahlButton, refreshButton);
+        auswahlAktionen.setAlignment(Pos.CENTER_LEFT);
+        auswahlBild.setFitWidth(72);
+        auswahlBild.setFitHeight(72);
+        auswahlBild.setPreserveRatio(true);
+        auswahlName.getStyleClass().add("product-card-name");
+        auswahlDetails.getStyleClass().add("product-card-details");
+        auswahlDetails.setWrapText(true);
+        VBox auswahlText = new VBox(5, auswahlName, auswahlDetails);
+        StackPane auswahlBildRahmen = new StackPane(auswahlBild, auswahlBildHinweis);
+        auswahlBildRahmen.getStyleClass().add("selected-product-image");
+        HBox auswahlBox = new HBox(14, auswahlBildRahmen, auswahlText);
+        auswahlBox.setAlignment(Pos.CENTER_LEFT);
+        auswahlBox.getStyleClass().add("selected-product-box");
+        HBox.setHgrow(auswahlText, Priority.ALWAYS);
+        aktualisiereAuswahl();
 
         // Controls Section
         HBox controls = new HBox(15);
@@ -153,13 +198,21 @@ public class KassenView extends VBox {
 
         bonArea.setEditable(false);
         bonArea.setPrefHeight(340);
-        bonArea.setPrefWidth(360);
+        bonArea.setPrefWidth(320);
         bonArea.setPromptText("Der erzeugte Bon erscheint hier nach dem Kaufabschluss.");
         bonArea.getStyleClass().add("info-box-text");
         bonArea.setWrapText(false);
         bonArea.setStyle("-fx-font-family: 'Consolas', 'Courier New', monospace;");
 
         infoBox.getChildren().add(bonArea);
+
+        pdfButton.getStyleClass().add("secondary-button");
+        printButton.getStyleClass().add("secondary-button");
+        pdfButton.setDisable(true);
+        printButton.setDisable(true);
+        pdfButton.setOnAction(event -> exportiereBon());
+        printButton.setOnAction(event -> druckeBon());
+        HBox bonAktionen = new HBox(8, pdfButton, printButton);
 
         Label bonLabel = new Label("Bon");
         bonLabel.getStyleClass().add("section-label");
@@ -182,17 +235,17 @@ public class KassenView extends VBox {
         });
         bonHistorieListe.getSelectionModel().selectedItemProperty().addListener((obs, oldBon, bon) -> {
             if (bon != null) {
-                bonArea.setText(bonFormatService.formatiereBon(bon));
+                zeigeBon(bon);
             }
         });
 
-        VBox leftContent = new VBox(16, prodLabel, filterBar, erweiterteFilter, produktGrid, controls,
+        VBox leftContent = new VBox(16, prodLabel, auswahlAktionen, auswahlBox, controls,
                 cartLabel, warenkorbListe, gesamtPreisLabel, checkoutRow);
-        leftContent.setPrefWidth(720);
+        leftContent.setPrefWidth(700);
         HBox.setHgrow(leftContent, Priority.ALWAYS);
 
-        VBox rightContent = new VBox(10, bonLabel, infoBox, historieLabel, bonHistorieListe);
-        rightContent.setPrefWidth(390);
+        VBox rightContent = new VBox(10, bonLabel, infoBox, bonAktionen, historieLabel, bonHistorieListe);
+        rightContent.setPrefWidth(340);
 
         HBox arbeitsbereich = new HBox(24, leftContent, rightContent);
         arbeitsbereich.setAlignment(Pos.TOP_LEFT);
@@ -205,18 +258,89 @@ public class KassenView extends VBox {
             statusLabel
         );
 
-        getChildren().add(mainContainer);
+        StackPane seite = new StackPane(mainContainer);
+        seite.setPadding(new Insets(24));
+        StackPane.setAlignment(mainContainer, Pos.TOP_CENTER);
+        ScrollPane seitenScroll = new ScrollPane(seite);
+        seitenScroll.setFitToWidth(true);
+        seitenScroll.getStyleClass().add("page-scroll");
+        getChildren().add(seitenScroll);
+        VBox.setVgrow(seitenScroll, Priority.ALWAYS);
         aktualisiereWarenkorb();
         aktualisiereBonHistorie();
     }
 
     private void aktualisiereProduktGrid() {
         produktGrid.getChildren().clear();
-        for (Produkt p : produktService.alleProdukte()) {
-            if (matchesProduktSuche(p)) {
-                produktGrid.getChildren().add(createProductCard(p));
-            }
+        List<Produkt> passend = produktKatalog.stream().filter(this::matchesProduktSuche).toList();
+        int seiten = Math.max(1, (passend.size() + PRODUKTE_PRO_SEITE - 1) / PRODUKTE_PRO_SEITE);
+        produktSeite = Math.min(produktSeite, seiten - 1);
+        int beginn = produktSeite * PRODUKTE_PRO_SEITE;
+        for (Produkt p : passend.subList(beginn, Math.min(beginn + PRODUKTE_PRO_SEITE, passend.size()))) {
+            produktGrid.getChildren().add(createProductCard(p));
         }
+        if (passend.isEmpty()) produktGrid.getChildren().add(new Label("Keine passenden Produkte gefunden."));
+        ergebnisLabel.setText(passend.size() + " Produkte");
+        seitenLabel.setText("Seite " + (produktSeite + 1) + " von " + seiten);
+        vorherigeSeiteButton.setDisable(produktSeite == 0);
+        naechsteSeiteButton.setDisable(produktSeite >= seiten - 1);
+    }
+
+    private void filterGeaendert() {
+        produktSeite = 0;
+        aktualisiereProduktGrid();
+    }
+
+    private void ladeProdukte() {
+        try {
+            produktKatalog = produktService.alleProdukte();
+            if (selectedProdukt != null) {
+                int id = selectedProdukt.getId();
+                selectedProdukt = produktKatalog.stream().filter(p -> p.getId() == id).findFirst().orElse(null);
+            }
+            aktualisiereAuswahl();
+            aktualisiereProduktGrid();
+        } catch (RuntimeException ex) {
+            statusLabel.setText("Produkte konnten nicht geladen werden: " + ex.getMessage());
+        }
+    }
+
+    private void aktualisiereAuswahl() {
+        if (selectedProdukt == null) {
+            auswahlBild.setImage(null);
+            auswahlBildHinweis.setVisible(true);
+            auswahlName.setText("Noch kein Produkt ausgewählt");
+            auswahlDetails.setText("Öffnen Sie die Produktauswahl, um ein Produkt zu wählen.");
+            return;
+        }
+        boolean hatBild = selectedProdukt.getBildPfad() != null && !selectedProdukt.getBildPfad().isBlank();
+        auswahlBild.setImage(hatBild ? ImageUtil.loadProductImage(selectedProdukt.getBildPfad()) : null);
+        auswahlBildHinweis.setVisible(!hatBild);
+        auswahlName.setText(selectedProdukt.getName());
+        auswahlDetails.setText(GeldFormatter.formatiereBetrag(selectedProdukt.getPreis()) + "/"
+                + selectedProdukt.getEinheitLabel() + " · Lagerbestand: "
+                + MengenFormatter.formatiereMenge(selectedProdukt.getLagerbestand(), selectedProdukt.getEinheitLabel()));
+    }
+
+    private void baueProduktDialog(HBox filterBar, VBox erweiterteFilter) {
+        produktDialog.setTitle("Produkt auswählen");
+        produktDialog.setHeaderText("Produkte ansehen und auswählen");
+        produktDialog.getDialogPane().getButtonTypes().add(
+                new ButtonType("Schließen", ButtonBar.ButtonData.CANCEL_CLOSE));
+        ThemeManager.applyToDialogPane(produktDialog.getDialogPane());
+        ScrollPane produktScroll = new ScrollPane(produktGrid);
+        produktScroll.setFitToWidth(true);
+        produktScroll.setPrefViewportHeight(410);
+        produktScroll.getStyleClass().add("product-picker-scroll");
+        vorherigeSeiteButton.setOnAction(event -> { produktSeite--; aktualisiereProduktGrid(); produktScroll.setVvalue(0); });
+        naechsteSeiteButton.setOnAction(event -> { produktSeite++; aktualisiereProduktGrid(); produktScroll.setVvalue(0); });
+        HBox seitenSteuerung = new HBox(12, ergebnisLabel, new Region(), vorherigeSeiteButton,
+                seitenLabel, naechsteSeiteButton);
+        HBox.setHgrow(seitenSteuerung.getChildren().get(1), Priority.ALWAYS);
+        seitenSteuerung.setAlignment(Pos.CENTER_LEFT);
+        VBox inhalt = new VBox(12, filterBar, erweiterteFilter, produktScroll, seitenSteuerung);
+        inhalt.setPrefWidth(850);
+        produktDialog.getDialogPane().setContent(inhalt);
     }
 
     private boolean matchesProduktSuche(Produkt produkt) {
@@ -255,71 +379,50 @@ public class KassenView extends VBox {
     }
 
     private VBox createProductCard(Produkt p) {
-        VBox card = new VBox(10);
+        VBox card = new VBox(8);
         card.getStyleClass().add("product-card");
-        card.setAlignment(Pos.CENTER_LEFT);
-        card.setPrefWidth(260);
+        card.setAlignment(Pos.TOP_LEFT);
+        card.setPrefWidth(195);
+        card.setMinWidth(195);
+        card.setMaxWidth(195);
 
-        HBox content = new HBox(15);
-        content.setAlignment(Pos.CENTER_LEFT);
-
-        // Image
-        ImageView imageView = new ImageView();
-        imageView.setFitHeight(40);
-        imageView.setFitWidth(40);
+        boolean hatBild = p.getBildPfad() != null && !p.getBildPfad().isBlank();
+        ImageView imageView = new ImageView(hatBild ? ImageUtil.loadProductImage(p.getBildPfad()) : null);
+        imageView.setFitWidth(158);
+        imageView.setFitHeight(126);
         imageView.setPreserveRatio(true);
-        imageView.setImage(ImageUtil.loadProductImage(p.getBildPfad()));
+        StackPane bildRahmen = new StackPane(hatBild ? imageView : new Label("Kein Bild"));
+        bildRahmen.getStyleClass().add("product-picker-image");
+        bildRahmen.setMinHeight(135);
+        bildRahmen.setMaxHeight(135);
 
-        // Text
-        VBox textContainer = new VBox(2);
         Label nameLabel = new Label(p.getName());
         nameLabel.getStyleClass().add("product-card-name");
+        nameLabel.setWrapText(true);
+        nameLabel.setMaxWidth(175);
+        Label preisLabel = new Label(GeldFormatter.formatiereBetrag(p.getPreis()) + "/" + p.getEinheitLabel());
+        preisLabel.getStyleClass().add("product-card-price");
+        Label bestandLabel = new Label("Lagerbestand: "
+                + MengenFormatter.formatiereMenge(p.getLagerbestand(), p.getEinheitLabel()));
+        bestandLabel.getStyleClass().add("product-card-details");
 
-        Label detailsLabel = new Label("Lager: " + MengenFormatter.formatiereMenge(p.getLagerbestand(), p.getEinheitLabel())
-                + " · " + GeldFormatter.formatiereBetrag(p.getPreis()) + "/" + p.getEinheitLabel()
-                + " · USt " + String.format("%.0f %%", p.getSteuerSatz()));
-        detailsLabel.getStyleClass().add("product-card-details");
-
-        textContainer.getChildren().addAll(nameLabel, detailsLabel);
-        HBox.setHgrow(textContainer, Priority.ALWAYS);
-
-        Button plusButton = new Button("+");
-        plusButton.getStyleClass().add("primary-button");
-        plusButton.setOnAction(event -> {
-            event.consume();
-            fuegeDirektHinzu(p);
+        Button waehlenButton = new Button("Auswählen");
+        waehlenButton.getStyleClass().add("primary-button");
+        waehlenButton.setMaxWidth(Double.MAX_VALUE);
+        waehlenButton.setDisable(p.getLagerbestand() <= 0);
+        waehlenButton.setOnAction(event -> {
+            waehleProdukt(p);
+            produktDialog.close();
         });
-
-        Label badge = new Label();
-        badge.getStyleClass().add("cart-badge");
-        double mengeImWarenkorb = mengeImWarenkorb(p);
-        badge.setText(MengenFormatter.formatiereMenge(mengeImWarenkorb));
-        badge.setVisible(mengeImWarenkorb > 0);
-        badge.setManaged(mengeImWarenkorb > 0);
-
-        StackPane plusWrapper = new StackPane(plusButton, badge);
-        StackPane.setAlignment(badge, Pos.TOP_RIGHT);
-        plusWrapper.setPrefSize(48, 38);
-
-        content.getChildren().addAll(imageView, textContainer, plusWrapper);
-
-        card.getChildren().add(content);
-
-        card.setOnMouseClicked(event -> {
-            selectedProdukt = p;
-            // Visual update for selection
-            produktGrid.getChildren().forEach(node -> {
-                if (node instanceof VBox) {
-                    ((VBox) node).getStyleClass().remove("product-card-selected");
-                }
-            });
-            card.getStyleClass().add("product-card-selected");
-            if (event.getClickCount() == 2) {
-                zeigeProduktDetails(p);
-            }
-        });
-
+        card.getChildren().addAll(bildRahmen, nameLabel, preisLabel, bestandLabel, waehlenButton);
+        if (p.getLagerbestand() <= 0) card.getStyleClass().add("product-card-unavailable");
         return card;
+    }
+
+    private void waehleProdukt(Produkt produkt) {
+        selectedProdukt = produkt;
+        aktualisiereAuswahl();
+        Platform.runLater(mengeField::requestFocus);
     }
 
     private void hinzufuegen() {
@@ -349,17 +452,58 @@ public class KassenView extends VBox {
     private void abschliessen() {
         try {
             Bon bon = kassenService.kassenvorgangAbschliessen();
-            bonArea.setText(bonFormatService.formatiereBon(bon));
             aktualisiereWarenkorb();
             aktualisiereBonHistorie();
+            bonHistorieListe.getSelectionModel().select(bon);
+            zeigeBon(bon);
 
             AlertUtil.showInfo("Kauf erfolgreich abgeschlossen",
                     "Bon Nr. " + bon.getBonnummer() + "\nGesamtpreis: " + GeldFormatter.formatiereBetrag(bon.getGesamtpreis()));
 
             statusLabel.setText("Kauf abgeschlossen. Lagerbestand wurde aktualisiert.");
-            aktualisiereProduktGrid();
-        } catch (IllegalArgumentException ex) {
+            ladeProdukte();
+        } catch (IllegalArgumentException | IllegalStateException ex) {
             statusLabel.setText(ex.getMessage());
+        }
+    }
+
+    private void zeigeBon(Bon bon) {
+        angezeigterBon = bon;
+        bonArea.setText(bonFormatService.formatiereBon(bon));
+        pdfButton.setDisable(false);
+        printButton.setDisable(false);
+    }
+
+    private void exportiereBon() {
+        if (angezeigterBon == null) {
+            return;
+        }
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Bon als PDF speichern");
+        chooser.setInitialFileName("bon-" + angezeigterBon.getBonnummer() + ".pdf");
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF-Datei", "*.pdf"));
+        File ziel = chooser.showSaveDialog(getScene().getWindow());
+        if (ziel == null) {
+            return;
+        }
+        try {
+            bonPdfService.exportiere(angezeigterBon, ziel.toPath());
+            statusLabel.setText("Bon " + angezeigterBon.getBonnummer() + " als PDF gespeichert.");
+        } catch (Exception ex) {
+            statusLabel.setText("PDF konnte nicht gespeichert werden: " + ex.getMessage());
+        }
+    }
+
+    private void druckeBon() {
+        if (angezeigterBon == null) {
+            return;
+        }
+        try {
+            if (bonPdfService.drucke(angezeigterBon)) {
+                statusLabel.setText("Bon " + angezeigterBon.getBonnummer() + " an den Drucker gesendet.");
+            }
+        } catch (Exception ex) {
+            statusLabel.setText("Bon konnte nicht gedruckt werden: " + ex.getMessage());
         }
     }
 
@@ -413,11 +557,11 @@ public class KassenView extends VBox {
         resetButton.getStyleClass().add("secondary-button");
         resetButton.setOnAction(event -> setzeProduktFilterZurueck());
 
-        einheitFilterBox.setOnAction(event -> aktualisiereProduktGrid());
-        steuerFilterBox.setOnAction(event -> aktualisiereProduktGrid());
-        preisVonField.textProperty().addListener((obs, oldValue, newValue) -> aktualisiereProduktGrid());
-        preisBisField.textProperty().addListener((obs, oldValue, newValue) -> aktualisiereProduktGrid());
-        nurVerfuegbarCheck.selectedProperty().addListener((obs, oldValue, newValue) -> aktualisiereProduktGrid());
+        einheitFilterBox.setOnAction(event -> filterGeaendert());
+        steuerFilterBox.setOnAction(event -> filterGeaendert());
+        preisVonField.textProperty().addListener((obs, oldValue, newValue) -> filterGeaendert());
+        preisBisField.textProperty().addListener((obs, oldValue, newValue) -> filterGeaendert());
+        nurVerfuegbarCheck.selectedProperty().addListener((obs, oldValue, newValue) -> filterGeaendert());
 
         HBox row = new HBox(8, einheitFilterBox, steuerFilterBox, preisVonField, preisBisField, nurVerfuegbarCheck, resetButton);
         row.setAlignment(Pos.CENTER_LEFT);
@@ -472,6 +616,7 @@ public class KassenView extends VBox {
         content.setAlignment(Pos.CENTER_LEFT);
 
         dialog.getDialogPane().setContent(content);
+        ThemeManager.applyToDialogPane(dialog.getDialogPane());
         dialog.getDialogPane().getButtonTypes().add(ButtonType.OK);
         dialog.showAndWait();
     }

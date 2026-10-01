@@ -1,104 +1,118 @@
 package de.mmbbs.kassensystem.ui;
 
+import de.mmbbs.kassensystem.auth.Benutzer;
+import de.mmbbs.kassensystem.auth.SsoTicketService;
+import de.mmbbs.kassensystem.repository.ApiClient;
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.concurrent.Worker;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
 import javafx.scene.web.WebView;
 
 import java.awt.Desktop;
 import java.net.URI;
-import java.util.Optional;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
+/**
+ * Eingebetteter Zugriff auf den Spring-Adminbereich.
+ *
+ * <p>Die JavaFX-Rolle entscheidet, ob dieser Tab sichtbar ist. Die Webseite
+ * selbst ist zusaetzlich serverseitig ueber Spring Security geschuetzt.</p>
+ */
 public class AdminWebView extends BorderPane {
-    public static final String ADMIN_URL = "http://localhost:8080/kassensystem/admin/";
-    private final WebView webView = new WebView();
-    private final Label statusLabel = new Label("Adminbereich gesperrt.");
-    private boolean entsperrt;
+    public static final String ADMIN_URL = ApiClient.basisUrl() + "/admin/";
+    private static final String SSO_LOGIN_URL = ApiClient.basisUrl() + "/auth/javafx-login";
 
-    public AdminWebView() {
+    private final Benutzer benutzer;
+    private final ReadOnlyBooleanProperty darkModeProperty;
+    private final SsoTicketService ssoTicketService = new SsoTicketService();
+    private final WebView webView = new WebView();
+    private final Label statusLabel = new Label("Verwaltung wird geladen …");
+    private boolean geladen;
+
+    public AdminWebView(Benutzer benutzer, ReadOnlyBooleanProperty darkModeProperty) {
+        this.benutzer = benutzer;
+        this.darkModeProperty = darkModeProperty;
+
         getStyleClass().add("admin-web-view");
         setPadding(new Insets(18));
 
-        Button unlockButton = new Button("Admin entsperren");
-        unlockButton.getStyleClass().add("primary-button");
-        unlockButton.setOnAction(event -> entsperrenUndLaden());
-
+        String titel = verwaltungsTitel();
         Button reloadButton = new Button("Neu laden");
         reloadButton.getStyleClass().add("secondary-button");
         reloadButton.setOnAction(event -> ladeAdminseite());
 
-        Button browserButton = new Button("Im Browser oeffnen");
+        Button browserButton = new Button("Im Browser öffnen");
         browserButton.getStyleClass().add("secondary-button");
         browserButton.setOnAction(event -> oeffneImBrowser());
 
-        HBox toolbar = new HBox(10, unlockButton, reloadButton, browserButton, statusLabel);
-        toolbar.setAlignment(Pos.CENTER_LEFT);
+        HBox toolbar = new HBox(10, reloadButton, browserButton, statusLabel);
+        toolbar.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         toolbar.setPadding(new Insets(0, 0, 12, 0));
         HBox.setHgrow(statusLabel, Priority.ALWAYS);
 
-        Label title = new Label("Verwaltung");
-        title.getStyleClass().add("title-label");
-        Label hint = new Label("Spring Boot muss laufen: " + ADMIN_URL);
-        hint.getStyleClass().add("subtitle-label");
-        hint.setWrapText(true);
-
-        VBox lockedBox = new VBox(12, title, hint, unlockButton);
-        lockedBox.setAlignment(Pos.CENTER);
-        lockedBox.setPadding(new Insets(40));
-
         setTop(toolbar);
-        setCenter(lockedBox);
+        setCenter(webView);
+
+        webView.getEngine().getLoadWorker().stateProperty().addListener((obs, oldState, state) -> {
+            if (state == Worker.State.SUCCEEDED) {
+                synchronisiereWebTheme();
+                statusLabel.setText("Verwaltung geladen für " + benutzer.benutzername() + ".");
+            } else if (state == Worker.State.FAILED) {
+                statusLabel.setText("Verwaltung konnte nicht geladen werden. Läuft das Backend?");
+            }
+        });
+        darkModeProperty.addListener((obs, oldValue, newValue) -> synchronisiereWebTheme());
     }
 
-    private void entsperrenUndLaden() {
-        TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle("Adminzugang");
-        dialog.setHeaderText("Adminbereich oeffnen");
-        dialog.setContentText("Passwort:");
-
-        Optional<String> passwort = dialog.showAndWait();
-        if (passwort.isEmpty()) {
-            return;
-        }
-        if (!"1234".equals(passwort.get())) {
-            AlertUtil.showWarning("Adminzugang", "Passwort ist falsch.");
-            return;
-        }
-        entsperrt = true;
-        ladeAdminseite();
+    public void ladeWennNoetig() {
+        if (!geladen) ladeAdminseite();
     }
 
     private void ladeAdminseite() {
-        if (!entsperrt) {
-            entsperrenUndLaden();
-            return;
-        }
-        webView.getEngine().load(ADMIN_URL);
-        setCenter(webView);
-        statusLabel.setText("Adminbereich geladen.");
+        geladen = true;
+        webView.getEngine().load(erstelleSsoUrl());
+        statusLabel.setText(verwaltungsTitel() + " wird geöffnet …");
     }
 
     private void oeffneImBrowser() {
-        if (!entsperrt) {
-            entsperrenUndLaden();
-            if (!entsperrt) {
-                return;
-            }
-        }
         try {
             if (Desktop.isDesktopSupported()) {
-                Desktop.getDesktop().browse(new URI(ADMIN_URL));
+                Desktop.getDesktop().browse(new URI(erstelleSsoUrl()));
             } else {
                 AlertUtil.showInfo("Adminbereich", "Admin-Webadresse: " + ADMIN_URL);
             }
         } catch (Exception ex) {
             AlertUtil.showWarning("Adminbereich", "Admin-Webadresse: " + ADMIN_URL);
+        }
+    }
+
+    private String erstelleSsoUrl() {
+        String ticket = URLEncoder.encode(ssoTicketService.erstelleTicket(benutzer), StandardCharsets.UTF_8);
+        String theme = darkModeProperty.get() ? "dark" : "light";
+        return SSO_LOGIN_URL + "?ticket=" + ticket + "&theme=" + theme;
+    }
+
+    private String verwaltungsTitel() {
+        return benutzer.istLagerist() ? "Warenzugang" : "Verwaltung";
+    }
+
+    private void synchronisiereWebTheme() {
+        String location = webView.getEngine().getLocation();
+        if (location == null || location.isBlank()) {
+            return;
+        }
+
+        String theme = darkModeProperty.get() ? "dark" : "light";
+        try {
+            webView.getEngine().executeScript("window.setThemeFromJavaFx && window.setThemeFromJavaFx('" + theme + "')");
+        } catch (Exception ignored) {
+            // Die Seite kann noch im Spring-Login oder Fehlerzustand sein.
         }
     }
 }

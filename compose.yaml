@@ -1,0 +1,13 @@
+services:
+  backend:
+    build: .
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      KASSENSYSTEM_DB_PATH: /data/kassensystem.db
+    volumes:
+      - kassensystem-data:/data
+    restart: unless-stopped
+
+volumes:
+  kassensystem-data:

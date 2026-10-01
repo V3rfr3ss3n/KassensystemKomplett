@@ -34,7 +34,7 @@ final class ImageCropDialog {
         Image image = new Image(imageFile.toURI().toString(), false);
         if (image.isError() || image.getWidth() <= 0 || image.getHeight() <= 0) {
             AlertUtil.showError("Bild konnte nicht geladen werden",
-                    "Die ausgewaehlte Datei konnte nicht als Bild geoeffnet werden.");
+                    "Die ausgewählte Datei konnte nicht als Bild geöffnet werden.");
             return Optional.empty();
         }
 

@@ -6,12 +6,20 @@ import de.mmbbs.kassensystem.model.Produkt;
 import de.mmbbs.kassensystem.repository.BonHistorieRepository;
 import de.mmbbs.kassensystem.repository.JsonBonHistorieRepository;
 import de.mmbbs.kassensystem.repository.ProduktRepository;
+import de.mmbbs.kassensystem.repository.RemoteKaufRepository;
+import de.mmbbs.kassensystem.repository.TransaktionalerKaufRepository;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Fachlogik fuer Kassenvorgaenge.
+ *
+ * <p>Der Service verwaltet den Warenkorb, prueft Lagerbestaende, erzeugt Bons,
+ * reduziert nach dem Kauf den Bestand und speichert die Bon-Historie.</p>
+ */
 public class KassenService {
     private final ProduktRepository repository;
     private final BonHistorieRepository bonHistorieRepository;
@@ -38,7 +46,16 @@ public class KassenService {
         positionHinzufuegen(produktId, (double) menge);
     }
 
+    /**
+     * Fuegt ein Produkt in den Warenkorb ein oder erhoeht eine vorhandene Position.
+     *
+     * @param produktId Produktnummer des gewaehlten Produkts.
+     * @param menge Gewaehlte Menge.
+     */
     public void positionHinzufuegen(int produktId, double menge) {
+        if (!Double.isFinite(menge) || menge <= 0) {
+            throw new IllegalArgumentException("Menge muss größer als 0 sein.");
+        }
         Produkt produkt = repository.findeNachId(produktId)
                 .orElseThrow(() -> new IllegalArgumentException("Produkt nicht gefunden."));
         double bisherigeMenge = warenkorb.stream()
@@ -74,10 +91,16 @@ public class KassenService {
         return List.copyOf(warenkorb);
     }
 
+    /**
+     * Entfernt eine einzelne Warenkorbposition.
+     */
     public void positionEntfernen(BonPosition position) {
         warenkorb.remove(position);
     }
 
+    /**
+     * Erhoeht eine Warenkorbposition um eine Einheit, wenn genug Bestand vorhanden ist.
+     */
     public void positionErhoehen(BonPosition position) {
         int index = warenkorb.indexOf(position);
         if (index < 0) {
@@ -98,6 +121,9 @@ public class KassenService {
                 position.getEinzelpreis(), Double.NaN, position.getSteuerSatz()));
     }
 
+    /**
+     * Verringert eine Warenkorbposition um eine Einheit oder entfernt sie bei Menge 0.
+     */
     public void positionVerringern(BonPosition position) {
         int index = warenkorb.indexOf(position);
         if (index < 0) {
@@ -114,10 +140,21 @@ public class KassenService {
                 position.getEinzelpreis(), Double.NaN, position.getSteuerSatz()));
     }
 
+    /**
+     * Berechnet den aktuellen Warenkorbwert.
+     */
     public double berechneGesamtpreis() {
         return warenkorb.stream().mapToDouble(BonPosition::getGesamtpreis).sum();
     }
 
+    /**
+     * Schliesst den Kassenvorgang ab.
+     *
+     * <p>Dabei werden alle benoetigten Lagerbestaende erneut geprueft, die
+     * Bestaende reduziert, ein Bon erzeugt und der Warenkorb geleert.</p>
+     *
+     * @return Erzeugter Bon des abgeschlossenen Kaufs.
+     */
     public Bon kassenvorgangAbschliessen() {
         if (warenkorb.isEmpty()) {
             throw new IllegalArgumentException("Der Warenkorb ist leer.");
@@ -137,16 +174,29 @@ public class KassenService {
             }
         }
 
-        for (BonPosition position : warenkorb) {
-            Produkt produkt = repository.findeNachId(position.getProdukt().getId())
-                    .orElseThrow(() -> new IllegalArgumentException("Produkt nicht gefunden."));
-            produkt.bestandVerringern(position.getMenge());
-            repository.speichern(produkt);
+        Bon bon;
+        if (bonHistorieRepository instanceof RemoteKaufRepository remote) {
+            bon = remote.schliesseKaufAb(benoetigteMengen);
+        } else {
+            bon = bonService.erstelleBon(new ArrayList<>(warenkorb));
         }
-
-        Bon bon = bonService.erstelleBon(new ArrayList<>(warenkorb));
+        if (bonHistorieRepository instanceof RemoteKaufRepository) {
+            // Der Server hat Bestand und Bon bereits in einer Transaktion gespeichert.
+        } else if (bonHistorieRepository instanceof TransaktionalerKaufRepository transaktional) {
+            transaktional.speichereKauf(bon, benoetigteMengen);
+        } else {
+            for (BonPosition position : warenkorb) {
+                Produkt produkt = repository.findeNachId(position.getProdukt().getId())
+                        .orElseThrow(() -> new IllegalArgumentException("Produkt nicht gefunden."));
+                produkt.bestandVerringern(position.getMenge());
+                repository.speichern(produkt);
+            }
+            List<Bon> neueHistorie = new ArrayList<>(bonHistorie);
+            neueHistorie.add(0, bon);
+            bonHistorieRepository.speichereBonHistorie(neueHistorie);
+        }
         bonHistorie.add(0, bon);
-        bonHistorieRepository.speichereBonHistorie(new ArrayList<>(bonHistorie));
+        if (!(bonHistorieRepository instanceof RemoteKaufRepository)) bonService.bonGespeichert();
         warenkorb.clear();
         return bon;
     }

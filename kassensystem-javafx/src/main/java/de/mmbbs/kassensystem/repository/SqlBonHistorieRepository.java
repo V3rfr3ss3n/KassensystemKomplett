@@ -4,19 +4,18 @@ import de.mmbbs.kassensystem.db.DatabaseInitializer;
 import de.mmbbs.kassensystem.model.Bon;
 import de.mmbbs.kassensystem.model.BonPosition;
 import de.mmbbs.kassensystem.model.Produkt;
+import de.mmbbs.kassensystem.model.Verkaufseinheit;
 
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 
-public class SqlBonHistorieRepository implements BonHistorieRepository {
+public class SqlBonHistorieRepository implements BonHistorieRepository, TransaktionalerKaufRepository {
     private static final String DB_URL = "jdbc:sqlite:" + DatabaseInitializer.getDbPath();
-    private final ProduktRepository produktRepository;
 
     public SqlBonHistorieRepository(ProduktRepository produktRepository) {
-        this.produktRepository = produktRepository;
         DatabaseInitializer.initialize();
     }
 
@@ -38,7 +37,7 @@ public class SqlBonHistorieRepository implements BonHistorieRepository {
                 bonHistorie.add(bon);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new IllegalStateException("Bon-Historie konnte nicht geladen werden.", e);
         }
 
         return bonHistorie;
@@ -48,20 +47,52 @@ public class SqlBonHistorieRepository implements BonHistorieRepository {
     public void speichereBonHistorie(List<Bon> bonHistorie) {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
             conn.setAutoCommit(false);
-
-            for (Bon bon : bonHistorie) {
-                speichereSingleBon(conn, bon);
+            try {
+                for (Bon bon : bonHistorie) {
+                    speichereSingleBon(conn, bon, true);
+                }
+                conn.commit();
+            } catch (SQLException | RuntimeException e) {
+                conn.rollback();
+                throw e;
             }
-
-            conn.commit();
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new IllegalStateException("Bon-Historie konnte nicht gespeichert werden.", e);
         }
     }
 
-    private void speichereSingleBon(Connection conn, Bon bon) throws SQLException {
+    /** Speichert Lagerabbuchung und Bon in derselben SQLite-Transaktion. */
+    @Override
+    public void speichereKauf(Bon bon, Map<Integer, Double> mengen) {
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            conn.setAutoCommit(false);
+            try {
+                for (Map.Entry<Integer, Double> eintrag : mengen.entrySet()) {
+                    try (PreparedStatement update = conn.prepareStatement(
+                            "UPDATE produkte SET lagerbestand = lagerbestand - ? WHERE id = ? AND lagerbestand >= ?")) {
+                        update.setDouble(1, eintrag.getValue());
+                        update.setInt(2, eintrag.getKey());
+                        update.setDouble(3, eintrag.getValue());
+                        if (update.executeUpdate() != 1) {
+                            throw new IllegalArgumentException("Nicht genuegend Produkte auf Lager.");
+                        }
+                    }
+                }
+                speichereSingleBon(conn, bon, false);
+                conn.commit();
+            } catch (SQLException | RuntimeException e) {
+                conn.rollback();
+                throw e;
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("Kauf konnte nicht gespeichert werden.", e);
+        }
+    }
+
+    private void speichereSingleBon(Connection conn, Bon bon, boolean ersetzen) throws SQLException {
         try (PreparedStatement pstmt = conn.prepareStatement(
-                "INSERT OR REPLACE INTO bons (bonnummer, datumUhrzeit, gesamtpreis) VALUES (?, ?, ?)")) {
+                (ersetzen ? "INSERT OR REPLACE" : "INSERT")
+                        + " INTO bons (bonnummer, datumUhrzeit, gesamtpreis) VALUES (?, ?, ?)")) {
             pstmt.setInt(1, bon.getBonnummer());
             pstmt.setString(2, bon.getDatumUhrzeit().toString());
             pstmt.setDouble(3, bon.getGesamtpreis());
@@ -74,14 +105,16 @@ public class SqlBonHistorieRepository implements BonHistorieRepository {
             }
 
             try (PreparedStatement posPstmt = conn.prepareStatement(
-                    "INSERT INTO bon_positionen (bonnummer, produkt_id, menge, einzelpreis, steuerSatz, gesamtpreis) VALUES (?, ?, ?, ?, ?, ?)")) {
+                    "INSERT INTO bon_positionen (bonnummer, produkt_id, produkt_name, einheit, menge, einzelpreis, steuerSatz, gesamtpreis) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")) {
                 for (BonPosition pos : bon.getPositionen()) {
                     posPstmt.setInt(1, bon.getBonnummer());
                     posPstmt.setInt(2, pos.getProdukt().getId());
-                    posPstmt.setDouble(3, pos.getMenge());
-                    posPstmt.setDouble(4, pos.getEinzelpreis());
-                    posPstmt.setDouble(5, pos.getSteuerSatz());
-                    posPstmt.setDouble(6, pos.getGesamtpreis());
+                    posPstmt.setString(3, pos.getProdukt().getName());
+                    posPstmt.setString(4, pos.getProdukt().getEinheit().name());
+                    posPstmt.setDouble(5, pos.getMenge());
+                    posPstmt.setDouble(6, pos.getEinzelpreis());
+                    posPstmt.setDouble(7, pos.getSteuerSatz());
+                    posPstmt.setDouble(8, pos.getGesamtpreis());
                     posPstmt.addBatch();
                 }
                 posPstmt.executeBatch();
@@ -93,7 +126,7 @@ public class SqlBonHistorieRepository implements BonHistorieRepository {
         List<BonPosition> positionen = new ArrayList<>();
 
         try (PreparedStatement pstmt = conn.prepareStatement(
-                "SELECT produkt_id, menge, einzelpreis, steuerSatz, gesamtpreis FROM bon_positionen WHERE bonnummer = ?")) {
+                "SELECT produkt_id, produkt_name, einheit, menge, einzelpreis, steuerSatz, gesamtpreis FROM bon_positionen WHERE bonnummer = ? ORDER BY id")) {
             pstmt.setInt(1, bonnummer);
 
             try (ResultSet rs = pstmt.executeQuery()) {
@@ -104,11 +137,13 @@ public class SqlBonHistorieRepository implements BonHistorieRepository {
                     double steuerSatz = rs.getDouble("steuerSatz");
                     double gesamtpreis = rs.getDouble("gesamtpreis");
 
-                    Optional<Produkt> produktOpt = produktRepository.findeNachId(produktId);
-                    if (produktOpt.isPresent()) {
-                        BonPosition pos = new BonPosition(produktOpt.get(), menge, einzelpreis, gesamtpreis, steuerSatz);
-                        positionen.add(pos);
+                    String name = rs.getString("produkt_name");
+                    if (name == null || name.isBlank()) {
+                        name = "Produkt #" + produktId;
                     }
+                    Produkt snapshot = new Produkt(produktId, name, einzelpreis, 0, null,
+                            Verkaufseinheit.fromLabel(rs.getString("einheit")), steuerSatz);
+                    positionen.add(new BonPosition(snapshot, menge, einzelpreis, gesamtpreis, steuerSatz));
                 }
             }
         }

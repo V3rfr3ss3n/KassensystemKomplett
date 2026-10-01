@@ -8,22 +8,33 @@ import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
+/**
+ * Initialisiert die gemeinsame SQLite-Datenbank fuer die JavaFX-Anwendung.
+ *
+ * <p>Die Klasse legt Tabellen an und migriert fehlende Spalten nach, damit
+ * bestehende lokale Datenbanken weiter nutzbar bleiben.</p>
+ */
 public class DatabaseInitializer {
     private static final String DB_PATH_PROPERTY = "kassensystem.db.path";
     private static final String DB_PATH_ENV = "KASSENSYSTEM_DB_PATH";
-    private static final Path DB_PATH = resolveDbPath();
 
     public static void initialize() {
+        initialize(Path.of(getDbPath()));
+    }
+
+    public static void initialize(Path datenbankPfad) {
         try {
-            String url = "jdbc:sqlite:" + DB_PATH;
+            String url = "jdbc:sqlite:" + datenbankPfad.toAbsolutePath().normalize();
             try (Connection conn = DriverManager.getConnection(url)) {
                 if (conn != null) {
                     createSchema(conn);
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new IllegalStateException("Datenbank konnte nicht initialisiert werden.", e);
         }
     }
 
@@ -36,36 +47,51 @@ public class DatabaseInitializer {
             path = Paths.get(schemaPath);
         }
 
+        String schema;
         if (Files.exists(path)) {
-            String schema = Files.readString(path);
-            String[] statements = schema.split(";");
-
-            try (Statement stmt = conn.createStatement()) {
-                for (String sql : statements) {
-                    sql = sql.trim();
-                    if (!sql.isEmpty()) {
-                        stmt.execute(sql);
-                    }
+            schema = Files.readString(path);
+        } else {
+            try (var stream = DatabaseInitializer.class.getResourceAsStream("/db/migration/V1__Initial_Schema.sql")) {
+                if (stream == null) {
+                    throw new IOException("Datenbankschema fehlt.");
                 }
-                ensureColumn(stmt, "produkte", "einheit", "TEXT NOT NULL DEFAULT 'STUECK'");
-                ensureColumn(stmt, "produkte", "steuerSatz", "REAL NOT NULL DEFAULT 19.0");
-                ensureColumn(stmt, "bon_positionen", "steuerSatz", "REAL NOT NULL DEFAULT 19.0");
-            } catch (Exception e) {
-                e.printStackTrace();
+                schema = new String(stream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
             }
+        }
+        String[] statements = schema.split(";");
+
+        try (Statement stmt = conn.createStatement()) {
+            for (String sql : statements) {
+                sql = sql.trim();
+                if (!sql.isEmpty()) {
+                    stmt.execute(sql);
+                }
+            }
+            ensureColumn(stmt, "produkte", "einheit", "TEXT NOT NULL DEFAULT 'STUECK'");
+            ensureColumn(stmt, "produkte", "steuerSatz", "REAL NOT NULL DEFAULT 19.0");
+            ensureColumn(stmt, "bon_positionen", "steuerSatz", "REAL NOT NULL DEFAULT 19.0");
+            ensureColumn(stmt, "bon_positionen", "produkt_name", "TEXT");
+            ensureColumn(stmt, "bon_positionen", "einheit", "TEXT");
+            stmt.executeUpdate("UPDATE bon_positionen SET produkt_name = (SELECT name FROM produkte WHERE id = produkt_id) WHERE produkt_name IS NULL");
+            stmt.executeUpdate("UPDATE bon_positionen SET einheit = COALESCE((SELECT einheit FROM produkte WHERE id = produkt_id), 'STUECK') WHERE einheit IS NULL");
+        } catch (SQLException e) {
+            throw new IllegalStateException("Datenbankschema konnte nicht vorbereitet werden.", e);
         }
     }
 
-    private static void ensureColumn(Statement stmt, String table, String column, String definition) {
-        try {
-            stmt.execute("ALTER TABLE " + table + " ADD COLUMN " + column + " " + definition);
-        } catch (Exception ignored) {
-            // SQLite meldet einen Fehler, wenn die Spalte bereits existiert.
+    private static void ensureColumn(Statement stmt, String table, String column, String definition) throws SQLException {
+        try (ResultSet spalten = stmt.executeQuery("PRAGMA table_info(" + table + ")")) {
+            while (spalten.next()) {
+                if (column.equalsIgnoreCase(spalten.getString("name"))) {
+                    return;
+                }
+            }
         }
+        stmt.execute("ALTER TABLE " + table + " ADD COLUMN " + column + " " + definition);
     }
 
     public static String getDbPath() {
-        return DB_PATH.toString();
+        return resolveDbPath().toString();
     }
 
     private static Path resolveDbPath() {

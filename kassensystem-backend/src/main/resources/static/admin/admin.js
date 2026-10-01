@@ -1,70 +1,170 @@
 const apiUrl = '../api/produkte';
+const sessionUrl = '../api/session';
 
 const state = {
     products: [],
-    selectedId: null
+    selectedProduct: null,
+    imageUploading: false,
+    session: {
+        username: '',
+        roles: [],
+        permissions: {
+            manageProducts: false,
+            bookStock: false
+        }
+    }
 };
 
-const rows = document.querySelector('#productRows');
-const form = document.querySelector('#productForm');
-const statusText = document.querySelector('#statusText');
-const searchInput = document.querySelector('#searchInput');
-const unitFilter = document.querySelector('#unitFilter');
-const taxFilter = document.querySelector('#taxFilter');
-const stockFilter = document.querySelector('#stockFilter');
+const dom = {
+    rows: document.querySelector('#productRows'),
+    form: document.querySelector('#productForm'),
+    productEditorPanel: document.querySelector('#productEditorPanel'),
+    statusText: document.querySelector('#statusText'),
+    searchInput: document.querySelector('#searchInput'),
+    unitFilter: document.querySelector('#unitFilter'),
+    taxFilter: document.querySelector('#taxFilter'),
+    stockFilter: document.querySelector('#stockFilter'),
+    roleBadge: document.querySelector('#roleBadge'),
+    totalProducts: document.querySelector('#totalProducts'),
+    availableProducts: document.querySelector('#availableProducts'),
+    outOfStockProducts: document.querySelector('#outOfStockProducts'),
+    themeButton: document.querySelector('#themeButton'),
+    reloadButton: document.querySelector('#reloadButton'),
+    newButton: document.querySelector('#newButton'),
+    deleteButton: document.querySelector('#deleteButton'),
+    saveButton: document.querySelector('#saveButton'),
+    logoutButton: document.querySelector('#logoutButton'),
+    productId: document.querySelector('#productId'),
+    nameInput: document.querySelector('#nameInput'),
+    priceInput: document.querySelector('#priceInput'),
+    stockInput: document.querySelector('#stockInput'),
+    unitInput: document.querySelector('#unitInput'),
+    taxInput: document.querySelector('#taxInput'),
+    imageInput: document.querySelector('#imageInput'),
+    imageFile: document.querySelector('#imageFile'),
+    imagePreview: document.querySelector('#imagePreview'),
+    stockPanel: document.querySelector('#stockPanel'),
+    selectedProductSummary: document.querySelector('#selectedProductSummary'),
+    stockAddInput: document.querySelector('#stockAddInput'),
+    stockAddButton: document.querySelector('#stockAddButton')
+};
 
-document.querySelector('#reloadButton').addEventListener('click', loadProducts);
-document.querySelector('#newButton').addEventListener('click', clearForm);
-document.querySelector('#deleteButton').addEventListener('click', deleteSelected);
-document.querySelector('#stockAddButton').addEventListener('click', addStock);
-form.addEventListener('submit', saveProduct);
+window.setThemeFromJavaFx = setTheme;
+bindEvents();
+initTheme();
+init();
 
-for (const input of [searchInput, unitFilter, taxFilter, stockFilter]) {
-    input.addEventListener('input', renderRows);
-    input.addEventListener('change', renderRows);
+function bindEvents() {
+    dom.reloadButton.addEventListener('click', loadProducts);
+    dom.newButton.addEventListener('click', clearForm);
+    dom.deleteButton.addEventListener('click', deleteSelected);
+    dom.stockAddButton.addEventListener('click', addStock);
+    dom.themeButton.addEventListener('click', toggleTheme);
+    dom.logoutButton.addEventListener('click', logout);
+    dom.form.addEventListener('submit', saveProduct);
+    dom.imageFile.addEventListener('change', uploadImage);
+    dom.imageInput.addEventListener('input', updateImagePreview);
+    dom.stockAddInput.addEventListener('keydown', event => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            addStock();
+        }
+    });
+
+    for (const input of [dom.searchInput, dom.unitFilter, dom.taxFilter, dom.stockFilter]) {
+        input.addEventListener('input', renderRows);
+        input.addEventListener('change', renderRows);
+    }
 }
 
-loadProducts();
+async function init() {
+    try {
+        await loadSession();
+        applyPermissions();
+        await loadProducts();
+    } catch (error) {
+        setStatus('Verwaltung konnte nicht geladen werden.');
+    }
+}
+
+async function loadSession() {
+    const response = await fetch(sessionUrl, {credentials: 'same-origin'});
+    if (!response.ok || !isJsonResponse(response)) {
+        window.location.href = '../login';
+        throw new Error('Session fehlt.');
+    }
+    state.session = await response.json();
+}
+
+function applyPermissions() {
+    const canManageProducts = hasPermission('manageProducts');
+    const canBookStock = hasPermission('bookStock');
+
+    dom.roleBadge.textContent = formatUserLabel();
+    document.querySelector('.topbar h1').textContent = canManageProducts ? 'Verwaltung' : 'Warenzugang';
+    dom.newButton.hidden = !canManageProducts;
+    dom.productEditorPanel.hidden = !canManageProducts;
+    dom.deleteButton.hidden = !canManageProducts;
+    dom.saveButton.hidden = !canManageProducts;
+    dom.stockPanel.hidden = !canBookStock;
+    document.body.classList.toggle('stock-only', !canManageProducts && canBookStock);
+
+    for (const element of [dom.nameInput, dom.priceInput, dom.stockInput, dom.unitInput, dom.taxInput, dom.imageInput, dom.imageFile]) {
+        element.disabled = !canManageProducts;
+    }
+
+    updateStockControls();
+}
 
 async function loadProducts() {
     setStatus('Lade Produkte...');
-    const response = await fetch(apiUrl);
-    if (!response.ok) {
-        setStatus('Produkte konnten nicht geladen werden.');
+    try {
+        const response = await fetch(apiUrl, {credentials: 'same-origin'});
+        if (!response.ok) {
+            setStatus('Produkte konnten nicht geladen werden.');
+            return;
+        }
+        state.products = await response.json();
+    } catch (error) {
+        setStatus('Verbindung zur Verwaltung fehlgeschlagen. Bitte Backend prüfen.');
         return;
     }
-    state.products = await response.json();
+    renderOverview();
+    if (state.selectedProduct) {
+        state.selectedProduct = state.products.find(product => product.id === state.selectedProduct.id) || null;
+    }
     renderRows();
+    updateSelectedProduct();
     setStatus(`${state.products.length} Produkte geladen.`);
 }
 
+function renderOverview() {
+    const available = state.products.filter(product => Number(product.lagerbestand) > 0).length;
+    dom.totalProducts.textContent = String(state.products.length);
+    dom.availableProducts.textContent = String(available);
+    dom.outOfStockProducts.textContent = String(state.products.length - available);
+}
+
 function renderRows() {
-    const filter = searchInput.value.trim().toLowerCase();
-    const unit = unitFilter.value;
-    const tax = taxFilter.value;
-    const onlyStock = stockFilter.checked;
+    const filter = dom.searchInput.value.trim().toLowerCase();
+    const unit = dom.unitFilter.value;
+    const tax = dom.taxFilter.value;
+    const onlyStock = dom.stockFilter.checked;
 
-    rows.innerHTML = '';
+    dom.rows.innerHTML = '';
+    let sichtbar = 0;
     for (const product of state.products) {
-        const searchable = `${product.id} ${product.name} ${product.einheit} ${product.einheitLabel} ${product.steuerSatz}`.toLowerCase();
-        if (filter && !searchable.includes(filter)) {
-            continue;
-        }
-        if (unit && product.einheit !== unit) {
-            continue;
-        }
-        if (tax && Number(product.steuerSatz) !== Number(tax)) {
-            continue;
-        }
-        if (onlyStock && product.lagerbestand <= 0) {
+        if (!matchesFilter(product, filter, unit, tax, onlyStock)) {
             continue;
         }
 
-        const tr = document.createElement('tr');
-        if (product.id === state.selectedId) {
-            tr.classList.add('selected');
+        const row = document.createElement('tr');
+        row.tabIndex = 0;
+        row.setAttribute('aria-label', `${product.name}, Bestand ${formatAmount(product.lagerbestand)} ${product.einheitLabel}`);
+        if (state.selectedProduct && product.id === state.selectedProduct.id) {
+            row.classList.add('selected');
         }
-        tr.innerHTML = `
+        row.innerHTML = `
             <td>${product.id}</td>
             <td>${escapeHtml(product.name)}</td>
             <td>${formatMoney(product.preis)}</td>
@@ -72,59 +172,149 @@ function renderRows() {
             <td>${escapeHtml(product.einheitLabel)}</td>
             <td>${formatAmount(product.steuerSatz)} %</td>
         `;
-        tr.addEventListener('click', () => selectProduct(product));
-        rows.appendChild(tr);
+        row.addEventListener('click', () => selectProduct(product));
+        row.addEventListener('keydown', event => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                selectProduct(product);
+            }
+        });
+        dom.rows.appendChild(row);
+        sichtbar++;
+    }
+    if (sichtbar === 0) {
+        const row = document.createElement('tr');
+        const cell = document.createElement('td');
+        cell.colSpan = 6;
+        cell.className = 'empty-row';
+        cell.textContent = state.products.length ? 'Keine Produkte für diese Filter gefunden.' : 'Noch keine Produkte vorhanden.';
+        row.appendChild(cell);
+        dom.rows.appendChild(row);
     }
 }
 
+function matchesFilter(product, filter, unit, tax, onlyStock) {
+    const searchable = `${product.id} ${product.name} ${product.einheit} ${product.einheitLabel} ${product.steuerSatz}`.toLowerCase();
+    if (filter && !searchable.includes(filter)) {
+        return false;
+    }
+    if (unit && product.einheit !== unit) {
+        return false;
+    }
+    if (tax && Number(product.steuerSatz) !== Number(tax)) {
+        return false;
+    }
+    return !onlyStock || product.lagerbestand > 0;
+}
+
 function selectProduct(product) {
-    state.selectedId = product.id;
-    document.querySelector('#productId').value = product.id;
-    document.querySelector('#nameInput').value = product.name;
-    document.querySelector('#priceInput').value = formatInput(product.preis);
-    document.querySelector('#stockInput').value = formatInput(product.lagerbestand);
-    document.querySelector('#unitInput').value = product.einheit;
-    document.querySelector('#taxInput').value = String(product.steuerSatz);
-    document.querySelector('#imageInput').value = product.bildPfad || '';
-    document.querySelector('#stockAddInput').value = '';
+    state.selectedProduct = product;
+    fillProductForm(product);
+    updateSelectedProduct();
     renderRows();
 }
 
+function fillProductForm(product) {
+    dom.productId.value = product.id;
+    dom.nameInput.value = product.name;
+    dom.priceInput.value = formatInput(product.preis);
+    dom.stockInput.value = formatInput(product.lagerbestand);
+    dom.unitInput.value = product.einheit;
+    dom.taxInput.value = String(product.steuerSatz);
+    dom.imageInput.value = product.bildPfad || '';
+    dom.imageFile.value = '';
+    updateImagePreview();
+    dom.stockAddInput.value = '';
+}
+
+function updateSelectedProduct() {
+    if (!state.selectedProduct) {
+        dom.selectedProductSummary.textContent = 'Kein Produkt ausgewählt';
+        updateStockControls();
+        return;
+    }
+
+    const product = state.selectedProduct;
+    dom.selectedProductSummary.innerHTML = `
+        <strong>${escapeHtml(product.name)}</strong>
+        <span>Lagerbestand: ${formatAmount(product.lagerbestand)} ${escapeHtml(product.einheitLabel)}</span>
+        <span>Preis: ${formatMoney(product.preis)} / ${escapeHtml(product.einheitLabel)}</span>
+    `;
+    updateStockControls();
+}
+
+function updateStockControls() {
+    dom.stockAddInput.disabled = !hasPermission('bookStock') || !state.selectedProduct;
+    dom.stockAddButton.disabled = !hasPermission('bookStock') || !state.selectedProduct;
+}
+
 function clearForm() {
-    state.selectedId = null;
-    form.reset();
-    document.querySelector('#productId').value = '';
-    document.querySelector('#unitInput').value = 'STUECK';
-    document.querySelector('#taxInput').value = '19';
-    document.querySelector('#stockAddInput').value = '';
+    if (!hasPermission('manageProducts')) {
+        setStatus('Nur Admins dürfen neue Produkte erfassen.');
+        return;
+    }
+    state.selectedProduct = null;
+    dom.form.reset();
+    dom.productId.value = '';
+    dom.unitInput.value = 'STUECK';
+    dom.taxInput.value = '19';
+    dom.stockAddInput.value = '';
+    updateImagePreview();
+    updateSelectedProduct();
     renderRows();
     setStatus('Neues Produkt.');
 }
 
 async function saveProduct(event) {
     event.preventDefault();
-    const id = document.querySelector('#productId').value;
+    if (state.imageUploading) {
+        setStatus('Bitte warten, bis das Produktbild hochgeladen ist.');
+        return;
+    }
+    if (!hasPermission('manageProducts')) {
+        setStatus('Nur Admins dürfen Produkte speichern.');
+        return;
+    }
+
+    const id = dom.productId.value;
     const payload = {
-        name: document.querySelector('#nameInput').value,
-        preis: parseNumber(document.querySelector('#priceInput').value),
-        lagerbestand: parseNumber(document.querySelector('#stockInput').value),
-        einheit: document.querySelector('#unitInput').value,
-        steuerSatz: parseNumber(document.querySelector('#taxInput').value),
-        bildPfad: document.querySelector('#imageInput').value
+        name: dom.nameInput.value,
+        preis: parseNumber(dom.priceInput.value),
+        lagerbestand: parseNumber(dom.stockInput.value),
+        einheit: dom.unitInput.value,
+        steuerSatz: parseNumber(dom.taxInput.value),
+        bildPfad: dom.imageInput.value
     };
 
-    const response = await fetch(id ? `${apiUrl}/${id}` : apiUrl, {
-        method: id ? 'PUT' : 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload)
-    });
+    if (!Number.isFinite(payload.preis) || payload.preis <= 0) {
+        setStatus('Preis muss eine Zahl größer als 0 sein.');
+        dom.priceInput.focus();
+        return;
+    }
+    if (!Number.isFinite(payload.lagerbestand) || payload.lagerbestand < 0) {
+        setStatus('Lagerbestand muss eine Zahl ab 0 sein.');
+        dom.stockInput.focus();
+        return;
+    }
+
+    let response;
+    try {
+        response = await fetch(id ? `${apiUrl}/${id}` : apiUrl, {
+            method: id ? 'PUT' : 'POST',
+            credentials: 'same-origin',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+    } catch (error) {
+        setStatus('Produkt konnte nicht gespeichert werden. Verbindung prüfen.');
+        return;
+    }
 
     if (!response.ok) {
         await showError(response);
         return;
     }
     const saved = await response.json();
-    state.selectedId = saved.id;
     await loadProducts();
     const current = state.products.find(product => product.id === saved.id);
     if (current) {
@@ -134,37 +324,65 @@ async function saveProduct(event) {
 }
 
 async function deleteSelected() {
-    const id = document.querySelector('#productId').value;
-    if (!id) {
-        setStatus('Kein Produkt ausgewaehlt.');
+    if (!hasPermission('manageProducts')) {
+        setStatus('Nur Admins dürfen Produkte löschen.');
         return;
     }
-    if (!confirm('Produkt wirklich loeschen?')) {
+    if (!state.selectedProduct) {
+        setStatus('Kein Produkt ausgewählt.');
+        return;
+    }
+    if (!confirm('Produkt wirklich löschen?')) {
         return;
     }
 
-    const response = await fetch(`${apiUrl}/${id}`, {method: 'DELETE'});
+    let response;
+    try {
+        response = await fetch(`${apiUrl}/${state.selectedProduct.id}`, {
+            method: 'DELETE',
+            credentials: 'same-origin'
+        });
+    } catch (error) {
+        setStatus('Produkt konnte nicht gelöscht werden. Verbindung prüfen.');
+        return;
+    }
     if (!response.ok) {
         await showError(response);
         return;
     }
     clearForm();
     await loadProducts();
-    setStatus('Produkt geloescht.');
+    setStatus('Produkt gelöscht.');
 }
 
 async function addStock() {
-    const id = document.querySelector('#productId').value;
-    if (!id) {
-        setStatus('Kein Produkt ausgewaehlt.');
+    if (!hasPermission('bookStock')) {
+        setStatus('Keine Berechtigung für Warenzugang.');
         return;
     }
-    const menge = parseNumber(document.querySelector('#stockAddInput').value);
-    const response = await fetch(`${apiUrl}/${id}/warenzugang`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({menge})
-    });
+    if (!state.selectedProduct) {
+        setStatus('Bitte Produkt aus der Liste auswählen.');
+        return;
+    }
+
+    const menge = parseNumber(dom.stockAddInput.value);
+    if (!Number.isFinite(menge) || menge <= 0) {
+        setStatus('Menge muss größer als 0 sein.');
+        return;
+    }
+
+    let response;
+    try {
+        response = await fetch(`${apiUrl}/${state.selectedProduct.id}/warenzugang`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({menge})
+        });
+    } catch (error) {
+        setStatus('Warenzugang konnte nicht gebucht werden. Verbindung prüfen.');
+        return;
+    }
     if (!response.ok) {
         await showError(response);
         return;
@@ -172,16 +390,80 @@ async function addStock() {
     const updated = await response.json();
     await loadProducts();
     selectProduct(updated);
-    setStatus('Warenzugang gebucht.');
+    setStatus(`Warenzugang für ${updated.name} gebucht.`);
+}
+
+async function uploadImage() {
+    const datei = dom.imageFile.files[0];
+    if (!datei) return;
+    const produktId = dom.productId.value;
+    state.imageUploading = true;
+    dom.saveButton.disabled = true;
+    setStatus('Produktbild wird hochgeladen …');
+    try {
+        const daten = new FormData();
+        daten.append('datei', datei);
+        const response = await fetch('../api/bilder', {
+            method: 'POST',
+            credentials: 'same-origin',
+            body: daten
+        });
+        if (!response.ok) {
+            await showError(response);
+            return;
+        }
+        const bild = await response.json();
+        if (dom.productId.value === produktId) {
+            dom.imageInput.value = bild.url;
+            updateImagePreview();
+            setStatus('Bild hochgeladen. Speichern Sie jetzt das Produkt.');
+        }
+    } catch (error) {
+        setStatus('Bild konnte nicht hochgeladen werden. Verbindung prüfen.');
+    } finally {
+        state.imageUploading = false;
+        dom.saveButton.disabled = !hasPermission('manageProducts');
+    }
+}
+
+function updateImagePreview() {
+    const pfad = dom.imageInput.value.trim();
+    const url = pfad.startsWith('api/bilder/') ? `../${pfad}`
+        : /^https?:\/\//i.test(pfad) ? pfad : '';
+    dom.imagePreview.hidden = !url;
+    if (url) dom.imagePreview.src = url;
+    else dom.imagePreview.removeAttribute('src');
 }
 
 async function showError(response) {
     try {
         const body = await response.json();
         setStatus(body.message || 'Aktion fehlgeschlagen.');
-    } catch {
+    } catch (error) {
         setStatus('Aktion fehlgeschlagen.');
     }
+}
+
+function hasPermission(permission) {
+    return Boolean(state.session.permissions && state.session.permissions[permission]);
+}
+
+function formatUserLabel() {
+    const roles = Array.isArray(state.session.roles) ? state.session.roles.map(formatRole).join(', ') : '';
+    return `${state.session.username || 'Benutzer'} - ${roles}`;
+}
+
+function formatRole(role) {
+    if (role === 'ADMIN') {
+        return 'Admin';
+    }
+    if (role === 'LAGERIST') {
+        return 'Lagerist';
+    }
+    if (role === 'KASSIERER') {
+        return 'Kassierer';
+    }
+    return role;
 }
 
 function parseNumber(value) {
@@ -201,14 +483,64 @@ function formatAmount(value) {
 }
 
 function setStatus(text) {
-    statusText.textContent = text;
+    dom.statusText.textContent = text;
+}
+
+function initTheme() {
+    const params = new URLSearchParams(window.location.search);
+    const savedTheme = readThemeFromStorage();
+    setTheme(params.get('theme') || savedTheme || 'light');
+}
+
+function toggleTheme() {
+    setTheme(document.body.classList.contains('dark-mode') ? 'light' : 'dark');
+}
+
+function setTheme(theme) {
+    const darkMode = theme === 'dark';
+    document.documentElement.classList.toggle('dark-mode', darkMode);
+    document.body.classList.toggle('dark-mode', darkMode);
+    dom.themeButton.textContent = darkMode ? 'Hellmodus' : 'Darkmode';
+    writeThemeToStorage(darkMode ? 'dark' : 'light');
+}
+
+function readThemeFromStorage() {
+    try {
+        return localStorage.getItem('kassensystem-theme');
+    } catch (error) {
+        return null;
+    }
+}
+
+function writeThemeToStorage(theme) {
+    try {
+        localStorage.setItem('kassensystem-theme', theme);
+    } catch (error) {
+        // WebView kann lokalen Speicher je nach Umgebung blockieren.
+    }
+}
+
+async function logout() {
+    try {
+        await fetch('../logout', {
+            method: 'POST',
+            credentials: 'same-origin'
+        });
+    } finally {
+        window.location.href = '../login?logout';
+    }
+}
+
+function isJsonResponse(response) {
+    const contentType = response.headers.get('content-type') || '';
+    return contentType.indexOf('application/json') >= 0;
 }
 
 function escapeHtml(value) {
     return String(value)
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
