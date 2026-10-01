@@ -73,6 +73,7 @@ public class Main extends Application {
     public void start(Stage stage) {
         this.primaryStage = stage;
         erweiterteTitelleiste = System.getProperty("os.name", "").startsWith("Windows")
+                && Boolean.getBoolean("javafx.enablePreview")
                 && Platform.isSupported(ConditionalFeature.EXTENDED_WINDOW);
         if (erweiterteTitelleiste) {
             stage.initStyle(StageStyle.EXTENDED);
@@ -338,6 +339,8 @@ public class Main extends Application {
     }
 
     public static void main(String[] args) {
+        // JavaFX 26 verlangt eine ausdrueckliche Freigabe fuer die erweiterte Windows-Titelleiste.
+        System.setProperty("javafx.enablePreview", "true");
         launch(args);
     }
 }
