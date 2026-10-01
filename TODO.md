@@ -48,3 +48,4 @@
 - [x] Docker-Build im GitHub-Quality-Gate und Release-Workflow mit Windows-ZIP und GHCR-Image prüfen.
 - [x] Docker Compose lokal starten; API-Rollen und einen Testkauf mit Bon-Snapshot in einem fluechtigen Container pruefen.
 - [ ] JavaFX-Kasse manuell gegen den laufenden Docker-Container bedienen und GUI-Abnahme abschliessen.
+- [ ] Benutzerverwaltung mit Rollen und Einzelrechten gemäß [Berechtigungsplan](docs/BERECHTIGUNGEN.md) umsetzen.

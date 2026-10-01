@@ -11,6 +11,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
 /**
  * Testnutzer und Zugriffsregeln fuer den Spring-Adminbereich.
@@ -38,6 +39,7 @@ public class SecurityConfig {
                 )
                 .formLogin(Customizer.withDefaults())
                 .httpBasic(Customizer.withDefaults())
+                .addFilterBefore(new SessionFirstAuthenticationFilter(), BasicAuthenticationFilter.class)
                 .logout(logout -> logout.logoutSuccessUrl("/"))
                 .build();
     }

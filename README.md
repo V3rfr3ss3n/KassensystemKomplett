@@ -39,6 +39,8 @@ In einer IDE das Maven-Projekt am Wurzelordner öffnen, JDK 24 konfigurieren und
 
 ## Anmelden und bedienen
 
+Die spätere Verwaltung von Benutzern, Rollen und Einzelrechten ist im [Berechtigungsplan](docs/BERECHTIGUNGEN.md) beschrieben.
+
 | Nutzer | Passwort | Zugriff |
 |---|---|---|
 | `admin` | `1234` | Kasse und Verwaltung |
