@@ -23,6 +23,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.ContextMenu;
@@ -49,6 +50,7 @@ import java.util.Optional;
 public class Main extends Application {
     private final AuthService authService = new AuthService();
     private Stage primaryStage;
+    private AdminWebView verwaltungAnsicht;
 
     /**
      * Baut das Hauptfenster nach erfolgreicher Anmeldung auf.
@@ -119,8 +121,8 @@ public class Main extends Application {
                                         KassenService kassenService) {
         BorderPane shell = new BorderPane();
         shell.getStyleClass().add("app-shell");
-        shell.setTop(erstelleKopfzeile(benutzer));
         shell.setCenter(erstelleAnsicht(benutzer, produktService, kassenService));
+        shell.setTop(erstelleKopfzeile(benutzer));
         return shell;
     }
 
@@ -152,14 +154,25 @@ public class Main extends Application {
             einstellungsMenue.getStyleClass().remove("dark-mode");
             if (aktuell) einstellungsMenue.getStyleClass().add("dark-mode");
         });
-        Button einstellungen = new Button("⚙ Einstellungen");
+        Button einstellungen = new Button("⚙");
+        einstellungen.setTooltip(new Tooltip("Einstellungen"));
+        einstellungen.setAccessibleText("Einstellungen");
         einstellungen.setOnAction(event -> {
             if (einstellungsMenue.isShowing()) einstellungsMenue.hide();
             else einstellungsMenue.show(einstellungen, Side.BOTTOM, 0, 4);
         });
-        einstellungen.getStyleClass().add("secondary-button");
+        einstellungen.getStyleClass().addAll("secondary-button", "header-icon-button");
 
-        HBox kopfzeile = new HBox(12, appLabel, roleLabel, spacer, einstellungen);
+        HBox kopfzeile = new HBox(8, appLabel, roleLabel, spacer);
+        if (verwaltungAnsicht != null) {
+            Button browser = new Button("🌐");
+            browser.setTooltip(new Tooltip("Verwaltung im Browser öffnen"));
+            browser.setAccessibleText("Verwaltung im Browser öffnen");
+            browser.setOnAction(event -> verwaltungAnsicht.oeffneImBrowser());
+            browser.getStyleClass().addAll("secondary-button", "header-icon-button");
+            kopfzeile.getChildren().add(browser);
+        }
+        kopfzeile.getChildren().add(einstellungen);
         kopfzeile.getStyleClass().add("app-topbar");
         kopfzeile.setAlignment(Pos.CENTER_LEFT);
         kopfzeile.setPadding(new Insets(10, 16, 10, 16));
@@ -174,6 +187,7 @@ public class Main extends Application {
     private TabPane erstelleAnsicht(Benutzer benutzer,
                                     ProduktService produktService,
                                     KassenService kassenService) {
+        verwaltungAnsicht = null;
         TabPane tabPane = new TabPane();
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
@@ -191,6 +205,7 @@ public class Main extends Application {
         if (benutzer.darfWebVerwaltungNutzen()) {
             String label = benutzer.istLagerist() ? "Warenzugang" : "Verwaltung";
             verwaltung = new AdminWebView(benutzer, ThemeManager.darkModeProperty());
+            verwaltungAnsicht = verwaltung;
             verwaltungTab = new Tab(label, verwaltung);
             AdminWebView verwaltungAnsicht = verwaltung;
             verwaltungTab.selectedProperty().addListener((obs, oldValue, selected) -> {

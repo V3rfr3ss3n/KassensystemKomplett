@@ -24,6 +24,9 @@ import java.util.Optional;
 @Repository
 public class ProduktJdbcRepository {
     private static final List<String> ERLAUBTE_EINHEITEN = List.of("STUECK", "KILOGRAMM", "LITER", "PACKUNG");
+    private static final List<String> ERLAUBTE_KATEGORIEN = List.of(
+            "Obst", "Gemüse", "Backwaren", "Lebensmittel", "Getränke",
+            "Elektronik", "Haushalt", "Hygiene", "Sonstiges");
     private final JdbcTemplate jdbcTemplate;
     private final RowMapper<ProduktDto> produktMapper = (rs, rowNum) -> {
         String einheit = normalisiereEinheit(rs.getString("einheit"));
@@ -36,7 +39,7 @@ public class ProduktJdbcRepository {
                 einheit,
                 einheitLabel(einheit),
                 normalisiereSteuersatz(rs.getDouble("steuerSatz")),
-                rs.getString("kategorie")
+                anzeigeKategorie(rs.getString("kategorie"))
         );
     };
 
@@ -173,8 +176,19 @@ public class ProduktJdbcRepository {
     private static String normalisiereKategorie(String kategorie) {
         if (kategorie == null || kategorie.isBlank()) return "Sonstiges";
         String wert = kategorie.trim();
-        if (wert.length() > 60) throw new IllegalArgumentException("Kategorie darf höchstens 60 Zeichen haben.");
-        return wert;
+        return ERLAUBTE_KATEGORIEN.stream()
+                .filter(erlaubt -> erlaubt.equalsIgnoreCase(wert))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Unbekannte Kategorie: " + wert));
+    }
+
+    private static String anzeigeKategorie(String kategorie) {
+        try {
+            return normalisiereKategorie(kategorie);
+        } catch (IllegalArgumentException ex) {
+            // Ältere frei eingegebene Werte bleiben in SQLite erhalten.
+            return "Sonstiges";
+        }
     }
 
     private static String normalisiereEinheit(String einheit) {

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Kassensystem Verwaltung</title>
-    <link rel="stylesheet" href="admin.css?v=20261001-3">
+    <link rel="stylesheet" href="admin.css?v=20261001-4">
 </head>
 <body>
 <header class="topbar">
@@ -52,6 +52,15 @@
             </select>
             <select id="categoryFilter" aria-label="Kategorie filtern">
                 <option value="">Alle Kategorien</option>
+                <option>Obst</option>
+                <option>Gemüse</option>
+                <option>Backwaren</option>
+                <option>Lebensmittel</option>
+                <option>Getränke</option>
+                <option>Elektronik</option>
+                <option>Haushalt</option>
+                <option>Hygiene</option>
+                <option>Sonstiges</option>
             </select>
             <select id="taxFilter">
                 <option value="">Alle Steuern</option>
@@ -94,8 +103,17 @@
                 </label>
                 <label>
                     Kategorie
-                    <input id="categoryInput" name="kategorie" maxlength="60" placeholder="z. B. Obst oder Elektronik" list="knownCategories">
-                    <datalist id="knownCategories"></datalist>
+                    <select id="categoryInput" name="kategorie">
+                        <option>Obst</option>
+                        <option>Gemüse</option>
+                        <option>Backwaren</option>
+                        <option>Lebensmittel</option>
+                        <option>Getränke</option>
+                        <option>Elektronik</option>
+                        <option>Haushalt</option>
+                        <option>Hygiene</option>
+                        <option selected>Sonstiges</option>
+                    </select>
                 </label>
 
                 <div class="field-grid">
@@ -162,6 +180,6 @@
     </aside>
 </main>
 
-<script src="admin.js?v=20261001-3"></script>
+<script src="admin.js?v=20261001-4"></script>
 </body>
 </html>

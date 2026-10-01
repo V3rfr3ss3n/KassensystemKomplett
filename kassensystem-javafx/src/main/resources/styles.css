@@ -220,6 +220,16 @@
     -fx-padding: 8 16;
 }
 
+.header-icon-button {
+    -fx-min-width: 36px;
+    -fx-pref-width: 36px;
+    -fx-min-height: 34px;
+    -fx-pref-height: 34px;
+    -fx-padding: 0;
+    -fx-font-size: 16px;
+    -fx-alignment: center;
+}
+
 .dark-mode .secondary-button {
     -fx-background-color: #263244;
     -fx-text-fill: -app-text;

@@ -26,7 +26,6 @@ const dom = {
     searchInput: document.querySelector('#searchInput'),
     unitFilter: document.querySelector('#unitFilter'),
     categoryFilter: document.querySelector('#categoryFilter'),
-    knownCategories: document.querySelector('#knownCategories'),
     taxFilter: document.querySelector('#taxFilter'),
     stockFilter: document.querySelector('#stockFilter'),
     roleBadge: document.querySelector('#roleBadge'),
@@ -201,25 +200,12 @@ async function loadProducts(silent = false) {
         return;
     }
     renderOverview();
-    renderCategories();
     if (state.selectedProduct) {
         state.selectedProduct = state.products.find(product => product.id === state.selectedProduct.id) || null;
     }
     renderRows();
     updateSelectedProduct();
     if (!silent) setStatus(`${state.products.length} Produkte geladen.`);
-}
-
-function renderCategories() {
-    const selected = dom.categoryFilter.value;
-    const categories = [...new Set(state.products.map(p => p.kategorie || 'Sonstiges'))].sort((a, b) => a.localeCompare(b, 'de'));
-    dom.categoryFilter.replaceChildren(new Option('Alle Kategorien', ''), ...categories.map(value => new Option(value, value)));
-    dom.categoryFilter.value = categories.includes(selected) ? selected : '';
-    dom.knownCategories.replaceChildren(...categories.map(value => {
-        const option = document.createElement('option');
-        option.value = value;
-        return option;
-    }));
 }
 
 function renderOverview() {
@@ -364,7 +350,7 @@ function clearForm() {
     dom.form.reset();
     dom.productId.value = '';
     dom.unitInput.value = 'STUECK';
-    dom.categoryInput.value = '';
+    dom.categoryInput.value = 'Sonstiges';
     dom.taxInput.value = '19';
     dom.stockAddInput.value = '';
     updateImagePreview();
