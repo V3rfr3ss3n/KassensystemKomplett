@@ -355,7 +355,11 @@ label {
 .button-row {
     justify-content: flex-end;
     margin-top: 2px;
+    flex-wrap: wrap;
 }
+
+.button-row button { white-space: nowrap; }
+#newProductButton { margin-right: auto; }
 
 .stock-box {
     margin-top: 22px;

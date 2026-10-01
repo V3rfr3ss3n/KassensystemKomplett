@@ -6,6 +6,7 @@ let pendingArea = null;
 const state = {
     products: [],
     selectedProduct: null,
+    activeArea: 'edit',
     imageUploading: false,
     session: {
         username: '',
@@ -67,6 +68,20 @@ function bindEvents() {
     dom.themeButton.addEventListener('click', toggleTheme);
     dom.logoutButton.addEventListener('click', logout);
     dom.form.addEventListener('submit', saveProduct);
+    dom.stockPanel.addEventListener('toggle', () => {
+        if (dom.stockPanel.open && state.activeArea !== 'stock') {
+            state.activeArea = 'stock';
+            dom.productEditorPanel.open = false;
+            setStatus('Warenzugang: Produkt auswählen und Menge eingeben.');
+        }
+    });
+    dom.productEditorPanel.addEventListener('toggle', () => {
+        if (dom.productEditorPanel.open && state.activeArea !== 'edit') {
+            state.activeArea = 'edit';
+            dom.stockPanel.open = false;
+            setStatus('Produktdaten bearbeiten oder neues Produkt anlegen.');
+        }
+    });
     dom.imageFile.addEventListener('change', uploadImage);
     dom.imageInput.addEventListener('input', updateImagePreview);
     dom.stockAddInput.addEventListener('keydown', event => {
@@ -95,16 +110,27 @@ window.focusAdminArea = async area => {
     }
     await loadProducts(true);
     if (area === 'new') {
+        state.activeArea = 'edit';
         clearForm();
+        dom.stockPanel.open = false;
         dom.productEditorPanel.open = true;
         dom.productEditorPanel.scrollIntoView({behavior: 'smooth', block: 'start'});
         dom.nameInput.focus();
     } else if (area === 'stock') {
+        state.activeArea = 'stock';
+        dom.productEditorPanel.open = false;
         dom.stockPanel.open = true;
-        dom.stockPanel.scrollIntoView({behavior: 'smooth', block: 'center'});
+        window.scrollTo(0, 0);
         dom.stockPanel.classList.add('attention');
         window.setTimeout(() => dom.stockPanel.classList.remove('attention'), 1800);
+        setStatus(state.selectedProduct
+            ? `Warenzugang für ${state.selectedProduct.name}: Menge eingeben.`
+            : 'Warenzugang: Produkt in der Liste auswählen.');
+        if (state.selectedProduct) dom.stockAddInput.focus();
     } else {
+        state.activeArea = 'inventory';
+        dom.productEditorPanel.open = false;
+        dom.stockPanel.open = false;
         dom.inventoryTitle.scrollIntoView({behavior: 'smooth', block: 'start'});
         document.querySelector('.list-section').classList.add('attention');
         window.setTimeout(() => document.querySelector('.list-section').classList.remove('attention'), 1800);
@@ -148,7 +174,10 @@ function applyPermissions() {
     dom.deleteButton.hidden = !canManageProducts;
     dom.saveButton.hidden = !canManageProducts;
     dom.stockPanel.hidden = !canBookStock;
-    if (!canManageProducts && canBookStock) dom.stockPanel.open = true;
+    if (!canManageProducts && canBookStock) {
+        state.activeArea = 'stock';
+        dom.stockPanel.open = true;
+    }
     document.body.classList.toggle('stock-only', !canManageProducts && canBookStock);
 
     for (const element of [dom.nameInput, dom.categoryInput, dom.priceInput, dom.stockInput, dom.unitInput, dom.taxInput, dom.imageInput, dom.imageFile]) {
@@ -268,7 +297,17 @@ function matchesFilter(product, filter, unit, category, tax, onlyStock) {
 function selectProduct(product) {
     state.selectedProduct = product;
     fillProductForm(product);
-    if (hasPermission('manageProducts')) dom.productEditorPanel.open = true;
+    if (state.activeArea === 'stock') {
+        dom.productEditorPanel.open = false;
+        dom.stockPanel.open = true;
+        setStatus(`Warenzugang für ${product.name}: Menge eingeben.`);
+        dom.stockAddInput.focus();
+    } else if (hasPermission('manageProducts')) {
+        state.activeArea = 'edit';
+        dom.productEditorPanel.open = true;
+        dom.stockPanel.open = false;
+        setStatus(`Produkt ${product.name} bearbeiten.`);
+    }
     updateSelectedProduct();
     renderRows();
 }
@@ -303,8 +342,7 @@ function updateSelectedProduct() {
     dom.deleteButton.hidden = !hasPermission('manageProducts');
     dom.selectedProductSummary.innerHTML = `
         <strong>${escapeHtml(product.name)}</strong>
-        <span>Lagerbestand: ${formatAmount(product.lagerbestand)} ${escapeHtml(product.einheitLabel)}</span>
-        <span>Preis: ${formatMoney(product.preis)} / ${escapeHtml(product.einheitLabel)}</span>
+        <span>Aktueller Lagerbestand: ${formatAmount(product.lagerbestand)} ${escapeHtml(product.einheitLabel)}</span>
     `;
     updateStockControls();
 }
@@ -320,6 +358,8 @@ function clearForm() {
         return;
     }
     state.selectedProduct = null;
+    state.activeArea = 'edit';
+    dom.stockPanel.open = false;
     dom.productEditorPanel.open = true;
     dom.form.reset();
     dom.productId.value = '';
@@ -330,7 +370,7 @@ function clearForm() {
     updateImagePreview();
     updateSelectedProduct();
     renderRows();
-    setStatus('Neues Produkt.');
+    setStatus('Neues Produkt erfassen.');
 }
 
 async function saveProduct(event) {
