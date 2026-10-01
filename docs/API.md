@@ -1,6 +1,6 @@
 # Kassensystem REST-API
 
-Basis-URL: `http://localhost:8080/kassensystem`. JSON wird mit UTF-8 übertragen. Die API verlangt HTTP Basic Auth; die Webverwaltung verwendet zusätzlich eine Formularsitzung. Für die Schul-Demo gelten `admin`, `kassierer`, `lagerist` mit Passwort `1234`. Zugangsdaten sind fest im Code hinterlegt; den Demo-Container nur lokal betreiben.
+Basis-URL: `http://localhost:8080/kassensystem`. JSON wird mit UTF-8 übertragen. Der JavaFX-Client nutzt HTTP Basic Auth; die Webverwaltung nutzt eine Browser-Sitzung. Bei einer vorhandenen Browser-Sitzung hat diese Vorrang vor vom Browser zwischengespeicherten Basic-Zugangsdaten. Für die Schul-Demo gelten `admin`, `kassierer`, `lagerist` mit Passwort `1234`. Zugangsdaten sind fest im Code hinterlegt; den Demo-Container nur lokal betreiben.
 
 | Methode | Pfad | Admin | Kassierer | Lagerist |
 |---|---|---:|---:|---:|
