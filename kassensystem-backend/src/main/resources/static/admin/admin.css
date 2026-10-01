@@ -170,6 +170,24 @@ select {
     color: var(--text);
 }
 
+/* JavaFX WebView zeigt native Auswahllisten mit hellem Hintergrund an.
+   Die Optionen bekommen deshalb unabhängig vom Seitenmodus einen hellen,
+   kontrastreichen Standard; das geschlossene Feld behält sein Theme. */
+select {
+    color-scheme: light;
+}
+
+select option,
+select optgroup {
+    background-color: #ffffff;
+    color: #111827;
+}
+
+select option:checked {
+    background-color: #dbeafe;
+    color: #111827;
+}
+
 input:focus,
 select:focus {
     outline: 2px solid rgba(37, 99, 235, 0.2);
