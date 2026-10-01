@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Kassensystem Verwaltung</title>
-    <link rel="stylesheet" href="admin.css?v=20261001-5">
+    <link rel="stylesheet" href="admin.css?v=20261001-6">
 </head>
 <body>
 <header class="topbar">
@@ -43,7 +43,7 @@
         </div>
         <div class="toolbar">
             <input id="searchInput" type="search" aria-label="Produkte suchen" placeholder="Produkte suchen …">
-            <select id="unitFilter">
+            <select id="unitFilter" aria-label="Einheit filtern">
                 <option value="">Alle Einheiten</option>
                 <option value="STUECK">Stück</option>
                 <option value="KILOGRAMM">kg</option>
@@ -62,7 +62,7 @@
                 <option>Hygiene</option>
                 <option>Sonstiges</option>
             </select>
-            <select id="taxFilter">
+            <select id="taxFilter" aria-label="Steuersatz filtern">
                 <option value="">Alle Steuern</option>
                 <option value="19">19 %</option>
                 <option value="7">7 %</option>
@@ -180,6 +180,6 @@
     </aside>
 </main>
 
-<script src="admin.js?v=20261001-4"></script>
+<script src="admin.js?v=20261001-6"></script>
 </body>
 </html>

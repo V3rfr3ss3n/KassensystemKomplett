@@ -28,9 +28,10 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.ContextMenu;
 import javafx.geometry.Side;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
+import javafx.scene.image.PixelReader;
+import javafx.scene.image.PixelWriter;
+import javafx.scene.image.WritableImage;
 import javafx.scene.paint.Color;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -49,6 +50,8 @@ import java.util.Optional;
  */
 public class Main extends Application {
     private final AuthService authService = new AuthService();
+    private Image hellesIcon;
+    private Image dunklesIcon;
     private Stage primaryStage;
     private AdminWebView verwaltungAnsicht;
 
@@ -60,6 +63,8 @@ public class Main extends Application {
     @Override
     public void start(Stage stage) {
         this.primaryStage = stage;
+        hellesIcon = new Image(getClass().getResource("/Icon.png").toExternalForm());
+        dunklesIcon = erstelleDunklesIcon(hellesIcon);
 
         aktualisiereFensterIcon();
         ThemeManager.darkModeProperty().addListener((obs, vorher, aktuell) -> aktualisiereFensterIcon());
@@ -68,17 +73,25 @@ public class Main extends Application {
     }
 
     private void aktualisiereFensterIcon() {
-        Canvas canvas = new Canvas(64, 64);
-        GraphicsContext grafik = canvas.getGraphicsContext2D();
-        boolean dunkel = ThemeManager.isDarkMode();
-        grafik.setFill(dunkel ? Color.web("#172033") : Color.web("#eaf1ff"));
-        grafik.fillRoundRect(2, 2, 60, 60, 14, 14);
-        grafik.setFill(dunkel ? Color.web("#93c5fd") : Color.web("#2563eb"));
-        grafik.fillRoundRect(14, 10, 36, 44, 5, 5);
-        grafik.setFill(dunkel ? Color.web("#172033") : Color.WHITE);
-        grafik.fillRoundRect(20, 17, 24, 11, 2, 2);
-        for (int i = 0; i < 3; i++) grafik.fillRoundRect(20, 33 + i * 6, 24, 2, 1, 1);
-        primaryStage.getIcons().setAll(canvas.snapshot(null, null));
+        primaryStage.getIcons().setAll(ThemeManager.isDarkMode() ? dunklesIcon : hellesIcon);
+    }
+
+    private static Image erstelleDunklesIcon(Image quelle) {
+        int breite = (int) quelle.getWidth();
+        int hoehe = (int) quelle.getHeight();
+        WritableImage bild = new WritableImage(breite, hoehe);
+        PixelReader leser = quelle.getPixelReader();
+        PixelWriter schreiber = bild.getPixelWriter();
+        Color hintergrund = Color.web("#172033");
+        Color kontur = Color.web("#e5e7eb");
+        for (int y = 0; y < hoehe; y++) {
+            for (int x = 0; x < breite; x++) {
+                Color original = leser.getColor(x, y);
+                double staerke = 1 - (original.getRed() + original.getGreen() + original.getBlue()) / 3;
+                schreiber.setColor(x, y, hintergrund.interpolate(kontur, staerke));
+            }
+        }
+        return bild;
     }
 
     private void zeigeLogin() {
@@ -111,7 +124,9 @@ public class Main extends Application {
         Scene scene = new Scene(root, 1200, 720);
         scene.getStylesheets().add(getClass().getResource("/styles.css").toExternalForm());
 
-        primaryStage.setTitle("Kassensystem – " + benutzer.benutzername());
+        String build = System.getProperty("kassensystem.build", "").trim();
+        primaryStage.setTitle("Kassensystem – " + benutzer.benutzername()
+                + (build.isEmpty() ? "" : " · " + build));
         primaryStage.setScene(scene);
         primaryStage.show();
     }

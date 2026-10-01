@@ -57,7 +57,7 @@ jobs:
         run: |
           Copy-Item kassensystem-javafx/target/kassensystem-javafx-1.0-SNAPSHOT.jar kassensystem-javafx/target/package-input/
           pwsh -NoProfile -ExecutionPolicy Bypass -File kassensystem-javafx/create-windows-icon.ps1
-          jpackage --type app-image --name Kassensystem --icon kassensystem-javafx/target/Kassensystem.ico --input kassensystem-javafx/target/package-input --dest dist --main-jar kassensystem-javafx-1.0-SNAPSHOT.jar --main-class de.mmbbs.kassensystem.DesktopLauncher --java-options "-Dfile.encoding=UTF-8"
+          jpackage --type app-image --name Kassensystem --icon kassensystem-javafx/target/Kassensystem.ico --input kassensystem-javafx/target/package-input --dest dist --main-jar kassensystem-javafx-1.0-SNAPSHOT.jar --main-class de.mmbbs.kassensystem.DesktopLauncher --java-options "-Dfile.encoding=UTF-8" --java-options "-Dkassensystem.build=${{ github.ref_name }}"
           Compress-Archive -Path dist/Kassensystem -DestinationPath dist/Kassensystem-Windows.zip
       - name: Download als Workflow-Artefakt
         uses: actions/upload-artifact@v7

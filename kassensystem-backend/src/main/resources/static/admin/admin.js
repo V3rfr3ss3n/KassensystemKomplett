@@ -55,7 +55,11 @@ const dom = {
     stockAddButton: document.querySelector('#stockAddButton')
 };
 
+const customSelects = new Map();
+let openCustomSelect = null;
+
 window.setThemeFromJavaFx = setTheme;
+enhanceSelects();
 bindEvents();
 initTheme();
 init();
@@ -184,6 +188,7 @@ function applyPermissions() {
     }
 
     updateStockControls();
+    syncCustomSelects();
 }
 
 async function loadProducts(silent = false) {
@@ -310,6 +315,7 @@ function fillProductForm(product) {
     dom.imageFile.value = '';
     updateImagePreview();
     dom.stockAddInput.value = '';
+    syncCustomSelects();
 }
 
 function updateSelectedProduct() {
@@ -352,6 +358,7 @@ function clearForm() {
     dom.unitInput.value = 'STUECK';
     dom.categoryInput.value = 'Sonstiges';
     dom.taxInput.value = '19';
+    syncCustomSelects();
     dom.stockAddInput.value = '';
     updateImagePreview();
     updateSelectedProduct();
@@ -579,6 +586,170 @@ function formatAmount(value) {
 
 function setStatus(text) {
     dom.statusText.textContent = text;
+}
+
+function enhanceSelects() {
+    for (const select of document.querySelectorAll('select')) {
+        const container = document.createElement('span');
+        container.className = 'custom-select';
+        select.before(container);
+        container.appendChild(select);
+        select.hidden = true;
+
+        const trigger = document.createElement('button');
+        trigger.type = 'button';
+        trigger.className = 'custom-select-trigger';
+        trigger.setAttribute('aria-haspopup', 'listbox');
+        trigger.setAttribute('aria-expanded', 'false');
+        trigger.setAttribute('aria-label', select.getAttribute('aria-label')
+            || select.closest('label')?.textContent.trim().split('\n')[0].trim()
+            || 'Auswahl');
+        const value = document.createElement('span');
+        value.className = 'custom-select-value';
+        const arrow = document.createElement('span');
+        arrow.className = 'custom-select-arrow';
+        arrow.setAttribute('aria-hidden', 'true');
+        arrow.textContent = '▾';
+        trigger.append(value, arrow);
+        container.appendChild(trigger);
+
+        const menu = document.createElement('div');
+        menu.className = 'custom-select-menu';
+        menu.id = `${select.id}-menu`;
+        menu.setAttribute('role', 'listbox');
+        menu.hidden = true;
+        trigger.setAttribute('aria-controls', menu.id);
+        document.body.appendChild(menu);
+
+        const optionButtons = Array.from(select.options, (option, index) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'custom-select-option';
+            button.textContent = option.textContent;
+            button.id = `${select.id}-option-${index}`;
+            button.tabIndex = -1;
+            button.setAttribute('role', 'option');
+            button.addEventListener('click', () => chooseCustomOption(select, index));
+            menu.appendChild(button);
+            return button;
+        });
+
+        const control = {select, trigger, value, menu, optionButtons, activeIndex: select.selectedIndex};
+        customSelects.set(select, control);
+        trigger.addEventListener('click', () => {
+            if (openCustomSelect === control) closeCustomSelect();
+            else showCustomSelect(control);
+        });
+        trigger.addEventListener('keydown', event => handleCustomSelectKey(event, control));
+        select.addEventListener('change', () => syncCustomSelect(control));
+        syncCustomSelect(control);
+    }
+
+    document.addEventListener('mousedown', event => {
+        if (openCustomSelect && !openCustomSelect.trigger.contains(event.target)
+                && !openCustomSelect.menu.contains(event.target)) closeCustomSelect();
+    });
+    document.addEventListener('scroll', event => {
+        if (openCustomSelect && !openCustomSelect.menu.contains(event.target)) closeCustomSelect();
+    }, true);
+    window.addEventListener('resize', () => closeCustomSelect());
+}
+
+function syncCustomSelects() {
+    for (const control of customSelects.values()) syncCustomSelect(control);
+}
+
+function syncCustomSelect(control) {
+    const {select, trigger, value, optionButtons} = control;
+    value.textContent = select.selectedOptions[0]?.textContent || 'Bitte wählen';
+    trigger.disabled = select.disabled;
+    if (select.disabled && openCustomSelect === control) closeCustomSelect();
+    optionButtons.forEach((button, index) => {
+        const selected = index === select.selectedIndex;
+        button.setAttribute('aria-selected', String(selected));
+        button.classList.toggle('selected', selected);
+    });
+}
+
+function showCustomSelect(control) {
+    closeCustomSelect();
+    openCustomSelect = control;
+    control.activeIndex = Math.max(0, control.select.selectedIndex);
+    control.menu.hidden = false;
+    control.trigger.setAttribute('aria-expanded', 'true');
+
+    const rect = control.trigger.getBoundingClientRect();
+    const below = window.innerHeight - rect.bottom - 8;
+    const above = rect.top - 8;
+    const openAbove = below < 160 && above > below;
+    control.menu.style.left = `${rect.left}px`;
+    control.menu.style.width = `${rect.width}px`;
+    control.menu.style.maxHeight = `${Math.max(60, Math.min(240, openAbove ? above : below))}px`;
+    control.menu.style.top = `${openAbove ? rect.top - control.menu.offsetHeight - 4 : rect.bottom + 4}px`;
+    highlightCustomOption(control);
+}
+
+function closeCustomSelect() {
+    if (!openCustomSelect) return;
+    openCustomSelect.menu.hidden = true;
+    openCustomSelect.trigger.setAttribute('aria-expanded', 'false');
+    openCustomSelect.trigger.removeAttribute('aria-activedescendant');
+    openCustomSelect = null;
+}
+
+function chooseCustomOption(select, index) {
+    const control = customSelects.get(select);
+    select.selectedIndex = index;
+    select.dispatchEvent(new Event('change', {bubbles: true}));
+    closeCustomSelect();
+    control.trigger.focus();
+}
+
+function highlightCustomOption(control) {
+    control.optionButtons.forEach((button, index) => button.classList.toggle('active', index === control.activeIndex));
+    const active = control.optionButtons[control.activeIndex];
+    if (active) {
+        control.trigger.setAttribute('aria-activedescendant', active.id);
+        if (active.offsetTop < control.menu.scrollTop) {
+            control.menu.scrollTop = active.offsetTop;
+        } else if (active.offsetTop + active.offsetHeight > control.menu.scrollTop + control.menu.clientHeight) {
+            control.menu.scrollTop = active.offsetTop + active.offsetHeight - control.menu.clientHeight;
+        }
+    }
+}
+
+function handleCustomSelectKey(event, control) {
+    const key = event.key;
+    if (key === 'Escape' || key === 'Tab') {
+        closeCustomSelect();
+        if (key === 'Escape') event.preventDefault();
+        return;
+    }
+    if (key === 'ArrowDown' || key === 'ArrowUp' || key === 'Home' || key === 'End') {
+        event.preventDefault();
+        if (openCustomSelect !== control) showCustomSelect(control);
+        if (key === 'ArrowDown') control.activeIndex = Math.min(control.activeIndex + 1, control.optionButtons.length - 1);
+        if (key === 'ArrowUp') control.activeIndex = Math.max(control.activeIndex - 1, 0);
+        if (key === 'Home') control.activeIndex = 0;
+        if (key === 'End') control.activeIndex = control.optionButtons.length - 1;
+        highlightCustomOption(control);
+        return;
+    }
+    if (key === 'Enter' || key === ' ') {
+        event.preventDefault();
+        if (openCustomSelect === control) chooseCustomOption(control.select, control.activeIndex);
+        else showCustomSelect(control);
+        return;
+    }
+    if (key.length === 1) {
+        const index = control.optionButtons.findIndex(button => button.textContent.toLocaleLowerCase('de')
+            .startsWith(key.toLocaleLowerCase('de')));
+        if (index >= 0) {
+            if (openCustomSelect !== control) showCustomSelect(control);
+            control.activeIndex = index;
+            highlightCustomOption(control);
+        }
+    }
 }
 
 function initTheme() {
