@@ -63,6 +63,11 @@
     -fx-font-size: 13px;
 }
 
+.build-label {
+    -fx-text-fill: -app-muted;
+    -fx-font-size: 11px;
+}
+
 .main-container {
     -fx-background-color: -app-surface;
     -fx-background-radius: 16;
@@ -102,7 +107,7 @@
     -fx-background-radius: 12;
     -fx-padding: 16;
     -fx-cursor: hand;
-    -fx-min-width: 195;
+    -fx-min-width: 188;
     -fx-min-height: 250;
 }
 
@@ -218,6 +223,37 @@
     -fx-text-fill: #4b5563;
     -fx-background-radius: 8;
     -fx-padding: 8 16;
+}
+
+.header-icon-button {
+    -fx-min-width: 36px;
+    -fx-pref-width: 36px;
+    -fx-min-height: 34px;
+    -fx-pref-height: 34px;
+    -fx-padding: 0;
+    -fx-font-size: 16px;
+    -fx-alignment: center;
+}
+
+.window-control {
+    -fx-min-width: 42px;
+    -fx-pref-width: 42px;
+    -fx-min-height: 34px;
+    -fx-pref-height: 34px;
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+    -fx-text-fill: -app-text;
+    -fx-font-size: 17px;
+    -fx-alignment: center;
+}
+
+.window-control:hover {
+    -fx-background-color: -app-primary-soft;
+}
+
+.window-control-close:hover {
+    -fx-background-color: #dc2626;
+    -fx-text-fill: white;
 }
 
 .dark-mode .secondary-button {
@@ -435,4 +471,64 @@
 .error-label {
     -fx-text-fill: #dc2626;
     -fx-font-size: 12px;
+}
+.product-picker-overlay {
+    -fx-background-color: rgba(5, 12, 25, 0.72);
+    -fx-padding: 18;
+}
+
+.product-picker-panel {
+    -fx-background-color: -app-surface;
+    -fx-background-radius: 16;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 16;
+    -fx-padding: 22;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,.3), 24, 0, 0, 10);
+}
+
+.quick-product-card {
+    -fx-background-color: -app-surface-soft;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-padding: 10;
+    -fx-min-width: 130;
+    -fx-max-width: 130;
+}
+
+.quick-product-card .button { -fx-padding: 5 7; }
+
+.settings-popup {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d1d5db;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 5;
+}
+
+.settings-popup .menu-item .label { -fx-text-fill: #111827; }
+.settings-popup .menu-item:focused { -fx-background-color: #eaf1ff; }
+.settings-popup .check-menu-item:checked > .left-container > .check { -fx-background-color: #2563eb; }
+
+.settings-popup.dark-mode {
+    -fx-background-color: #172033;
+    -fx-border-color: #475569;
+}
+
+.settings-popup.dark-mode .menu-item .label { -fx-text-fill: #e5e7eb; }
+.settings-popup.dark-mode .menu-item:focused { -fx-background-color: #1e3a5f; }
+.settings-popup.dark-mode .check-menu-item:checked > .left-container > .check { -fx-background-color: #93c5fd; }
+
+.checkout-overlay {
+    -fx-background-color: rgba(5, 12, 25, 0.72);
+    -fx-padding: 18;
+}
+
+.checkout-panel {
+    -fx-background-color: -app-surface;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 14;
+    -fx-background-radius: 14;
+    -fx-padding: 26;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,.3), 24, 0, 0, 10);
 }

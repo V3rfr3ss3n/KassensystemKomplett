@@ -45,7 +45,7 @@ Demo-Zugänge: `admin / 1234`, `kassierer / 1234`, `lagerist / 1234`.
 ## Bewusste Grenzen der Schulabgabe
 
 - Die drei fest hinterlegten Demo-Zugänge und das lokale SSO-Geheimnis sind für die Vorführung gedacht.
-- Es gibt keinen produktiven Mehrplatzbetrieb oder Benutzerverwaltung.
+- Es gibt noch keinen produktiven Mehrplatzbetrieb oder Benutzerverwaltung. Die Erweiterung ist im [Berechtigungsplan](docs/BERECHTIGUNGEN.md) beschrieben.
 - Bereits gelöschte Produkte in alten Datenbanken können für historische Bons nur als Produktnummer angezeigt werden, falls zuvor kein Name gespeichert wurde.
 
 ## Restarbeiten

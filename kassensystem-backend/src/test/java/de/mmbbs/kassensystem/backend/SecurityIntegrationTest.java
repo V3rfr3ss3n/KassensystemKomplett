@@ -138,6 +138,30 @@ class SecurityIntegrationTest {
     }
 
     @Test
+    void javaFxSsoWechseltVorhandeneAdminSessionZuLagerist() throws Exception {
+        MockHttpSession browserSession = login("admin");
+        String gespeicherteBrowserAnmeldung = "Basic " + Base64.getEncoder()
+                .encodeToString("admin:1234".getBytes(StandardCharsets.UTF_8));
+
+        mockMvc.perform(get("/auth/javafx-login")
+                        .session(browserSession)
+                        .header("Authorization", gespeicherteBrowserAnmeldung)
+                        .param("ticket", ticket("lagerist", "LAGERIST"))
+                        .param("theme", "dark"))
+                .andExpect(status().is3xxRedirection());
+
+        mockMvc.perform(get("/api/session").session(browserSession)
+                        .header("Authorization", gespeicherteBrowserAnmeldung))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("\"username\":\"lagerist\"")))
+                .andExpect(content().string(containsString("\"manageProducts\":false")));
+        mockMvc.perform(post("/api/produkte").session(browserSession)
+                        .header("Authorization", gespeicherteBrowserAnmeldung)
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void produktApiErstelltListetAktualisiertUndLoeschtProdukte() throws Exception {
         MockHttpSession session = login("admin");
         String daten = """

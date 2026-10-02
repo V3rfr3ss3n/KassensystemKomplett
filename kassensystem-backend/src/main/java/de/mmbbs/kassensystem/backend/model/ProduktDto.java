@@ -8,6 +8,7 @@ public record ProduktDto(
         String bildPfad,
         String einheit,
         String einheitLabel,
-        double steuerSatz
+        double steuerSatz,
+        String kategorie
 ) {
 }

@@ -18,7 +18,7 @@ Für ein anderes Backend `KASSENSYSTEM_API_URL` oder `-Dkassensystem.api.url=<UR
 
 ## Downloads auf GitHub
 
-Nach einem Tag wie `v1.0.0` veröffentlicht der Release-Workflow die ZIP `Kassensystem-Windows.zip` unter GitHub Releases und das Backend-Image als `ghcr.io/v3rfr3ss3n/kassensystemkomplett/backend:<tag>`. Ein Tag mit `-rc.` wird als Vorabversion markiert. Die ZIP enthält eine Java-Laufzeit. Vor dem ersten Release ist der Download als Artefakt eines manuell gestarteten Release-Workflows möglich. Container und Windows-Paket werden erst nach einem erfolgreichen Workflow-Lauf bereitgestellt.
+Nach einem Tag wie `v1.0.0` veröffentlicht der Release-Workflow die ZIP `Kassensystem-Windows.zip` unter GitHub Releases und das Backend-Image als `ghcr.io/v3rfr3ss3n/kassensystemkomplett/backend:<tag>`. Ein Tag mit `-rc.` wird als Vorabversion markiert. Die ZIP enthält eine Java-Laufzeit und ein eigenes EXE-Symbol. Die ZIP vollständig in einen neuen Ordner entpacken und die dortige `Kassensystem.exe` starten; eine zuvor entpackte EXE wird durch einen neuen Download nicht automatisch ersetzt. Die Release-Version steht im Fenstertitel, damit sich die gestartete EXE zuordnen lässt. Vor dem ersten Release ist der Download als Artefakt eines manuell gestarteten Release-Workflows möglich. Container und Windows-Paket werden erst nach einem erfolgreichen Workflow-Lauf bereitgestellt.
 
 ## Voraussetzungen und Start
 
@@ -39,17 +39,21 @@ In einer IDE das Maven-Projekt am Wurzelordner öffnen, JDK 24 konfigurieren und
 
 ## Anmelden und bedienen
 
+Die spätere Verwaltung von Benutzern, Rollen und Einzelrechten ist im [Berechtigungsplan](docs/BERECHTIGUNGEN.md) beschrieben.
+
 | Nutzer | Passwort | Zugriff |
 |---|---|---|
 | `admin` | `1234` | Kasse und Verwaltung |
 | `kassierer` | `1234` | Nur Kasse |
 | `lagerist` | `1234` | Produktliste und Warenzugang |
 
-**Verkauf:** In der Kasse „Produkte mit Bildern ansehen“ öffnen, bei Bedarf suchen oder filtern und ein Produkt auswählen. Die Auswahl zeigt höchstens 18 Produkte pro Seite; mit „Weiter“ und „Zurück“ durch das Sortiment blättern. Danach eine Menge eingeben und „Zum Warenkorb hinzufügen“ wählen. Im Warenkorb Mengen ändern und „Kauf abschließen“ wählen. Der Bon erscheint rechts und bleibt in der Historie erhalten.
+**Verkauf:** Fünf Schnellplätze zeigen angeheftete Favoriten und danach häufig verkaufte verfügbare Produkte. Der Produktname wählt das Produkt für eine eigene Menge aus; „+ 1“ legt direkt eine Einheit in den Warenkorb. Im eingeblendeten Bereich „Produktauswahl“ sind Bilder, Suche und Filter nach Kategorie, Einheit, Steuer, Preis und Verfügbarkeit verfügbar. Die Auswahl zeigt höchstens 18 Produkte pro Seite; „☆ Merken“ heftet bis zu fünf Favoriten lokal an. Im Warenkorb Mengen ändern und „Kauf abschließen“ wählen. Der Kaufabschluss erscheint als Einblendung in der Kasse; der Bon steht rechts und bleibt in der Historie erhalten.
 
-**Bon ausgeben:** Den aktuellen Bon oder einen Eintrag der Bon-Historie auswählen. „Als PDF speichern“ öffnet die Dateiauswahl, „Drucken“ den Systemdruckdialog. Ein abgebrochener Dialog verändert den Bon nicht.
+**Bon speichern:** Den aktuellen Bon oder einen Eintrag der Bon-Historie auswählen. „Speichern“ öffnet die Dateiauswahl mit PDF und TXT. Der gewählte Dateityp bestimmt das Ausgabeformat. Ein abgebrochener Dialog verändert den Bon nicht.
 
-**Verwaltung:** Der Verwaltungstab lädt sich beim Öffnen automatisch. Admins können Produkte anlegen, auswählen, bearbeiten und löschen. Für ein Produktbild eine PNG-, JPEG- oder GIF-Datei bis 5 MB auswählen; nach dem Upload das Produkt speichern. Die Bilder liegen zusammen mit der Datenbank im Docker-Volume beziehungsweise im lokalen Datenverzeichnis. Admins und Lageristen wählen ein Produkt und buchen im Bereich „Warenzugang“ eine positive Menge. Die Produktliste kann auch mit Tab und Enter bedient werden. Nach Änderungen in der Webverwaltung die Produktliste der Kasse über „Aktualisieren“ neu laden. Der Hell- oder Dunkelmodus bleibt nach einem Neustart erhalten und gilt bereits bei der Anmeldung.
+**Verwaltung:** Der Verwaltungstab lädt sich beim Öffnen automatisch und aktualisiert die Produkte beim Wechsel zum Tab sowie regelmäßig im Hintergrund. Die Startseitenaktionen springen zum Produktformular, Warenzugang oder Bestand. Der Produktbereich und der Warenzugang sind aufklappbar. Beim Warenzugang schließt sich das Produktformular; nach Auswahl eines Produkts zeigt die rechte Seite nur dessen Namen, aktuellen Bestand und das Mengenfeld. Bei der Produktbearbeitung wechselt der Titel von „Neues Produkt“ zu „Produkt bearbeiten“; „Neues Produkt“ leert das Formular. Admins können Produkte anlegen, auswählen, bearbeiten und löschen. Die Kategorie wird aus einer festen Liste ausgewählt und lässt sich in Verwaltung und Kasse filtern; ältere frei eingegebene Werte erscheinen als „Sonstiges“. Für ein Produktbild eine PNG-, JPEG- oder GIF-Datei bis 5 MB auswählen; nach dem Upload das Produkt speichern. Die Bilder liegen zusammen mit der Datenbank im Docker-Volume beziehungsweise im lokalen Datenverzeichnis. Admins und Lageristen wählen ein Produkt und buchen im Bereich „Warenzugang“ eine positive Menge. Die Produktliste kann auch mit Tab und Enter bedient werden. Der Dunkelmodus richtet sich beim ersten Start unter Windows nach der Systemeinstellung; eine spätere Auswahl bleibt gespeichert. Das Zahnrad öffnet Einstellungen und Abmelden. Das Globussymbol daneben öffnet die Verwaltung im Browser. Beide Symbole erklären sich per Tooltip; das Fenster wird über das Fenstersymbol geschlossen.
+
+**Fenstersteuerung:** Unter Windows mit Unterstützung für JavaFX 26 `StageStyle.EXTENDED` sitzen Minimieren, Maximieren und Schließen in der farblich passenden Kopfzeile neben den Einstellungen. Freie Bereiche der Kopfzeile lassen sich zum Verschieben verwenden; die Fensterrahmen bleiben für Größenänderungen und Windows-Snap erhalten. Auf Plattformen ohne diese Unterstützung bleibt die normale System-Titelleiste sichtbar. Nach einem Release die ZIP in einen neuen Ordner entpacken, damit die aktualisierte JavaFX-Laufzeit mitgestartet wird.
 
 ## Daten und Tests
 
@@ -76,7 +80,7 @@ Die Screenshots können nach der manuellen Abnahme unter `docs/screenshots/` abg
 
 ## Projektteile
 
-- `kassensystem-javafx`: Kasse, Bon-Historie, PDF und Druck
+- `kassensystem-javafx`: Kasse, Bon-Historie, PDF- und TXT-Speicherung
 - `kassensystem-backend`: REST-API und Browser-Verwaltung
 - `PFLICHTENHEFT.md`: Anforderungen und Abnahme
 - `TODO.md`: laufende Restarbeiten

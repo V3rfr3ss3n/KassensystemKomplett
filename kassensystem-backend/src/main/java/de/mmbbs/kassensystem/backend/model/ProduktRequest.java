@@ -6,6 +6,7 @@ public record ProduktRequest(
         Double lagerbestand,
         String bildPfad,
         String einheit,
-        Double steuerSatz
+        Double steuerSatz,
+        String kategorie
 ) {
 }

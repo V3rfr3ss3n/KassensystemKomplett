@@ -6,11 +6,8 @@ import de.mmbbs.kassensystem.repository.ApiClient;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.concurrent.Worker;
 import javafx.geometry.Insets;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.web.WebView;
 
 import java.awt.Desktop;
@@ -34,6 +31,7 @@ public class AdminWebView extends BorderPane {
     private final WebView webView = new WebView();
     private final Label statusLabel = new Label("Verwaltung wird geladen …");
     private boolean geladen;
+    private String zielNachLaden;
 
     public AdminWebView(Benutzer benutzer, ReadOnlyBooleanProperty darkModeProperty) {
         this.benutzer = benutzer;
@@ -42,28 +40,27 @@ public class AdminWebView extends BorderPane {
         getStyleClass().add("admin-web-view");
         setPadding(new Insets(18));
 
-        String titel = verwaltungsTitel();
-        Button reloadButton = new Button("Neu laden");
-        reloadButton.getStyleClass().add("secondary-button");
-        reloadButton.setOnAction(event -> ladeAdminseite());
-
-        Button browserButton = new Button("Im Browser öffnen");
-        browserButton.getStyleClass().add("secondary-button");
-        browserButton.setOnAction(event -> oeffneImBrowser());
-
-        HBox toolbar = new HBox(10, reloadButton, browserButton, statusLabel);
-        toolbar.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-        toolbar.setPadding(new Insets(0, 0, 12, 0));
-        HBox.setHgrow(statusLabel, Priority.ALWAYS);
-
-        setTop(toolbar);
+        statusLabel.setPadding(new Insets(0, 0, 12, 0));
+        statusLabel.managedProperty().bind(statusLabel.visibleProperty());
+        setTop(statusLabel);
         setCenter(webView);
 
         webView.getEngine().getLoadWorker().stateProperty().addListener((obs, oldState, state) -> {
             if (state == Worker.State.SUCCEEDED) {
                 synchronisiereWebTheme();
                 statusLabel.setText("Verwaltung geladen für " + benutzer.benutzername() + ".");
+                statusLabel.setVisible(false);
+                if (istAdminseite()) {
+                    webView.getEngine().executeScript("document.querySelector('.settings-menu').hidden = true");
+                    if (zielNachLaden != null) {
+                        navigiereZu(zielNachLaden);
+                    } else {
+                        aktualisiereProdukte();
+                    }
+                }
             } else if (state == Worker.State.FAILED) {
+                geladen = false;
+                statusLabel.setVisible(true);
                 statusLabel.setText("Verwaltung konnte nicht geladen werden. Läuft das Backend?");
             }
         });
@@ -72,15 +69,39 @@ public class AdminWebView extends BorderPane {
 
     public void ladeWennNoetig() {
         if (!geladen) ladeAdminseite();
+        else aktualisiereProdukte();
+    }
+
+    public void navigiereZu(String ziel) {
+        zielNachLaden = ziel;
+        if (!geladen) {
+            ladeAdminseite();
+        } else if (istAdminseite()) {
+            Object ausgefuehrt = webView.getEngine().executeScript(
+                    "typeof window.focusAdminArea === 'function' && (window.focusAdminArea('" + ziel + "'), true)");
+            if (Boolean.TRUE.equals(ausgefuehrt)) zielNachLaden = null;
+        }
+    }
+
+    private void aktualisiereProdukte() {
+        if (istAdminseite()) {
+            webView.getEngine().executeScript("window.refreshProducts && window.refreshProducts()");
+        }
+    }
+
+    private boolean istAdminseite() {
+        String url = webView.getEngine().getLocation();
+        return url != null && url.contains("/admin/");
     }
 
     private void ladeAdminseite() {
         geladen = true;
         webView.getEngine().load(erstelleSsoUrl());
+        statusLabel.setVisible(true);
         statusLabel.setText(verwaltungsTitel() + " wird geöffnet …");
     }
 
-    private void oeffneImBrowser() {
+    public void oeffneImBrowser() {
         try {
             if (Desktop.isDesktopSupported()) {
                 Desktop.getDesktop().browse(new URI(erstelleSsoUrl()));

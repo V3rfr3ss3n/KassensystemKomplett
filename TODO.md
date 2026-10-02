@@ -32,12 +32,12 @@
 - [x] Ungueltige Zahlenwerte und ungueltige Warenzugangsmenge in der API abweisen.
 - [x] Lageruebersicht mit Gesamtzahl, verfuegbaren und nicht verfuegbaren Produkten ergaenzen.
 - [x] README mit Startanleitung, Bedienung und Screenshot-Plaetzen erweitern.
-- [x] PDF-Export und Drucken fuer aktuelle und historische Bons ergaenzen.
+- [x] PDF- und TXT-Speicherung fuer aktuelle und historische Bons ergaenzen.
 - [x] Bon und Lagerabbuchung in einer SQLite-Transaktion speichern.
 - [x] Produktname und Einheit im Bon als Snapshot erhalten.
 - [x] SQLite-Speicherfehler in der Kasse sichtbar weitergeben.
 - [x] Windows-Startskript fuer Backend und JavaFX ergaenzen.
-- [ ] Manuelle GUI-Abnahme mit allen drei Rollen, PDF und Druckdialog auf einem Desktop durchfuehren ([GitHub-Issue #1](https://github.com/V3rfr3ss3n/KassensystemKomplett/issues/1)).
+- [ ] Manuelle GUI-Abnahme mit allen drei Rollen, PDF- und TXT-Speicherung sowie Produktauswahl auf einem Desktop durchfuehren ([GitHub-Issue #1](https://github.com/V3rfr3ss3n/KassensystemKomplett/issues/1)).
 - [x] Admin-Weboberflaeche optisch mit Darkmode verfeinern.
 - [x] Produktliste in der Webverwaltung per Tastatur bedienbar machen.
 - [x] JavaFX-Kasse auf REST-API für Produkte, Verkäufe und Bon-Historie umstellen.
@@ -48,3 +48,4 @@
 - [x] Docker-Build im GitHub-Quality-Gate und Release-Workflow mit Windows-ZIP und GHCR-Image prüfen.
 - [x] Docker Compose lokal starten; API-Rollen und einen Testkauf mit Bon-Snapshot in einem fluechtigen Container pruefen.
 - [ ] JavaFX-Kasse manuell gegen den laufenden Docker-Container bedienen und GUI-Abnahme abschliessen.
+- [ ] Benutzerverwaltung mit Rollen und Einzelrechten gemäß [Berechtigungsplan](docs/BERECHTIGUNGEN.md) und [GitHub-Issue #4](https://github.com/V3rfr3ss3n/KassensystemKomplett/issues/4) umsetzen.

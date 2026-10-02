@@ -1,9 +1,12 @@
 const apiUrl = '../api/produkte';
 const sessionUrl = '../api/session';
+let ready = false;
+let pendingArea = null;
 
 const state = {
     products: [],
     selectedProduct: null,
+    activeArea: 'edit',
     imageUploading: false,
     session: {
         username: '',
@@ -22,6 +25,7 @@ const dom = {
     statusText: document.querySelector('#statusText'),
     searchInput: document.querySelector('#searchInput'),
     unitFilter: document.querySelector('#unitFilter'),
+    categoryFilter: document.querySelector('#categoryFilter'),
     taxFilter: document.querySelector('#taxFilter'),
     stockFilter: document.querySelector('#stockFilter'),
     roleBadge: document.querySelector('#roleBadge'),
@@ -29,13 +33,15 @@ const dom = {
     availableProducts: document.querySelector('#availableProducts'),
     outOfStockProducts: document.querySelector('#outOfStockProducts'),
     themeButton: document.querySelector('#themeButton'),
-    reloadButton: document.querySelector('#reloadButton'),
-    newButton: document.querySelector('#newButton'),
+    newProductButton: document.querySelector('#newProductButton'),
+    productEditorTitle: document.querySelector('#productEditorTitle'),
+    inventoryTitle: document.querySelector('#inventoryTitle'),
     deleteButton: document.querySelector('#deleteButton'),
     saveButton: document.querySelector('#saveButton'),
     logoutButton: document.querySelector('#logoutButton'),
     productId: document.querySelector('#productId'),
     nameInput: document.querySelector('#nameInput'),
+    categoryInput: document.querySelector('#categoryInput'),
     priceInput: document.querySelector('#priceInput'),
     stockInput: document.querySelector('#stockInput'),
     unitInput: document.querySelector('#unitInput'),
@@ -49,19 +55,36 @@ const dom = {
     stockAddButton: document.querySelector('#stockAddButton')
 };
 
+const customSelects = new Map();
+let openCustomSelect = null;
+
 window.setThemeFromJavaFx = setTheme;
+enhanceSelects();
 bindEvents();
 initTheme();
 init();
 
 function bindEvents() {
-    dom.reloadButton.addEventListener('click', loadProducts);
-    dom.newButton.addEventListener('click', clearForm);
+    dom.newProductButton.addEventListener('click', clearForm);
     dom.deleteButton.addEventListener('click', deleteSelected);
     dom.stockAddButton.addEventListener('click', addStock);
     dom.themeButton.addEventListener('click', toggleTheme);
     dom.logoutButton.addEventListener('click', logout);
     dom.form.addEventListener('submit', saveProduct);
+    dom.stockPanel.addEventListener('toggle', () => {
+        if (dom.stockPanel.open && state.activeArea !== 'stock') {
+            state.activeArea = 'stock';
+            dom.productEditorPanel.open = false;
+            setStatus('Warenzugang: Produkt auswählen und Menge eingeben.');
+        }
+    });
+    dom.productEditorPanel.addEventListener('toggle', () => {
+        if (dom.productEditorPanel.open && state.activeArea !== 'edit') {
+            state.activeArea = 'edit';
+            dom.stockPanel.open = false;
+            setStatus('Produktdaten bearbeiten oder neues Produkt anlegen.');
+        }
+    });
     dom.imageFile.addEventListener('change', uploadImage);
     dom.imageInput.addEventListener('input', updateImagePreview);
     dom.stockAddInput.addEventListener('keydown', event => {
@@ -71,17 +94,65 @@ function bindEvents() {
         }
     });
 
-    for (const input of [dom.searchInput, dom.unitFilter, dom.taxFilter, dom.stockFilter]) {
+    for (const input of [dom.searchInput, dom.unitFilter, dom.categoryFilter, dom.taxFilter, dom.stockFilter]) {
         input.addEventListener('input', renderRows);
         input.addEventListener('change', renderRows);
     }
+    window.addEventListener('focus', () => loadProducts(true));
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) loadProducts(true);
+    });
+    window.setInterval(() => { if (!document.hidden) loadProducts(true); }, 30000);
 }
+
+window.refreshProducts = () => loadProducts(true);
+window.focusAdminArea = async area => {
+    if (!ready) {
+        pendingArea = area;
+        return;
+    }
+    await loadProducts(true);
+    if (area === 'new') {
+        state.activeArea = 'edit';
+        clearForm();
+        dom.stockPanel.open = false;
+        dom.productEditorPanel.open = true;
+        dom.productEditorPanel.scrollIntoView({behavior: 'smooth', block: 'start'});
+        dom.nameInput.focus();
+    } else if (area === 'stock') {
+        state.activeArea = 'stock';
+        dom.productEditorPanel.open = false;
+        dom.stockPanel.open = true;
+        window.scrollTo(0, 0);
+        dom.stockPanel.classList.add('attention');
+        window.setTimeout(() => dom.stockPanel.classList.remove('attention'), 1800);
+        setStatus(state.selectedProduct
+            ? `Warenzugang für ${state.selectedProduct.name}: Menge eingeben.`
+            : 'Warenzugang: Produkt in der Liste auswählen.');
+        if (state.selectedProduct) dom.stockAddInput.focus();
+    } else {
+        state.activeArea = 'inventory';
+        dom.productEditorPanel.open = false;
+        dom.stockPanel.open = false;
+        dom.inventoryTitle.scrollIntoView({behavior: 'smooth', block: 'start'});
+        document.querySelector('.list-section').classList.add('attention');
+        window.setTimeout(() => document.querySelector('.list-section').classList.remove('attention'), 1800);
+        dom.searchInput.focus();
+        setStatus('Lagerbestand wird in der Produktliste angezeigt.');
+    }
+};
 
 async function init() {
     try {
         await loadSession();
         applyPermissions();
         await loadProducts();
+        ready = true;
+        if (pendingArea) {
+            const area = pendingArea;
+            pendingArea = null;
+            window.focusAdminArea(area);
+        }
     } catch (error) {
         setStatus('Verwaltung konnte nicht geladen werden.');
     }
@@ -102,22 +173,26 @@ function applyPermissions() {
 
     dom.roleBadge.textContent = formatUserLabel();
     document.querySelector('.topbar h1').textContent = canManageProducts ? 'Verwaltung' : 'Warenzugang';
-    dom.newButton.hidden = !canManageProducts;
     dom.productEditorPanel.hidden = !canManageProducts;
     dom.deleteButton.hidden = !canManageProducts;
     dom.saveButton.hidden = !canManageProducts;
     dom.stockPanel.hidden = !canBookStock;
+    if (!canManageProducts && canBookStock) {
+        state.activeArea = 'stock';
+        dom.stockPanel.open = true;
+    }
     document.body.classList.toggle('stock-only', !canManageProducts && canBookStock);
 
-    for (const element of [dom.nameInput, dom.priceInput, dom.stockInput, dom.unitInput, dom.taxInput, dom.imageInput, dom.imageFile]) {
+    for (const element of [dom.nameInput, dom.categoryInput, dom.priceInput, dom.stockInput, dom.unitInput, dom.taxInput, dom.imageInput, dom.imageFile]) {
         element.disabled = !canManageProducts;
     }
 
     updateStockControls();
+    syncCustomSelects();
 }
 
-async function loadProducts() {
-    setStatus('Lade Produkte...');
+async function loadProducts(silent = false) {
+    if (!silent) setStatus('Lade Produkte...');
     try {
         const response = await fetch(apiUrl, {credentials: 'same-origin'});
         if (!response.ok) {
@@ -135,7 +210,7 @@ async function loadProducts() {
     }
     renderRows();
     updateSelectedProduct();
-    setStatus(`${state.products.length} Produkte geladen.`);
+    if (!silent) setStatus(`${state.products.length} Produkte geladen.`);
 }
 
 function renderOverview() {
@@ -148,13 +223,14 @@ function renderOverview() {
 function renderRows() {
     const filter = dom.searchInput.value.trim().toLowerCase();
     const unit = dom.unitFilter.value;
+    const category = dom.categoryFilter.value;
     const tax = dom.taxFilter.value;
     const onlyStock = dom.stockFilter.checked;
 
     dom.rows.innerHTML = '';
     let sichtbar = 0;
     for (const product of state.products) {
-        if (!matchesFilter(product, filter, unit, tax, onlyStock)) {
+        if (!matchesFilter(product, filter, unit, category, tax, onlyStock)) {
             continue;
         }
 
@@ -167,6 +243,7 @@ function renderRows() {
         row.innerHTML = `
             <td>${product.id}</td>
             <td>${escapeHtml(product.name)}</td>
+            <td>${escapeHtml(product.kategorie || 'Sonstiges')}</td>
             <td>${formatMoney(product.preis)}</td>
             <td>${formatAmount(product.lagerbestand)}</td>
             <td>${escapeHtml(product.einheitLabel)}</td>
@@ -185,7 +262,7 @@ function renderRows() {
     if (sichtbar === 0) {
         const row = document.createElement('tr');
         const cell = document.createElement('td');
-        cell.colSpan = 6;
+        cell.colSpan = 7;
         cell.className = 'empty-row';
         cell.textContent = state.products.length ? 'Keine Produkte für diese Filter gefunden.' : 'Noch keine Produkte vorhanden.';
         row.appendChild(cell);
@@ -193,14 +270,15 @@ function renderRows() {
     }
 }
 
-function matchesFilter(product, filter, unit, tax, onlyStock) {
-    const searchable = `${product.id} ${product.name} ${product.einheit} ${product.einheitLabel} ${product.steuerSatz}`.toLowerCase();
+function matchesFilter(product, filter, unit, category, tax, onlyStock) {
+    const searchable = `${product.id} ${product.name} ${product.kategorie || ''} ${product.einheit} ${product.einheitLabel} ${product.steuerSatz}`.toLowerCase();
     if (filter && !searchable.includes(filter)) {
         return false;
     }
     if (unit && product.einheit !== unit) {
         return false;
     }
+    if (category && (product.kategorie || 'Sonstiges') !== category) return false;
     if (tax && Number(product.steuerSatz) !== Number(tax)) {
         return false;
     }
@@ -210,6 +288,17 @@ function matchesFilter(product, filter, unit, tax, onlyStock) {
 function selectProduct(product) {
     state.selectedProduct = product;
     fillProductForm(product);
+    if (state.activeArea === 'stock') {
+        dom.productEditorPanel.open = false;
+        dom.stockPanel.open = true;
+        setStatus(`Warenzugang für ${product.name}: Menge eingeben.`);
+        dom.stockAddInput.focus();
+    } else if (hasPermission('manageProducts')) {
+        state.activeArea = 'edit';
+        dom.productEditorPanel.open = true;
+        dom.stockPanel.open = false;
+        setStatus(`Produkt ${product.name} bearbeiten.`);
+    }
     updateSelectedProduct();
     renderRows();
 }
@@ -217,6 +306,7 @@ function selectProduct(product) {
 function fillProductForm(product) {
     dom.productId.value = product.id;
     dom.nameInput.value = product.name;
+    dom.categoryInput.value = product.kategorie || 'Sonstiges';
     dom.priceInput.value = formatInput(product.preis);
     dom.stockInput.value = formatInput(product.lagerbestand);
     dom.unitInput.value = product.einheit;
@@ -225,20 +315,26 @@ function fillProductForm(product) {
     dom.imageFile.value = '';
     updateImagePreview();
     dom.stockAddInput.value = '';
+    syncCustomSelects();
 }
 
 function updateSelectedProduct() {
     if (!state.selectedProduct) {
         dom.selectedProductSummary.textContent = 'Kein Produkt ausgewählt';
+        dom.productEditorTitle.textContent = 'Neues Produkt';
+        dom.newProductButton.hidden = true;
+        dom.deleteButton.hidden = true;
         updateStockControls();
         return;
     }
 
     const product = state.selectedProduct;
+    dom.productEditorTitle.textContent = 'Produkt bearbeiten: ' + product.name;
+    dom.newProductButton.hidden = !hasPermission('manageProducts');
+    dom.deleteButton.hidden = !hasPermission('manageProducts');
     dom.selectedProductSummary.innerHTML = `
         <strong>${escapeHtml(product.name)}</strong>
-        <span>Lagerbestand: ${formatAmount(product.lagerbestand)} ${escapeHtml(product.einheitLabel)}</span>
-        <span>Preis: ${formatMoney(product.preis)} / ${escapeHtml(product.einheitLabel)}</span>
+        <span>Aktueller Lagerbestand: ${formatAmount(product.lagerbestand)} ${escapeHtml(product.einheitLabel)}</span>
     `;
     updateStockControls();
 }
@@ -254,15 +350,20 @@ function clearForm() {
         return;
     }
     state.selectedProduct = null;
+    state.activeArea = 'edit';
+    dom.stockPanel.open = false;
+    dom.productEditorPanel.open = true;
     dom.form.reset();
     dom.productId.value = '';
     dom.unitInput.value = 'STUECK';
+    dom.categoryInput.value = 'Sonstiges';
     dom.taxInput.value = '19';
+    syncCustomSelects();
     dom.stockAddInput.value = '';
     updateImagePreview();
     updateSelectedProduct();
     renderRows();
-    setStatus('Neues Produkt.');
+    setStatus('Neues Produkt erfassen.');
 }
 
 async function saveProduct(event) {
@@ -279,6 +380,7 @@ async function saveProduct(event) {
     const id = dom.productId.value;
     const payload = {
         name: dom.nameInput.value,
+        kategorie: dom.categoryInput.value,
         preis: parseNumber(dom.priceInput.value),
         lagerbestand: parseNumber(dom.stockInput.value),
         einheit: dom.unitInput.value,
@@ -486,10 +588,174 @@ function setStatus(text) {
     dom.statusText.textContent = text;
 }
 
+function enhanceSelects() {
+    for (const select of document.querySelectorAll('select')) {
+        const container = document.createElement('span');
+        container.className = 'custom-select';
+        select.before(container);
+        container.appendChild(select);
+        select.hidden = true;
+
+        const trigger = document.createElement('button');
+        trigger.type = 'button';
+        trigger.className = 'custom-select-trigger';
+        trigger.setAttribute('aria-haspopup', 'listbox');
+        trigger.setAttribute('aria-expanded', 'false');
+        trigger.setAttribute('aria-label', select.getAttribute('aria-label')
+            || select.closest('label')?.textContent.trim().split('\n')[0].trim()
+            || 'Auswahl');
+        const value = document.createElement('span');
+        value.className = 'custom-select-value';
+        const arrow = document.createElement('span');
+        arrow.className = 'custom-select-arrow';
+        arrow.setAttribute('aria-hidden', 'true');
+        arrow.textContent = '▾';
+        trigger.append(value, arrow);
+        container.appendChild(trigger);
+
+        const menu = document.createElement('div');
+        menu.className = 'custom-select-menu';
+        menu.id = `${select.id}-menu`;
+        menu.setAttribute('role', 'listbox');
+        menu.hidden = true;
+        trigger.setAttribute('aria-controls', menu.id);
+        document.body.appendChild(menu);
+
+        const optionButtons = Array.from(select.options, (option, index) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'custom-select-option';
+            button.textContent = option.textContent;
+            button.id = `${select.id}-option-${index}`;
+            button.tabIndex = -1;
+            button.setAttribute('role', 'option');
+            button.addEventListener('click', () => chooseCustomOption(select, index));
+            menu.appendChild(button);
+            return button;
+        });
+
+        const control = {select, trigger, value, menu, optionButtons, activeIndex: select.selectedIndex};
+        customSelects.set(select, control);
+        trigger.addEventListener('click', () => {
+            if (openCustomSelect === control) closeCustomSelect();
+            else showCustomSelect(control);
+        });
+        trigger.addEventListener('keydown', event => handleCustomSelectKey(event, control));
+        select.addEventListener('change', () => syncCustomSelect(control));
+        syncCustomSelect(control);
+    }
+
+    document.addEventListener('mousedown', event => {
+        if (openCustomSelect && !openCustomSelect.trigger.contains(event.target)
+                && !openCustomSelect.menu.contains(event.target)) closeCustomSelect();
+    });
+    document.addEventListener('scroll', event => {
+        if (openCustomSelect && !openCustomSelect.menu.contains(event.target)) closeCustomSelect();
+    }, true);
+    window.addEventListener('resize', () => closeCustomSelect());
+}
+
+function syncCustomSelects() {
+    for (const control of customSelects.values()) syncCustomSelect(control);
+}
+
+function syncCustomSelect(control) {
+    const {select, trigger, value, optionButtons} = control;
+    value.textContent = select.selectedOptions[0]?.textContent || 'Bitte wählen';
+    trigger.disabled = select.disabled;
+    if (select.disabled && openCustomSelect === control) closeCustomSelect();
+    optionButtons.forEach((button, index) => {
+        const selected = index === select.selectedIndex;
+        button.setAttribute('aria-selected', String(selected));
+        button.classList.toggle('selected', selected);
+    });
+}
+
+function showCustomSelect(control) {
+    closeCustomSelect();
+    openCustomSelect = control;
+    control.activeIndex = Math.max(0, control.select.selectedIndex);
+    control.menu.hidden = false;
+    control.trigger.setAttribute('aria-expanded', 'true');
+
+    const rect = control.trigger.getBoundingClientRect();
+    const below = window.innerHeight - rect.bottom - 8;
+    const above = rect.top - 8;
+    const openAbove = below < 160 && above > below;
+    control.menu.style.left = `${rect.left}px`;
+    control.menu.style.width = `${rect.width}px`;
+    control.menu.style.maxHeight = `${Math.max(60, Math.min(240, openAbove ? above : below))}px`;
+    control.menu.style.top = `${openAbove ? rect.top - control.menu.offsetHeight - 4 : rect.bottom + 4}px`;
+    highlightCustomOption(control);
+}
+
+function closeCustomSelect() {
+    if (!openCustomSelect) return;
+    openCustomSelect.menu.hidden = true;
+    openCustomSelect.trigger.setAttribute('aria-expanded', 'false');
+    openCustomSelect.trigger.removeAttribute('aria-activedescendant');
+    openCustomSelect = null;
+}
+
+function chooseCustomOption(select, index) {
+    const control = customSelects.get(select);
+    select.selectedIndex = index;
+    select.dispatchEvent(new Event('change', {bubbles: true}));
+    closeCustomSelect();
+    control.trigger.focus();
+}
+
+function highlightCustomOption(control) {
+    control.optionButtons.forEach((button, index) => button.classList.toggle('active', index === control.activeIndex));
+    const active = control.optionButtons[control.activeIndex];
+    if (active) {
+        control.trigger.setAttribute('aria-activedescendant', active.id);
+        if (active.offsetTop < control.menu.scrollTop) {
+            control.menu.scrollTop = active.offsetTop;
+        } else if (active.offsetTop + active.offsetHeight > control.menu.scrollTop + control.menu.clientHeight) {
+            control.menu.scrollTop = active.offsetTop + active.offsetHeight - control.menu.clientHeight;
+        }
+    }
+}
+
+function handleCustomSelectKey(event, control) {
+    const key = event.key;
+    if (key === 'Escape' || key === 'Tab') {
+        closeCustomSelect();
+        if (key === 'Escape') event.preventDefault();
+        return;
+    }
+    if (key === 'ArrowDown' || key === 'ArrowUp' || key === 'Home' || key === 'End') {
+        event.preventDefault();
+        if (openCustomSelect !== control) showCustomSelect(control);
+        if (key === 'ArrowDown') control.activeIndex = Math.min(control.activeIndex + 1, control.optionButtons.length - 1);
+        if (key === 'ArrowUp') control.activeIndex = Math.max(control.activeIndex - 1, 0);
+        if (key === 'Home') control.activeIndex = 0;
+        if (key === 'End') control.activeIndex = control.optionButtons.length - 1;
+        highlightCustomOption(control);
+        return;
+    }
+    if (key === 'Enter' || key === ' ') {
+        event.preventDefault();
+        if (openCustomSelect === control) chooseCustomOption(control.select, control.activeIndex);
+        else showCustomSelect(control);
+        return;
+    }
+    if (key.length === 1) {
+        const index = control.optionButtons.findIndex(button => button.textContent.toLocaleLowerCase('de')
+            .startsWith(key.toLocaleLowerCase('de')));
+        if (index >= 0) {
+            if (openCustomSelect !== control) showCustomSelect(control);
+            control.activeIndex = index;
+            highlightCustomOption(control);
+        }
+    }
+}
+
 function initTheme() {
     const params = new URLSearchParams(window.location.search);
     const savedTheme = readThemeFromStorage();
-    setTheme(params.get('theme') || savedTheme || 'light');
+    setTheme(params.get('theme') || savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
 }
 
 function toggleTheme() {
@@ -500,7 +766,7 @@ function setTheme(theme) {
     const darkMode = theme === 'dark';
     document.documentElement.classList.toggle('dark-mode', darkMode);
     document.body.classList.toggle('dark-mode', darkMode);
-    dom.themeButton.textContent = darkMode ? 'Hellmodus' : 'Darkmode';
+    dom.themeButton.textContent = darkMode ? 'Hellmodus einschalten' : 'Dunkelmodus einschalten';
     writeThemeToStorage(darkMode ? 'dark' : 'light');
 }
 

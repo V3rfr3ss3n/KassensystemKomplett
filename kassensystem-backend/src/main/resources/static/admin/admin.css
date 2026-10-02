@@ -150,6 +150,7 @@ body.stock-only .shell {
 .toolbar {
     padding: 14px;
     border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
 }
 
 input,
@@ -167,6 +168,24 @@ select {
     padding: 0 10px;
     background: var(--field);
     color: var(--text);
+}
+
+/* JavaFX WebView zeigt native Auswahllisten mit hellem Hintergrund an.
+   Die Optionen bekommen deshalb unabhängig vom Seitenmodus einen hellen,
+   kontrastreichen Standard; das geschlossene Feld behält sein Theme. */
+select {
+    color-scheme: light;
+}
+
+select option,
+select optgroup {
+    background-color: #ffffff;
+    color: #111827;
+}
+
+select option:checked {
+    background-color: #dbeafe;
+    color: #111827;
 }
 
 input:focus,
@@ -222,6 +241,7 @@ body.dark-mode button.danger:hover {
 
 #searchInput {
     flex: 1;
+    min-width: 190px;
 }
 
 .checkbox-line {
@@ -291,16 +311,38 @@ tbody tr:focus-visible {
     align-self: start;
 }
 
-.editor-panel,
 form,
-.stock-box {
+.stock-content {
     display: grid;
     gap: 14px;
 }
 
-.editor-panel h2,
-.stock-box h2 {
+.editor-panel summary,
+.stock-box summary {
     margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    cursor: pointer;
+    list-style: none;
+    border-radius: 6px;
+    padding: 4px 2px;
+}
+
+.editor-panel summary::-webkit-details-marker,
+.stock-box summary::-webkit-details-marker { display: none; }
+
+.editor-panel summary::after,
+.stock-box summary::after { content: '▾'; float: right; color: var(--muted); }
+.editor-panel:not([open]) summary::after,
+.stock-box:not([open]) summary::after { content: '▸'; }
+
+.editor-panel form,
+.stock-content { margin-top: 14px; }
+
+.list-title {
+    margin: 0;
+    padding: 16px 16px 0;
     font-size: 16px;
     color: var(--text);
 }
@@ -331,7 +373,11 @@ label {
 .button-row {
     justify-content: flex-end;
     margin-top: 2px;
+    flex-wrap: wrap;
 }
+
+.button-row button { white-space: nowrap; }
+#newProductButton { margin-right: auto; }
 
 .stock-box {
     margin-top: 22px;
@@ -405,4 +451,85 @@ body.stock-only .stock-box {
     .inventory-overview {
         grid-template-columns: 1fr;
     }
+}
+.settings-menu { position: relative; }
+.settings-menu summary { cursor: pointer; list-style: none; padding: 9px 14px; border-radius: 8px; background: var(--button); }
+.settings-menu summary::-webkit-details-marker { display: none; }
+.settings-content { position: absolute; right: 0; top: calc(100% + 8px); z-index: 20; min-width: 210px; display: grid; gap: 6px; padding: 10px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 12px 30px rgba(0,0,0,.25); }
+.settings-content button { width: 100%; text-align: left; }
+.attention { outline: 3px solid #3b82f6; outline-offset: 4px; transition: outline-color .5s; }
+
+/* Eigene Listen statt der ungestylten nativen Popups von JavaFX WebView. */
+.custom-select {
+    display: inline-block;
+    min-width: 130px;
+    vertical-align: middle;
+}
+
+.toolbar .custom-select { min-width: 140px; }
+label .custom-select { width: 100%; }
+
+.custom-select-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 9px 0 10px;
+    border: 1px solid var(--field-border);
+    border-radius: 6px;
+    background: var(--field);
+    color: var(--text);
+    font-weight: 400;
+    text-align: left;
+}
+
+.custom-select-trigger:hover,
+.custom-select-trigger[aria-expanded="true"] { background: var(--field); }
+
+.custom-select-trigger:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 1px;
+}
+
+.custom-select-value {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.custom-select-arrow { flex: none; color: var(--muted); }
+
+.custom-select-menu {
+    position: fixed;
+    z-index: 1000;
+    overflow-y: auto;
+    padding: 4px;
+    border: 1px solid var(--field-border);
+    border-radius: 8px;
+    background: var(--surface);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, .25);
+}
+
+.custom-select-option {
+    width: 100%;
+    height: auto;
+    min-height: 32px;
+    display: block;
+    padding: 6px 10px;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text);
+    font-weight: 400;
+    text-align: left;
+}
+
+.custom-select-option:hover,
+.custom-select-option.active { background: var(--row-hover); }
+
+.custom-select-option.selected::after {
+    content: '✓';
+    float: right;
+    color: var(--blue);
+    font-weight: 700;
 }

@@ -24,6 +24,9 @@ import java.util.Optional;
 @Repository
 public class ProduktJdbcRepository {
     private static final List<String> ERLAUBTE_EINHEITEN = List.of("STUECK", "KILOGRAMM", "LITER", "PACKUNG");
+    private static final List<String> ERLAUBTE_KATEGORIEN = List.of(
+            "Obst", "Gemüse", "Backwaren", "Lebensmittel", "Getränke",
+            "Elektronik", "Haushalt", "Hygiene", "Sonstiges");
     private final JdbcTemplate jdbcTemplate;
     private final RowMapper<ProduktDto> produktMapper = (rs, rowNum) -> {
         String einheit = normalisiereEinheit(rs.getString("einheit"));
@@ -35,7 +38,8 @@ public class ProduktJdbcRepository {
                 rs.getString("bildPfad"),
                 einheit,
                 einheitLabel(einheit),
-                normalisiereSteuersatz(rs.getDouble("steuerSatz"))
+                normalisiereSteuersatz(rs.getDouble("steuerSatz")),
+                anzeigeKategorie(rs.getString("kategorie"))
         );
     };
 
@@ -48,7 +52,7 @@ public class ProduktJdbcRepository {
      */
     public List<ProduktDto> findeAlle() {
         return jdbcTemplate.query("""
-                SELECT id, name, preis, lagerbestand, bildPfad, einheit, steuerSatz
+                SELECT id, name, preis, lagerbestand, bildPfad, einheit, steuerSatz, kategorie
                 FROM produkte
                 ORDER BY name COLLATE NOCASE
                 """, produktMapper);
@@ -57,7 +61,7 @@ public class ProduktJdbcRepository {
     public Optional<ProduktDto> findeNachId(int id) {
         try {
             ProduktDto produkt = jdbcTemplate.queryForObject("""
-                    SELECT id, name, preis, lagerbestand, bildPfad, einheit, steuerSatz
+                    SELECT id, name, preis, lagerbestand, bildPfad, einheit, steuerSatz, kategorie
                     FROM produkte
                     WHERE id = ?
                     """, produktMapper, id);
@@ -74,8 +78,8 @@ public class ProduktJdbcRepository {
         ProduktRequest daten = validiere(request, true);
         Integer id = jdbcTemplate.execute((ConnectionCallback<Integer>) connection -> {
             try (PreparedStatement statement = connection.prepareStatement("""
-                    INSERT INTO produkte (name, preis, lagerbestand, bildPfad, einheit, steuerSatz)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    INSERT INTO produkte (name, preis, lagerbestand, bildPfad, einheit, steuerSatz, kategorie)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                     """)) {
                 fuelleStatement(statement, daten, 1);
                 statement.executeUpdate();
@@ -101,10 +105,10 @@ public class ProduktJdbcRepository {
         ProduktRequest daten = validiere(request, true);
         jdbcTemplate.update("""
                 UPDATE produkte
-                SET name = ?, preis = ?, lagerbestand = ?, bildPfad = ?, einheit = ?, steuerSatz = ?
+                SET name = ?, preis = ?, lagerbestand = ?, bildPfad = ?, einheit = ?, steuerSatz = ?, kategorie = ?
                 WHERE id = ?
                 """, daten.name().trim(), daten.preis(), daten.lagerbestand(), blankToNull(daten.bildPfad()),
-                normalisiereEinheit(daten.einheit()), normalisiereSteuersatz(daten.steuerSatz()), id);
+                normalisiereEinheit(daten.einheit()), normalisiereSteuersatz(daten.steuerSatz()), daten.kategorie(), id);
         return findeNachId(id).orElseThrow();
     }
 
@@ -154,7 +158,8 @@ public class ProduktJdbcRepository {
                 lagerbestand,
                 blankToNull(request.bildPfad()),
                 normalisiereEinheit(request.einheit()),
-                normalisiereSteuersatz(request.steuerSatz())
+                normalisiereSteuersatz(request.steuerSatz()),
+                normalisiereKategorie(request.kategorie())
         );
     }
 
@@ -165,6 +170,25 @@ public class ProduktJdbcRepository {
         statement.setString(offset + 3, blankToNull(daten.bildPfad()));
         statement.setString(offset + 4, normalisiereEinheit(daten.einheit()));
         statement.setDouble(offset + 5, normalisiereSteuersatz(daten.steuerSatz()));
+        statement.setString(offset + 6, daten.kategorie());
+    }
+
+    private static String normalisiereKategorie(String kategorie) {
+        if (kategorie == null || kategorie.isBlank()) return "Sonstiges";
+        String wert = kategorie.trim();
+        return ERLAUBTE_KATEGORIEN.stream()
+                .filter(erlaubt -> erlaubt.equalsIgnoreCase(wert))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Unbekannte Kategorie: " + wert));
+    }
+
+    private static String anzeigeKategorie(String kategorie) {
+        try {
+            return normalisiereKategorie(kategorie);
+        } catch (IllegalArgumentException ex) {
+            // Ältere frei eingegebene Werte bleiben in SQLite erhalten.
+            return "Sonstiges";
+        }
     }
 
     private static String normalisiereEinheit(String einheit) {

@@ -1,6 +1,6 @@
 # Kassensystem REST-API
 
-Basis-URL: `http://localhost:8080/kassensystem`. JSON wird mit UTF-8 übertragen. Die API verlangt HTTP Basic Auth; die Webverwaltung verwendet zusätzlich eine Formularsitzung. Für die Schul-Demo gelten `admin`, `kassierer`, `lagerist` mit Passwort `1234`. Zugangsdaten sind fest im Code hinterlegt; den Demo-Container nur lokal betreiben.
+Basis-URL: `http://localhost:8080/kassensystem`. JSON wird mit UTF-8 übertragen. Der JavaFX-Client nutzt HTTP Basic Auth; die Webverwaltung nutzt eine Browser-Sitzung. Bei einer vorhandenen Browser-Sitzung hat diese Vorrang vor vom Browser zwischengespeicherten Basic-Zugangsdaten. Für die Schul-Demo gelten `admin`, `kassierer`, `lagerist` mit Passwort `1234`. Zugangsdaten sind fest im Code hinterlegt; den Demo-Container nur lokal betreiben.
 
 | Methode | Pfad | Admin | Kassierer | Lagerist |
 |---|---|---:|---:|---:|
@@ -14,6 +14,8 @@ Basis-URL: `http://localhost:8080/kassensystem`. JSON wird mit UTF-8 übertragen
 | GET | `/api/bilder/{dateiname}` | ja | ja | ja |
 
 `POST /api/bilder` erwartet `multipart/form-data` mit dem Feld `datei` (PNG, JPEG oder GIF, höchstens 5 MB und 5000 × 5000 Pixel). Die Antwort enthält `url`, beispielsweise `api/bilder/550e8400-e29b-41d4-a716-446655440000.png`. Diesen Wert im Feld `bildPfad` des Produkts speichern. Der Server verkleinert große Bilder und legt sie neben der Datenbank im Verzeichnis `images` ab. Das Bild kann über die zurückgegebene URL ohne Anmeldung angezeigt werden, damit es auch in der JavaFX-Kasse erscheint.
+
+Produktdaten enthalten das optionale Feld `kategorie`. Erlaubte Werte sind `Obst`, `Gemüse`, `Backwaren`, `Lebensmittel`, `Getränke`, `Elektronik`, `Haushalt`, `Hygiene` und `Sonstiges`. Andere Werte beantwortet die API mit HTTP 400. Fehlt das Feld, verwendet der Server „Sonstiges“. Beim Start ergänzt die SQLite-Migration das Feld auch bei vorhandenen Produkten. Ältere frei eingegebene Kategorien bleiben in SQLite erhalten und werden in der API als „Sonstiges“ angezeigt, bis das Produkt erneut gespeichert wird.
 
 ## Beispiel: Verkauf
 

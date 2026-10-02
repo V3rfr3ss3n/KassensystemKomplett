@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Kassensystem Verwaltung</title>
-    <link rel="stylesheet" href="admin.css?v=20260929-2">
+    <link rel="stylesheet" href="admin.css?v=20261001-6">
 </head>
 <body>
 <header class="topbar">
@@ -14,15 +14,19 @@
     </div>
     <div class="top-actions">
         <span id="roleBadge" class="role-badge">...</span>
-        <button id="themeButton" type="button">Darkmode</button>
-        <button id="reloadButton" type="button">Aktualisieren</button>
-        <button id="newButton" type="button">Neu</button>
-        <button id="logoutButton" type="button">Logout</button>
+        <details class="settings-menu">
+            <summary>⚙ Einstellungen</summary>
+            <div class="settings-content">
+                <button id="themeButton" type="button">Dunkelmodus</button>
+                <button id="logoutButton" type="button">Abmelden</button>
+            </div>
+        </details>
     </div>
 </header>
 
 <main class="shell">
     <section class="list-section" aria-label="Produktliste">
+        <h2 id="inventoryTitle" class="list-title">Lagerbestand</h2>
         <div id="inventoryOverview" class="inventory-overview" aria-label="Lagerübersicht">
             <article class="inventory-card">
                 <span>Produkte im Sortiment</span>
@@ -39,14 +43,26 @@
         </div>
         <div class="toolbar">
             <input id="searchInput" type="search" aria-label="Produkte suchen" placeholder="Produkte suchen …">
-            <select id="unitFilter">
+            <select id="unitFilter" aria-label="Einheit filtern">
                 <option value="">Alle Einheiten</option>
                 <option value="STUECK">Stück</option>
                 <option value="KILOGRAMM">kg</option>
                 <option value="LITER">l</option>
                 <option value="PACKUNG">Packung</option>
             </select>
-            <select id="taxFilter">
+            <select id="categoryFilter" aria-label="Kategorie filtern">
+                <option value="">Alle Kategorien</option>
+                <option>Obst</option>
+                <option>Gemüse</option>
+                <option>Backwaren</option>
+                <option>Lebensmittel</option>
+                <option>Getränke</option>
+                <option>Elektronik</option>
+                <option>Haushalt</option>
+                <option>Hygiene</option>
+                <option>Sonstiges</option>
+            </select>
+            <select id="taxFilter" aria-label="Steuersatz filtern">
                 <option value="">Alle Steuern</option>
                 <option value="19">19 %</option>
                 <option value="7">7 %</option>
@@ -63,6 +79,7 @@
                 <tr>
                     <th>ID</th>
                     <th>Name</th>
+                    <th>Kategorie</th>
                     <th>Preis</th>
                     <th>Lagerbestand</th>
                     <th>Einheit</th>
@@ -75,14 +92,28 @@
     </section>
 
     <aside class="editor" aria-label="Verwaltung">
-        <section id="productEditorPanel" class="editor-panel">
-            <h2>Produktdaten</h2>
+        <details id="productEditorPanel" class="editor-panel" open hidden>
+            <summary id="productEditorTitle">Neues Produkt</summary>
             <form id="productForm">
                 <input id="productId" type="hidden">
 
                 <label>
                     Name
                     <input id="nameInput" name="name" required>
+                </label>
+                <label>
+                    Kategorie
+                    <select id="categoryInput" name="kategorie">
+                        <option>Obst</option>
+                        <option>Gemüse</option>
+                        <option>Backwaren</option>
+                        <option>Lebensmittel</option>
+                        <option>Getränke</option>
+                        <option>Elektronik</option>
+                        <option>Haushalt</option>
+                        <option>Hygiene</option>
+                        <option selected>Sonstiges</option>
+                    </select>
                 </label>
 
                 <div class="field-grid">
@@ -126,26 +157,29 @@
                 </label>
 
                 <div class="button-row">
+                    <button id="newProductButton" type="button" hidden>Neues Produkt</button>
                     <button id="saveButton" class="primary" type="submit">Speichern</button>
                     <button id="deleteButton" class="danger" type="button">Löschen</button>
                 </div>
             </form>
-        </section>
+        </details>
 
-        <section id="stockPanel" class="stock-box">
-            <h2>Warenzugang</h2>
-            <div id="selectedProductSummary" class="selected-product">Kein Produkt ausgewählt</div>
-            <label>
-                Menge
-                <input id="stockAddInput" inputmode="decimal" placeholder="Menge">
-            </label>
-            <button id="stockAddButton" class="primary" type="button">Warenzugang buchen</button>
-        </section>
+        <details id="stockPanel" class="stock-box" hidden>
+            <summary>Warenzugang</summary>
+            <div class="stock-content">
+                <div id="selectedProductSummary" class="selected-product">Kein Produkt ausgewählt</div>
+                <label>
+                    Menge
+                    <input id="stockAddInput" inputmode="decimal" placeholder="Menge">
+                </label>
+                <button id="stockAddButton" class="primary" type="button">Warenzugang buchen</button>
+            </div>
+        </details>
 
         <p id="statusText" role="status"></p>
     </aside>
 </main>
 
-<script src="admin.js?v=20260929-2"></script>
+<script src="admin.js?v=20261001-6"></script>
 </body>
 </html>

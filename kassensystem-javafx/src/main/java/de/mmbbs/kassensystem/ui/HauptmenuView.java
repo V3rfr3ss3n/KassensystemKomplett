@@ -16,8 +16,9 @@ import javafx.scene.layout.VBox;
 public class HauptmenuView extends VBox {
     public HauptmenuView(Benutzer benutzer,
                          Runnable kasseOeffnen,
-                         Runnable verwaltungOeffnen,
-                         Runnable beenden) {
+                         Runnable produktAnlegen,
+                         Runnable warenzugangOeffnen,
+                         Runnable lagerbestandOeffnen) {
         setSpacing(18);
         setPadding(new Insets(40));
         setAlignment(Pos.TOP_CENTER);
@@ -33,13 +34,11 @@ public class HauptmenuView extends VBox {
         info.getStyleClass().add("subtitle-label");
 
         Button kasseButton = menuButton("Kassenvorgang starten", kasseOeffnen);
-        Button produktButton = menuButton("Neues Produkt hinzufügen", verwaltungOeffnen);
-        Button zugangButton = menuButton("Warenzugang erfassen", verwaltungOeffnen);
-        Button lagerButton = menuButton("Lagerbestand anzeigen", verwaltungOeffnen);
-        Button beendenButton = menuButton("Programm beenden", beenden);
-        beendenButton.getStyleClass().add("danger-button");
+        Button produktButton = menuButton("Neues Produkt hinzufügen", produktAnlegen);
+        Button zugangButton = menuButton("Warenzugang erfassen", warenzugangOeffnen);
+        Button lagerButton = menuButton("Lagerbestand anzeigen", lagerbestandOeffnen);
 
-        mainContainer.getChildren().addAll(title, info, kasseButton, produktButton, zugangButton, lagerButton, beendenButton);
+        mainContainer.getChildren().addAll(title, info, kasseButton, produktButton, zugangButton, lagerButton);
         getChildren().add(mainContainer);
     }
 
