@@ -1,15 +1,14 @@
-# Plan: Benutzer und Berechtigungen
+# Benutzer und Berechtigungen
 
 ## Ziel
 
 Admins verwalten Benutzer, Zuständigkeiten und Zugänge in der Webverwaltung. Ein Benutzer erhält eine oder mehrere Rollen und bei Bedarf einzelne zusätzliche oder entzogene Rechte. Die wirksamen Rechte sind in JavaFX und Browser gleich und werden **bei jeder API-Anfrage vom Backend** geprüft. Die Oberfläche blendet unzulässige Aktionen zusätzlich aus.
 
-## Ausgangslage
+## Architektur
 
-- Derzeit existieren drei fest kodierte Demo-Benutzer in JavaFX und im Spring-Backend. Beide Listen müssen synchron bleiben.
-- Das Backend liefert in `GET /api/session` nur `manageProducts` und `bookStock`. JavaFX entscheidet noch anhand einer einzigen lokalen Rolle.
-- SQLite speichert Produkte, Bestände und Bons, aber keine Benutzer oder Rechte.
-- Die Browser-Anmeldung und das JavaFX-SSO nutzen eine Sitzung; der JavaFX-API-Client nutzt Basic Auth. Bei einer bestehenden Browser-Sitzung muss diese Vorrang vor vom Browser zwischengespeicherten Basic-Zugangsdaten haben.
+- SQLite speichert Benutzer, BCrypt-Passwort-Hashes, Rollenzuordnungen, Einzelrechte und Änderungsprotokolle neben Produkten und Bons.
+- `GET /api/session` liefert die wirksamen Rechte. JavaFX und Browser nutzen diese Angaben; die API prüft die Rechte unabhängig von der Oberfläche.
+- Browser verwenden Sitzungen und CSRF-Token. JavaFX nutzt Basic Auth lokal und erhält Browser-Einmaltickets vom Backend. Bestehende Browser-Sitzungen haben Vorrang vor zwischengespeicherten Basic-Zugangsdaten.
 
 ## Rechtemodell
 
@@ -24,13 +23,13 @@ Admins verwalten Benutzer, Zuständigkeiten und Zugänge in der Webverwaltung. E
 
 Rollen enthalten Standardrechte. Ein Admin kann pro Benutzer zusätzliche Rechte erlauben oder verweigern; eine ausdrückliche Verweigerung hat Vorrang vor einer Rollenerlaubnis. Die Bearbeitungsmaske zeigt sowohl Rollen als auch die daraus berechneten wirksamen Rechte. Neue Rechte werden zentral im Backend definiert, damit alte Clients unbekannte Rechte nicht versehentlich gewähren.
 
-## Umsetzung in Etappen
+## Umsetzung
 
-1. **Daten und Migration:** SQLite-Tabellen für Benutzer (eindeutiger normalisierter Login, Passwort-Hash, aktiv, Zeitstempel), Rollen, Rollenzuordnung, Rollenrechte und benutzerspezifische Erlaubnisse/Verweigerungen anlegen. Bestehende Kassendaten bleiben erhalten. Demo-Konten nur im Entwicklungsprofil befüllen; für eine bereitgestellte Instanz den ersten Admin über eine einmalige Einrichtung mit Kennwort aus einer Umgebungsvariable anlegen.
-2. **Einheitliche Anmeldung:** JavaFX-`AuthService` von fest kodierten Nutzern auf die Backend-Anmeldung umstellen. Das Backend liefert Benutzer-ID, Anzeigenamen, Rollen und wirksame Rechte an beide Oberflächen. API-Client und SSO dürfen keine abweichenden lokalen Rollenzuordnungen mehr verwenden. Passwort-Hashes mit einem adaptiven Algorithmus speichern; Passwörter niemals an die Benutzerliste zurückgeben.
-3. **Serverseitige Regeln:** Endpunkte für Produktpflege, Warenzugang, Verkauf, Bons und Benutzerverwaltung anhand der wirksamen Rechte absichern. Änderungen an Rechten wirken spätestens bei der nächsten Anfrage; bestehende Sitzungen nach Deaktivierung, Passwortwechsel und Rollenänderung widerrufen oder neu prüfen. Für Browser-Schreibzugriffe CSRF-Schutz aktivieren. Berechtigungsänderungen mit ausführendem Admin und Zeitpunkt protokollieren.
-4. **Admin-Oberfläche:** Bereich „Benutzer & Rechte“ mit Suche, Benutzeranlage, Aktivieren/Deaktivieren, Rollenwahl, einzelnen Rechte-Overrides und Passwort-Zurücksetzen. Vor dem Speichern die wirksamen Rechte anzeigen und Änderungen verständlich bestätigen. Den letzten aktiven Benutzer mit `users.manage` weder deaktivieren noch sich selbst dieses Recht entziehen lassen.
-5. **API und Dokumentation:** `GET/POST /api/admin/users`, `GET/PATCH /api/admin/users/{id}`, `POST /api/admin/users/{id}/password-reset`, `GET /api/admin/permissions` dokumentieren. Antworten enthalten keine Passwort-Hashes. Fehlende Anmeldung ergibt 401, fehlendes Recht 403, ungültige Eingaben 400.
+1. Beim Start werden fehlende Benutzertabellen ergänzt. Ein leerer Bestand erhält genau einen Admin mit Startpasswort aus `KASSENSYSTEM_AUTH_INITIAL_ADMIN_PASSWORD`; `KASSENSYSTEM_AUTH_DEMO=true` erzeugt stattdessen drei Entwicklungsnutzer. Rollenstandards liegen zentral im Backend, Zuordnungen und Einzelrechte in SQLite.
+2. JavaFX meldet sich beim Backend an. Einmalige Browser-Tickets werden vom Server ausgestellt und nach 60 Sekunden oder beim ersten Gebrauch ungültig. Passwort-Hashes verlassen den Server nicht.
+3. Die API prüft wirksame Rechte pro Anfrage. Bei Kontosperre, Rollenänderung und Passwortwechsel verlieren bestehende Browser-Sitzungen ihre Gültigkeit. Schreibzugriffe aus dem Browser benötigen CSRF-Token. Änderungen an Benutzern werden mit Admin und Zeitpunkt protokolliert.
+4. Die Webverwaltung bietet Suche, Benutzeranlage, Aktivieren/Sperren, Rollen, Einzelrechte und Passwort-Zurücksetzen. Der letzte aktive Benutzer mit `users.manage` kann nicht ausgesperrt werden.
+5. Die Schnittstellen sind in [API.md](API.md) dokumentiert.
 
 ## Abnahme
 
@@ -41,4 +40,4 @@ Rollen enthalten Standardrechte. Ein Admin kann pro Benutzer zusätzliche Rechte
 - Migration erhält bestehende Produkte und Bons. Nach Neustart bleiben Benutzer und Rechte erhalten.
 - Tests decken Rollen, Overrides, Sitzungswechsel, deaktivierte Benutzer, Passwortwechsel, 401/403 und die Schutzregel für den letzten Admin ab.
 
-Die Umsetzung dieses Plans ist eine eigene Erweiterung nach der aktuellen Demo-Version.
+Die frühere Demo-Version hatte fest kodierte Benutzer. Bestehende Kassenbestände und Bons bleiben beim Umstieg erhalten; die Benutzer werden bei der ersten Installation der neuen Version eingerichtet.

@@ -4,15 +4,19 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Kassensystem Verwaltung</title>
-    <link rel="stylesheet" href="admin.css?v=20261001-6">
+    <link rel="stylesheet" href="admin.css?v=20261002-2">
 </head>
 <body>
 <header class="topbar">
     <div>
-        <h1>Verwaltung</h1>
-        <p>Produkte und Lagerbestand</p>
+        <h1 id="areaTitle">Verwaltung</h1>
+        <p id="areaSubtitle">Produkte und Lagerbestand</p>
     </div>
     <div class="top-actions">
+        <nav class="area-nav" aria-label="Bereiche">
+            <button id="productsNav" type="button">Produkte</button>
+            <button id="usersNav" type="button" hidden>Benutzer &amp; Rechte</button>
+        </nav>
         <span id="roleBadge" class="role-badge">...</span>
         <details class="settings-menu">
             <summary>⚙ Einstellungen</summary>
@@ -24,7 +28,7 @@
     </div>
 </header>
 
-<main class="shell">
+<main id="productsView" class="shell">
     <section class="list-section" aria-label="Produktliste">
         <h2 id="inventoryTitle" class="list-title">Lagerbestand</h2>
         <div id="inventoryOverview" class="inventory-overview" aria-label="Lagerübersicht">
@@ -180,6 +184,42 @@
     </aside>
 </main>
 
-<script src="admin.js?v=20261001-6"></script>
+<main id="usersView" class="users-shell" hidden>
+    <section class="user-card">
+        <div class="user-heading"><div><h2>Benutzer</h2><p>Konten im System</p></div>
+            <button id="newUserButton" type="button">Neuer Benutzer</button></div>
+        <input id="userSearch" type="search" placeholder="Benutzer suchen …" aria-label="Benutzer suchen">
+        <div id="userList" class="user-list" role="list"></div>
+    </section>
+    <section class="user-card" aria-label="Benutzer bearbeiten">
+        <h2 id="userFormTitle">Neuer Benutzer</h2>
+        <form id="userForm">
+            <label>Login<input id="userLogin" required minlength="3" maxlength="40" autocomplete="off"></label>
+            <label>Anzeigename<input id="userDisplay" required maxlength="80"></label>
+            <label id="userPasswordLabel">Startpasswort<input id="userPassword" type="password" minlength="10" autocomplete="new-password"></label>
+            <label class="checkbox-line"><input id="userActive" type="checkbox" checked> Konto aktiv</label>
+            <fieldset><legend>Rollen</legend><div id="userRoles" class="check-grid"></div></fieldset>
+            <fieldset><legend>Einzelrechte</legend><p>„Standard“ übernimmt die Rechte der Rollen.</p>
+                <div id="userOverrides" class="permission-grid"></div></fieldset>
+            <p id="effectiveRights" class="effective-rights"></p>
+            <div class="button-row"><button class="primary" type="submit">Speichern</button>
+                <button id="resetPasswordButton" type="button" hidden>Passwort zurücksetzen</button></div>
+        </form>
+        <p id="userStatus" role="status"></p>
+    </section>
+</main>
+
+<dialog id="changePasswordDialog" class="password-dialog">
+    <form id="changePasswordForm">
+        <h2>Passwort ändern</h2><p>Das Startpasswort muss vor der weiteren Nutzung ersetzt werden.</p>
+        <label>Bisheriges Passwort<input id="oldPassword" type="password" required></label>
+        <label>Neues Passwort<input id="newPassword" type="password" minlength="10" required></label>
+        <label>Wiederholen<input id="repeatPassword" type="password" minlength="10" required></label>
+        <p id="passwordStatus" role="status"></p>
+        <button class="primary" type="submit">Passwort ändern</button>
+    </form>
+</dialog>
+
+<script src="admin.js?v=20261002-2"></script>
 </body>
 </html>

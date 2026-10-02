@@ -5,6 +5,8 @@ services:
       - "127.0.0.1:8080:8080"
     environment:
       KASSENSYSTEM_DB_PATH: /data/kassensystem.db
+      KASSENSYSTEM_AUTH_INITIAL_ADMIN_PASSWORD: ${KASSENSYSTEM_AUTH_INITIAL_ADMIN_PASSWORD:-}
+      KASSENSYSTEM_AUTH_DEMO: ${KASSENSYSTEM_AUTH_DEMO:-false}
     volumes:
       - kassensystem-data:/data
     restart: unless-stopped

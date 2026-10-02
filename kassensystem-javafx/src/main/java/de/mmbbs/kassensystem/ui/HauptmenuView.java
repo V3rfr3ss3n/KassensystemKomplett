@@ -30,7 +30,7 @@ public class HauptmenuView extends VBox {
         Label title = new Label("Hauptmenü");
         title.getStyleClass().add("title-label");
 
-        Label info = new Label("Angemeldet als " + benutzer.benutzername() + " (" + benutzer.rolle() + ")");
+        Label info = new Label("Angemeldet als " + benutzer.anzeigename() + " (" + benutzer.rollenText() + ")");
         info.getStyleClass().add("subtitle-label");
 
         Button kasseButton = menuButton("Kassenvorgang starten", kasseOeffnen);
