@@ -1,84 +1,35 @@
 package de.mmbbs.kassensystem.backend.config;
 
-import org.springframework.beans.factory.annotation.Value;
+import de.mmbbs.kassensystem.backend.security.AccountPrincipal;
 import org.springframework.stereotype.Service;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
+/** Kurzlebige, einmalig verwendbare Browser-Tickets. */
 @Service
 public class JavaFxSsoTicketService {
-    private static final String HMAC_ALGORITHM = "HmacSHA256";
+    private final SecureRandom random = new SecureRandom();
+    private final Map<String, Ticket> tickets = new ConcurrentHashMap<>();
 
-    private final String secret;
-
-    public JavaFxSsoTicketService(@Value("${kassensystem.sso.secret:kassensystem-dev-secret-2026}") String secret) {
-        this.secret = secret;
+    public String issue(AccountPrincipal principal) {
+        tickets.entrySet().removeIf(entry -> entry.getValue().expiresAt() < Instant.now().getEpochSecond());
+        byte[] bytes = new byte[32];
+        random.nextBytes(bytes);
+        String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        tickets.put(token, new Ticket(principal.getUsername(), principal.version(), Instant.now().plusSeconds(60).getEpochSecond()));
+        return token;
     }
 
-    public Optional<Ticket> validiere(String ticket) {
-        if (ticket == null || ticket.isBlank()) {
-            return Optional.empty();
-        }
-
-        String[] teile = ticket.split("\\.", 2);
-        if (teile.length != 2) {
-            return Optional.empty();
-        }
-
-        String payload = dekodiere(teile[0]);
-        if (payload == null || !signaturPasst(payload, teile[1])) {
-            return Optional.empty();
-        }
-
-        String[] payloadTeile = payload.split(":", 3);
-        if (payloadTeile.length != 3) {
-            return Optional.empty();
-        }
-
-        long expiresAt;
-        try {
-            expiresAt = Long.parseLong(payloadTeile[2]);
-        } catch (NumberFormatException ex) {
-            return Optional.empty();
-        }
-
-        if (Instant.now().getEpochSecond() > expiresAt) {
-            return Optional.empty();
-        }
-
-        return Optional.of(new Ticket(payloadTeile[0], payloadTeile[1]));
+    public Optional<Ticket> consume(String token) {
+        if (token == null) return Optional.empty();
+        Ticket ticket = tickets.remove(token);
+        return ticket != null && ticket.expiresAt() >= Instant.now().getEpochSecond()
+                ? Optional.of(ticket) : Optional.empty();
     }
 
-    private boolean signaturPasst(String payload, String signatur) {
-        byte[] erwartet = signiere(payload).getBytes(StandardCharsets.UTF_8);
-        byte[] erhalten = signatur.getBytes(StandardCharsets.UTF_8);
-        return MessageDigest.isEqual(erwartet, erhalten);
-    }
-
-    private String signiere(String payload) {
-        try {
-            Mac mac = Mac.getInstance(HMAC_ALGORITHM);
-            mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), HMAC_ALGORITHM));
-            return Base64.getUrlEncoder().withoutPadding().encodeToString(mac.doFinal(payload.getBytes(StandardCharsets.UTF_8)));
-        } catch (Exception ex) {
-            throw new IllegalStateException("SSO-Ticket konnte nicht geprueft werden.", ex);
-        }
-    }
-
-    private String dekodiere(String payload) {
-        try {
-            return new String(Base64.getUrlDecoder().decode(payload), StandardCharsets.UTF_8);
-        } catch (IllegalArgumentException ex) {
-            return null;
-        }
-    }
-
-    public record Ticket(String benutzername, String rolle) {
-    }
+    public record Ticket(String username, long version, long expiresAt) {}
 }

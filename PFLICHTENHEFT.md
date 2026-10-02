@@ -47,10 +47,7 @@ Das Kassensystem ist fuer einen kleinen Laden gedacht. Eine Person an der Kasse 
 ### 4.1 Hauptmenue und Berechtigungssystem
 
 - Nach dem Start erscheint eine Anmeldung.
-- Testnutzer:
-  - `admin / 1234`
-  - `kassierer / 1234`
-  - `lagerist / 1234`
+- Bei einer neuen Installation wird ein Admin mit eigenem Startpasswort angelegt. Er kann Kassierer und Lageristen sowie einzelne Rechte verwalten. Die alten Testnutzer sind nur im Entwicklungsmodus verfügbar.
 - Kassierer werden direkt in die Kasse geleitet und sehen keine Verwaltung.
 - Lageristen sehen keinen Kassenbereich und duerfen Warenzugaenge buchen.
 - Admins sehen ein Hauptmenue mit den Optionen:
@@ -120,9 +117,9 @@ KASSENSYSTEM_DB_PATH=<pfad>
 
 ### JavaFX
 
-Die JavaFX-Anwendung startet mit einer Anmeldung. Kassierer werden direkt in die Kasse geleitet. Lageristen erhalten nur Zugriff auf Warenzugang/Verwaltung. Admins sehen das Hauptmenue und koennen Kasse und Verwaltung oeffnen. Admins und Lageristen koennen die Webverwaltung aus JavaFX per signiertem, kurzlebigem Login-Ticket oeffnen, ohne im WebView erneut ein Passwort einzugeben.
+Die JavaFX-Anwendung startet mit einer Backend-Anmeldung. Kassierer werden direkt in die Kasse geleitet. Lageristen erhalten Zugriff auf Warenzugang/Verwaltung. Admins sehen das Hauptmenue und koennen Kasse und Verwaltung oeffnen. Berechtigte Benutzer koennen die Webverwaltung aus JavaFX per vom Backend ausgestelltem, einmalig nutzbarem Login-Ticket oeffnen, ohne im WebView erneut ein Passwort einzugeben.
 
-Testnutzer:
+Nur im ausdruecklich aktivierten Entwicklungsmodus verfuegbare Testnutzer:
 
 ```text
 admin / 1234
@@ -138,7 +135,7 @@ Der Adminbereich ist erreichbar unter:
 http://localhost:8080/kassensystem/admin/
 ```
 
-Er bietet Produktliste, Filter, Produktformular und Warenzugang. Der Zugriff auf `/admin/**` und `/api/**` ist serverseitig mit Spring Security geschuetzt. Fuer den Browser gelten ebenfalls:
+Er bietet Produktliste, Filter, Produktformular, Warenzugang und Benutzerverwaltung. Der Zugriff auf `/admin/**` und `/api/**` ist serverseitig mit Spring Security geschuetzt. Im Entwicklungsmodus gelten fuer den Browser ebenfalls:
 
 ```text
 admin / 1234
@@ -180,7 +177,7 @@ Hinweis zur Vorgabe "rein prozedural": Das vorhandene Projekt wurde bereits als 
 | Admin darf verwalten | Erfuellt ueber Rolle `ADMIN` |
 | Lagerist fuer Warenzugang | Erfuellt ueber Rolle `LAGERIST` |
 | Browser ohne Passwort | Behoben durch Spring Security |
-| JavaFX-Admin ohne zweite Webanmeldung | Erfuellt ueber signiertes SSO-Ticket |
+| JavaFX-Admin ohne zweite Webanmeldung | Erfuellt ueber serverseitiges Einmalticket |
 | Darkmode | Erfuellt fuer JavaFX und Admin-Weboberflaeche |
 | Rein prozedurale Programmierung | Bewusste Abweichung, da grafische OOP-Architektur gewaehlt |
 

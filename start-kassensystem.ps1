@@ -48,9 +48,11 @@ if (Test-VerwaltungErreichbar) {
     exit 1
 }
 Write-Host 'Starte Spring-Verwaltung im Hintergrund. Protokoll:' $protokoll
-$backendJob = Start-Job -ArgumentList $mavenPfad, $projektOrdner, $protokoll, $env:JAVA_HOME -ScriptBlock {
-    param($maven, $ordner, $logdatei, $jdk)
+$backendJob = Start-Job -ArgumentList $mavenPfad, $projektOrdner, $protokoll, $env:JAVA_HOME, $env:KASSENSYSTEM_AUTH_INITIAL_ADMIN_PASSWORD, $env:KASSENSYSTEM_AUTH_DEMO -ScriptBlock {
+    param($maven, $ordner, $logdatei, $jdk, $initialAdminPassword, $demoMode)
     $env:JAVA_HOME = $jdk
+    $env:KASSENSYSTEM_AUTH_INITIAL_ADMIN_PASSWORD = $initialAdminPassword
+    $env:KASSENSYSTEM_AUTH_DEMO = $demoMode
     $env:PATH = (Join-Path $jdk 'bin') + ';' + $env:PATH
     Set-Location $ordner
     & $maven -pl kassensystem-backend spring-boot:run *> $logdatei
@@ -69,7 +71,7 @@ try {
         Start-Sleep -Seconds 1
     }
     if (-not $bereit) {
-        throw "Die Verwaltung konnte nicht gestartet werden. Details: $protokoll"
+        throw "Die Verwaltung konnte nicht gestartet werden. Bei der ersten Einrichtung KASSENSYSTEM_AUTH_INITIAL_ADMIN_PASSWORD setzen. Details: $protokoll"
     }
     Write-Host 'Starte JavaFX-Kasse. Beim Schliessen der Kasse wird auch die Verwaltung beendet.'
     & $mavenPfad -pl kassensystem-javafx javafx:run

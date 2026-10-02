@@ -1,39 +1,36 @@
 package de.mmbbs.kassensystem.auth;
 
-import java.util.Map;
+import com.fasterxml.jackson.databind.JsonNode;
+import de.mmbbs.kassensystem.repository.ApiClient;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
-/**
- * Einfache Testnutzer-Anmeldung fuer die JavaFX-Anwendung.
- *
- * <p>Die Nutzer sind bewusst fest im Code hinterlegt, weil es sich aktuell um
- * ein Schulprojekt mit Testzugang handelt. Spaeter kann diese Klasse durch eine
- * Datenbank- oder Serveranmeldung ersetzt werden.</p>
- */
+/** Meldet Desktop-Benutzer beim Backend an. */
 public class AuthService {
-    private final Map<String, TestNutzer> nutzer = Map.of(
-            "admin", new TestNutzer("1234", BenutzerRolle.ADMIN),
-            "kassierer", new TestNutzer("1234", BenutzerRolle.KASSIERER),
-            "lagerist", new TestNutzer("1234", BenutzerRolle.LAGERIST)
-    );
-
-    /**
-     * Prueft Benutzername und Passwort.
-     *
-     * @return Angemeldeter Benutzer oder leer, wenn die Daten falsch sind.
-     */
-    public Optional<Benutzer> anmelden(String benutzername, String passwort) {
-        if (benutzername == null || passwort == null) {
-            return Optional.empty();
+    public Optional<Benutzer> anmelden(String username, String password) {
+        if (username == null || username.isBlank() || password == null || password.isBlank()) return Optional.empty();
+        try {
+            JsonNode session = new ApiClient(username.trim(), password).get("/api/session");
+            List<BenutzerRolle> roles = new ArrayList<>();
+            session.path("roles").forEach(role -> roles.add(BenutzerRolle.valueOf(role.asText())));
+            if (roles.isEmpty()) throw new IllegalStateException("Das Konto hat keine Rolle.");
+            Set<String> permissions = new HashSet<>();
+            session.path("permissions").properties().forEach(entry -> {
+                if (entry.getValue().asBoolean()) permissions.add(entry.getKey());
+            });
+            return Optional.of(new Benutzer(session.path("username").asText(), session.path("displayName").asText(),
+                    List.copyOf(roles), Set.copyOf(permissions), session.path("mustChangePassword").asBoolean()));
+        } catch (IllegalStateException ex) {
+            if (ex.getMessage() != null && ex.getMessage().contains("HTTP 401")) return Optional.empty();
+            throw ex;
         }
-        String login = benutzername.trim().toLowerCase();
-        TestNutzer testNutzer = nutzer.get(login);
-        if (testNutzer == null || !testNutzer.passwort().equals(passwort)) {
-            return Optional.empty();
-        }
-        return Optional.of(new Benutzer(login, testNutzer.rolle()));
     }
 
-    private record TestNutzer(String passwort, BenutzerRolle rolle) {
+    public void passwortAendern(String username, String oldPassword, String newPassword) {
+        new ApiClient(username, oldPassword).post("/api/account/password",
+                java.util.Map.of("oldPassword", oldPassword, "newPassword", newPassword));
     }
 }

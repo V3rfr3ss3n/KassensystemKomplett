@@ -10,10 +10,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
+import de.mmbbs.kassensystem.backend.config.JavaFxSsoTicketService;
+import de.mmbbs.kassensystem.backend.security.AccountPrincipal;
+import de.mmbbs.kassensystem.backend.security.AccountService;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.Base64;
 
 import static org.hamcrest.Matchers.containsString;
@@ -25,9 +25,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
 @SpringBootTest(properties = {
         "kassensystem.db.path=target/test-kassensystem-security.db",
+        "kassensystem.auth.demo=true",
         "debug=false",
         "logging.level.root=WARN",
         "logging.level.de.mmbbs=WARN",
@@ -38,13 +40,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 @AutoConfigureMockMvc
 class SecurityIntegrationTest {
-    private static final String SSO_SECRET = "kassensystem-dev-secret-2026";
-
     @Autowired
     private MockMvc mockMvc;
 
     @Autowired
     private JdbcTemplate jdbc;
+    @Autowired private JavaFxSsoTicketService tickets;
+    @Autowired private AccountService accounts;
 
     @Test
     void adminSiehtProduktverwaltung() throws Exception {
@@ -68,20 +70,23 @@ class SecurityIntegrationTest {
                 .andExpect(content().string(containsString("\"bookStock\":true")));
 
         mockMvc.perform(post("/api/produkte")
+                        .with(csrf())
                         .session(session)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isForbidden());
 
         mockMvc.perform(put("/api/produkte/999999")
+                        .with(csrf())
                         .session(session)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isForbidden());
-        mockMvc.perform(delete("/api/produkte/999999").session(session))
+        mockMvc.perform(delete("/api/produkte/999999").with(csrf()).session(session))
                 .andExpect(status().isForbidden());
 
         MvcResult warenzugang = mockMvc.perform(post("/api/produkte/999999/warenzugang")
+                        .with(csrf())
                         .session(session)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"menge\":1}"))
@@ -100,10 +105,10 @@ class SecurityIntegrationTest {
                 .andExpect(status().isOk());
         mockMvc.perform(get("/api/produkte").session(session)).andExpect(status().isOk());
         mockMvc.perform(get("/api/bons").session(session)).andExpect(status().isOk());
-        mockMvc.perform(post("/api/produkte").session(session)
+        mockMvc.perform(post("/api/produkte").with(csrf()).session(session)
                 .contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isForbidden());
-        mockMvc.perform(post("/api/produkte/1/warenzugang").session(session)
+        mockMvc.perform(post("/api/produkte/1/warenzugang").with(csrf()).session(session)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"menge\":1}"))
                 .andExpect(status().isForbidden());
     }
@@ -118,6 +123,7 @@ class SecurityIntegrationTest {
                         Base64.getEncoder().encodeToString("kassierer:falsch".getBytes(StandardCharsets.UTF_8))))
                 .andExpect(status().isUnauthorized());
         mockMvc.perform(post("/api/kasse/abschluss").header("Authorization", "Basic " + credentials)
+                .header("X-Kassensystem-Client", "JavaFX")
                 .contentType(MediaType.APPLICATION_JSON).content("{\"positionen\":[]}"))
                 .andExpect(status().isBadRequest());
     }
@@ -155,7 +161,7 @@ class SecurityIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("\"username\":\"lagerist\"")))
                 .andExpect(content().string(containsString("\"manageProducts\":false")));
-        mockMvc.perform(post("/api/produkte").session(browserSession)
+        mockMvc.perform(post("/api/produkte").with(csrf()).session(browserSession)
                         .header("Authorization", gespeicherteBrowserAnmeldung)
                         .contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isForbidden());
@@ -168,7 +174,7 @@ class SecurityIntegrationTest {
                 {"name":"API Testprodukt","preis":2.49,"lagerbestand":3,"einheit":"STUECK","steuerSatz":19}
                 """;
 
-        MvcResult erstellt = mockMvc.perform(post("/api/produkte")
+        MvcResult erstellt = mockMvc.perform(post("/api/produkte").with(csrf())
                         .session(session)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(daten))
@@ -183,21 +189,21 @@ class SecurityIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("API Testprodukt")));
 
-        mockMvc.perform(post("/api/produkte/{id}/warenzugang", id)
+        mockMvc.perform(post("/api/produkte/{id}/warenzugang", id).with(csrf())
                         .session(session)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"menge\":2.5}"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("5.5")));
 
-        mockMvc.perform(put("/api/produkte/{id}", id)
+        mockMvc.perform(put("/api/produkte/{id}", id).with(csrf())
                         .session(session)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Aktualisiertes Produkt\",\"preis\":3.49,\"lagerbestand\":5.5,\"einheit\":\"STUECK\",\"steuerSatz\":19}"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Aktualisiertes Produkt")));
 
-        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/produkte/{id}", id)
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/produkte/{id}", id).with(csrf())
                         .session(session))
                 .andExpect(status().isNoContent());
         mockMvc.perform(get("/api/produkte/{id}", id).session(session))
@@ -208,12 +214,14 @@ class SecurityIntegrationTest {
     void produktApiLehntUnendlicheWerteUndUngueltigeMengenAb() throws Exception {
         MockHttpSession session = login("admin");
         mockMvc.perform(post("/api/produkte")
+                        .with(csrf())
                         .session(session)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Ungueltig\",\"preis\":\"Infinity\",\"lagerbestand\":0}"))
                 .andExpect(status().isBadRequest());
 
         mockMvc.perform(post("/api/produkte/999999/warenzugang")
+                        .with(csrf())
                         .session(session)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"menge\":-1}"))
@@ -224,14 +232,14 @@ class SecurityIntegrationTest {
     void kaufNutztServerpreiseUndHistorischerBonBehaeltSnapshot() throws Exception {
         MockHttpSession admin = login("admin");
         MockHttpSession kassierer = login("kassierer");
-        MvcResult erstellt = mockMvc.perform(post("/api/produkte").session(admin)
+        MvcResult erstellt = mockMvc.perform(post("/api/produkte").with(csrf()).session(admin)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"Snapshot Test\",\"preis\":2.5,\"lagerbestand\":4,\"einheit\":\"STUECK\",\"steuerSatz\":7}"))
                 .andExpect(status().isCreated()).andReturn();
         int id = com.fasterxml.jackson.databind.json.JsonMapper.builder().build()
                 .readTree(erstellt.getResponse().getContentAsString()).get("id").asInt();
 
-        MvcResult kauf = mockMvc.perform(post("/api/kasse/abschluss").session(kassierer)
+        MvcResult kauf = mockMvc.perform(post("/api/kasse/abschluss").with(csrf()).session(kassierer)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"positionen\":[{\"produktId\":" + id + ",\"menge\":2}]}"))
                 .andExpect(status().isCreated())
@@ -242,14 +250,14 @@ class SecurityIntegrationTest {
         org.junit.jupiter.api.Assertions.assertEquals(2.0,
                 jdbc.queryForObject("SELECT lagerbestand FROM produkte WHERE id = ?", Double.class, id));
 
-        mockMvc.perform(put("/api/produkte/{id}", id).session(admin)
+        mockMvc.perform(put("/api/produkte/{id}", id).with(csrf()).session(admin)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"Neuer Name\",\"preis\":9,\"lagerbestand\":2}"))
                 .andExpect(status().isOk());
         mockMvc.perform(get("/api/bons/{id}", bonnummer).session(kassierer))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Snapshot Test")));
-        mockMvc.perform(delete("/api/produkte/{id}", id).session(admin)).andExpect(status().isNoContent());
+        mockMvc.perform(delete("/api/produkte/{id}", id).with(csrf()).session(admin)).andExpect(status().isNoContent());
         mockMvc.perform(get("/api/bons/{id}", bonnummer).session(kassierer))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Snapshot Test")));
@@ -259,7 +267,7 @@ class SecurityIntegrationTest {
     void fehlgeschlagenerKaufAendertWederBestandNochHistorie() throws Exception {
         MockHttpSession admin = login("admin");
         MockHttpSession kassierer = login("kassierer");
-        MvcResult erstellt = mockMvc.perform(post("/api/produkte").session(admin)
+        MvcResult erstellt = mockMvc.perform(post("/api/produkte").with(csrf()).session(admin)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"Rollback Test\",\"preis\":1,\"lagerbestand\":3}"))
                 .andExpect(status().isCreated()).andReturn();
@@ -267,7 +275,7 @@ class SecurityIntegrationTest {
                 .readTree(erstellt.getResponse().getContentAsString()).get("id").asInt();
         int vorher = jdbc.queryForObject("SELECT COUNT(*) FROM bons", Integer.class);
 
-        mockMvc.perform(post("/api/kasse/abschluss").session(kassierer)
+        mockMvc.perform(post("/api/kasse/abschluss").with(csrf()).session(kassierer)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"positionen\":[{\"produktId\":" + id + ",\"menge\":1},{\"produktId\":999999,\"menge\":1}]}"))
                 .andExpect(status().isNotFound());
@@ -275,11 +283,11 @@ class SecurityIntegrationTest {
                 jdbc.queryForObject("SELECT lagerbestand FROM produkte WHERE id = ?", Double.class, id));
         org.junit.jupiter.api.Assertions.assertEquals(vorher,
                 jdbc.queryForObject("SELECT COUNT(*) FROM bons", Integer.class));
-        mockMvc.perform(delete("/api/produkte/{id}", id).session(admin)).andExpect(status().isNoContent());
+        mockMvc.perform(delete("/api/produkte/{id}", id).with(csrf()).session(admin)).andExpect(status().isNoContent());
     }
 
     private MockHttpSession login(String benutzername) throws Exception {
-        MvcResult result = mockMvc.perform(post("/login")
+        MvcResult result = mockMvc.perform(post("/login").with(csrf())
                         .param("username", benutzername)
                         .param("password", "1234"))
                 .andExpect(status().is3xxRedirection())
@@ -287,18 +295,7 @@ class SecurityIntegrationTest {
         return (MockHttpSession) result.getRequest().getSession(false);
     }
 
-    private String ticket(String benutzername, String rolle) throws Exception {
-        long expiresAt = Instant.now().plusSeconds(120).getEpochSecond();
-        String payload = benutzername + ":" + rolle + ":" + expiresAt;
-        String encodedPayload = Base64.getUrlEncoder().withoutPadding()
-                .encodeToString(payload.getBytes(StandardCharsets.UTF_8));
-        return encodedPayload + "." + signiere(payload);
-    }
-
-    private String signiere(String payload) throws Exception {
-        Mac mac = Mac.getInstance("HmacSHA256");
-        mac.init(new SecretKeySpec(SSO_SECRET.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
-        return Base64.getUrlEncoder().withoutPadding()
-                .encodeToString(mac.doFinal(payload.getBytes(StandardCharsets.UTF_8)));
+    private String ticket(String benutzername, String rolle) {
+        return tickets.issue((AccountPrincipal) accounts.loadUserByUsername(benutzername));
     }
 }
