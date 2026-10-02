@@ -4,13 +4,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Kassensystem Verwaltung</title>
-    <link rel="stylesheet" href="admin.css?v=20261002-1">
+    <link rel="stylesheet" href="admin.css?v=20261002-2">
 </head>
 <body>
 <header class="topbar">
     <div>
-        <h1>Verwaltung</h1>
-        <p>Produkte und Lagerbestand</p>
+        <h1 id="areaTitle">Verwaltung</h1>
+        <p id="areaSubtitle">Produkte und Lagerbestand</p>
     </div>
     <div class="top-actions">
         <nav class="area-nav" aria-label="Bereiche">
@@ -186,7 +186,7 @@
 
 <main id="usersView" class="users-shell" hidden>
     <section class="user-card">
-        <div class="user-heading"><div><h2>Benutzer &amp; Rechte</h2><p>Konten und Zuständigkeiten verwalten</p></div>
+        <div class="user-heading"><div><h2>Benutzer</h2><p>Konten im System</p></div>
             <button id="newUserButton" type="button">Neuer Benutzer</button></div>
         <input id="userSearch" type="search" placeholder="Benutzer suchen …" aria-label="Benutzer suchen">
         <div id="userList" class="user-list" role="list"></div>
@@ -220,6 +220,6 @@
     </form>
 </dialog>
 
-<script src="admin.js?v=20261002-1"></script>
+<script src="admin.js?v=20261002-2"></script>
 </body>
 </html>

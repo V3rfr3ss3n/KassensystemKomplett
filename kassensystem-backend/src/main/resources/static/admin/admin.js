@@ -1,5 +1,13 @@
 const apiUrl = '../api/produkte';
 const sessionUrl = '../api/session';
+const permissionLabels = {
+    'products.read': 'Produkte ansehen',
+    'products.manage': 'Produkte verwalten',
+    'stock.book': 'Warenzugang buchen',
+    'sales.create': 'Verkäufe abschließen',
+    'receipts.read': 'Bons ansehen',
+    'users.manage': 'Benutzer verwalten'
+};
 let ready = false;
 let pendingArea = null;
 
@@ -59,6 +67,7 @@ const dom = {
 };
 
 Object.assign(dom, {
+    areaTitle: document.querySelector('#areaTitle'), areaSubtitle: document.querySelector('#areaSubtitle'),
     productsView: document.querySelector('#productsView'), usersView: document.querySelector('#usersView'),
     productsNav: document.querySelector('#productsNav'), usersNav: document.querySelector('#usersNav'),
     userList: document.querySelector('#userList'), userSearch: document.querySelector('#userSearch'),
@@ -139,6 +148,7 @@ window.focusAdminArea = async area => {
         return;
     }
     await loadProducts(true);
+    showArea('products');
     if (area === 'new') {
         state.activeArea = 'edit';
         clearForm();
@@ -207,7 +217,6 @@ function applyPermissions() {
     const canManageUsers = hasPermission('users.manage');
 
     dom.roleBadge.textContent = formatUserLabel();
-    document.querySelector('.topbar h1').textContent = canManageProducts ? 'Verwaltung' : 'Warenzugang';
     dom.productEditorPanel.hidden = !canManageProducts;
     dom.deleteButton.hidden = !canManageProducts;
     dom.saveButton.hidden = !canManageProducts;
@@ -860,10 +869,15 @@ function escapeHtml(value) {
 
 function showArea(area) {
     const users = area === 'users' && hasPermission('users.manage');
+    dom.areaTitle.textContent = users ? 'Benutzer & Rechte'
+        : hasPermission('manageProducts') ? 'Verwaltung' : 'Warenzugang';
+    dom.areaSubtitle.textContent = users ? 'Konten und Zuständigkeiten' : 'Produkte und Lagerbestand';
     dom.productsView.hidden = users || !hasPermission('products.read');
     dom.usersView.hidden = !users;
     dom.productsNav.classList.toggle('active', !users);
     dom.usersNav.classList.toggle('active', users);
+    dom.productsNav.setAttribute('aria-pressed', String(!users));
+    dom.usersNav.setAttribute('aria-pressed', String(users));
     if (users) loadUsers();
 }
 
@@ -885,7 +899,8 @@ async function loadUserCatalog() {
         const row = document.createElement('div');
         row.className = 'permission-row';
         const title = document.createElement('strong');
-        title.textContent = permission;
+        title.textContent = permissionLabels[permission] || permission;
+        title.title = permission;
         row.append(title);
         for (const [value, labelText] of [['default', 'Standard'], ['allow', 'Erlauben'], ['deny', 'Verweigern']]) {
             const label = document.createElement('label');
@@ -984,7 +999,8 @@ function updateEffectiveRights() {
     const granted = state.permissionCatalog.permissions.filter(permission =>
         Object.prototype.hasOwnProperty.call(overrides, permission) ? overrides[permission]
             : roles.some(role => (state.permissionCatalog.roleDefaults[role] || []).includes(permission)));
-    dom.effectiveRights.textContent = `Wirksame Rechte: ${granted.length ? granted.join(', ') : 'keine'}`;
+    dom.effectiveRights.textContent = `Wirksame Rechte: ${granted.length
+        ? granted.map(permission => permissionLabels[permission] || permission).join(', ') : 'keine'}`;
 }
 
 async function saveUser(event) {
