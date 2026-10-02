@@ -31,6 +31,8 @@ public class LoginDialog extends Dialog<LoginDialog.Anmeldung> {
         benutzerField.setPromptText("Benutzername");
         passwortField.setPromptText("Passwort");
         fehlerLabel.getStyleClass().add("error-label");
+        fehlerLabel.setWrapText(true);
+        fehlerLabel.setMaxWidth(300);
 
         ToggleButton darkModeButton = new ToggleButton(ThemeManager.isDarkMode() ? "Hellmodus" : "Darkmode");
         darkModeButton.getStyleClass().add("secondary-button");

@@ -23,6 +23,20 @@ Für ein anderes Backend `KASSENSYSTEM_API_URL` oder `-Dkassensystem.api.url=<UR
 
 Nach einem Tag wie `v1.0.0` veröffentlicht der Release-Workflow die ZIP `Kassensystem-Windows.zip` unter GitHub Releases und das Backend-Image als `ghcr.io/v3rfr3ss3n/kassensystemkomplett/backend:<tag>`. Ein Tag mit `-rc.` wird als Vorabversion markiert. Die ZIP enthält eine Java-Laufzeit und ein eigenes EXE-Symbol. Die ZIP vollständig in einen neuen Ordner entpacken und die dortige `Kassensystem.exe` starten; eine zuvor entpackte EXE wird durch einen neuen Download nicht automatisch ersetzt. Die Release-Version steht im Fenstertitel, damit sich die gestartete EXE zuordnen lässt. Vor dem ersten Release ist der Download als Artefakt eines manuell gestarteten Release-Workflows möglich. Container und Windows-Paket werden erst nach einem erfolgreichen Workflow-Lauf bereitgestellt.
 
+**EXE und Backend müssen zusammenpassen.** Die EXE startet keinen Server. Ein älteres Backend kann zwar das frühere Demo-Passwort `1234` akzeptieren, liefert aber nicht die neuen Rechte für die Kasse. Für einen unabhängigen Test der Release-Version unter PowerShell zuerst einen bereits auf Port 8080 laufenden Server stoppen und dann das passende Backend-Image starten:
+
+```powershell
+$release = 'v0.1.0-rc.17'
+$env:KASSENSYSTEM_AUTH_INITIAL_ADMIN_PASSWORD = 'EinEigenesStartpasswort123'
+docker run --detach --rm --name kassensystem-test -p 127.0.0.1:8080:8080 `
+  -e KASSENSYSTEM_DB_PATH=/data/kassensystem.db `
+  -e KASSENSYSTEM_AUTH_INITIAL_ADMIN_PASSWORD `
+  -v kassensystem-test-data:/data `
+  "ghcr.io/v3rfr3ss3n/kassensystemkomplett/backend:$release"
+```
+
+Danach die EXE **derselben Version** starten, als `admin` mit dem selbst gewählten Startpasswort anmelden und es auf Aufforderung ändern. Die Testdaten bleiben im separaten Docker-Volume `kassensystem-test-data`. Nach dem Test `docker stop kassensystem-test` ausführen. `1234` gilt nur für ausdrücklich aktivierte Demo-Konten.
+
 ## Voraussetzungen und Start
 
 - JDK **24**

@@ -376,6 +376,13 @@ public class Main extends Application {
         if (verwaltungTab != null) {
             tabPane.getTabs().add(verwaltungTab);
         }
+        if (tabPane.getTabs().isEmpty()) {
+            Label hinweis = new Label("Für dieses Konto sind noch keine Ansichten freigegeben. "
+                    + "Bitte einen Administrator um die passenden Rechte bitten.");
+            hinweis.setWrapText(true);
+            hinweis.setPadding(new Insets(24));
+            tabPane.getTabs().add(new Tab("Zugang", hinweis));
+        }
         if (!tabPane.getTabs().isEmpty()) {
             tabPane.getSelectionModel().selectFirst();
             if (verwaltungTab != null && tabPane.getSelectionModel().getSelectedItem() == verwaltungTab) {
