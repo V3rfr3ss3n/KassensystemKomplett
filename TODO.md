@@ -37,7 +37,7 @@
 - [x] Produktname und Einheit im Bon als Snapshot erhalten.
 - [x] SQLite-Speicherfehler in der Kasse sichtbar weitergeben.
 - [x] Windows-Startskript fuer Backend und JavaFX ergaenzen.
-- [ ] Manuelle GUI-Abnahme mit allen drei Rollen, PDF- und TXT-Speicherung sowie Produktauswahl auf einem Desktop durchfuehren ([GitHub-Issue #1](https://github.com/V3rfr3ss3n/KassensystemKomplett/issues/1)).
+- [x] Manuelle GUI-Abnahme mit allen drei Rollen, PDF- und TXT-Speicherung sowie Produktauswahl auf einem Desktop durchgefuehrt; vom Projektverantwortlichen am 02.10.2026 bestaetigt ([GitHub-Issue #1](https://github.com/V3rfr3ss3n/KassensystemKomplett/issues/1)).
 - [x] Admin-Weboberflaeche optisch mit Darkmode verfeinern.
 - [x] Produktliste in der Webverwaltung per Tastatur bedienbar machen.
 - [x] JavaFX-Kasse auf REST-API für Produkte, Verkäufe und Bon-Historie umstellen.
@@ -47,5 +47,8 @@
 - [x] Release-Workflow für Windows-App und GitHub Container Registry ergänzen.
 - [x] Docker-Build im GitHub-Quality-Gate und Release-Workflow mit Windows-ZIP und GHCR-Image prüfen.
 - [x] Docker Compose lokal starten; API-Rollen und einen Testkauf mit Bon-Snapshot in einem fluechtigen Container pruefen.
-- [ ] JavaFX-Kasse manuell gegen den laufenden Docker-Container bedienen und GUI-Abnahme abschliessen.
-- [ ] Benutzerverwaltung mit Rollen und Einzelrechten gemäß [Berechtigungsplan](docs/BERECHTIGUNGEN.md) und [GitHub-Issue #4](https://github.com/V3rfr3ss3n/KassensystemKomplett/issues/4) umsetzen.
+- [x] JavaFX-Kasse manuell gegen den laufenden Docker-Container bedienen und GUI-Abnahme abschliessen; vom Projektverantwortlichen am 02.10.2026 bestaetigt.
+- [x] Benutzerverwaltung mit Rollen und Einzelrechten gemäß [Berechtigungsplan](docs/BERECHTIGUNGEN.md) und [GitHub-Issue #4](https://github.com/V3rfr3ss3n/KassensystemKomplett/issues/4) umsetzen.
+- [x] Passwort-Hashes, Admin-Ersteinrichtung, Browser-CSRF und Einmaltickets einbauen; API-Rollen und Sitzungsentzug automatisch pruefen.
+- [x] Offline-Sicherung und Wiederherstellung lokal sowie mit isoliertem Docker-Volume pruefen und dokumentieren.
+- [ ] Neue Benutzeroberflaeche in JavaFX-WebView und externem Browser mit Admin, Kassierer und Lagerist visuell abnehmen.

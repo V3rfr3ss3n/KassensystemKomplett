@@ -1,7 +1,6 @@
 package de.mmbbs.kassensystem.ui;
 
 import de.mmbbs.kassensystem.auth.Benutzer;
-import de.mmbbs.kassensystem.auth.SsoTicketService;
 import de.mmbbs.kassensystem.repository.ApiClient;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.concurrent.Worker;
@@ -26,15 +25,16 @@ public class AdminWebView extends BorderPane {
     private static final String SSO_LOGIN_URL = ApiClient.basisUrl() + "/auth/javafx-login";
 
     private final Benutzer benutzer;
+    private final ApiClient api;
     private final ReadOnlyBooleanProperty darkModeProperty;
-    private final SsoTicketService ssoTicketService = new SsoTicketService();
     private final WebView webView = new WebView();
     private final Label statusLabel = new Label("Verwaltung wird geladen …");
     private boolean geladen;
     private String zielNachLaden;
 
-    public AdminWebView(Benutzer benutzer, ReadOnlyBooleanProperty darkModeProperty) {
+    public AdminWebView(Benutzer benutzer, ApiClient api, ReadOnlyBooleanProperty darkModeProperty) {
         this.benutzer = benutzer;
+        this.api = api;
         this.darkModeProperty = darkModeProperty;
 
         getStyleClass().add("admin-web-view");
@@ -95,10 +95,17 @@ public class AdminWebView extends BorderPane {
     }
 
     private void ladeAdminseite() {
-        geladen = true;
-        webView.getEngine().load(erstelleSsoUrl());
-        statusLabel.setVisible(true);
-        statusLabel.setText(verwaltungsTitel() + " wird geöffnet …");
+        try {
+            String url = erstelleSsoUrl();
+            geladen = true;
+            webView.getEngine().load(url);
+            statusLabel.setVisible(true);
+            statusLabel.setText(verwaltungsTitel() + " wird geöffnet …");
+        } catch (RuntimeException ex) {
+            geladen = false;
+            statusLabel.setVisible(true);
+            statusLabel.setText("Verwaltung konnte nicht geöffnet werden: " + ex.getMessage());
+        }
     }
 
     public void oeffneImBrowser() {
@@ -114,7 +121,7 @@ public class AdminWebView extends BorderPane {
     }
 
     private String erstelleSsoUrl() {
-        String ticket = URLEncoder.encode(ssoTicketService.erstelleTicket(benutzer), StandardCharsets.UTF_8);
+        String ticket = URLEncoder.encode(api.post("/api/auth/browser-ticket", null).path("ticket").asText(), StandardCharsets.UTF_8);
         String theme = darkModeProperty.get() ? "dark" : "light";
         return SSO_LOGIN_URL + "?ticket=" + ticket + "&theme=" + theme;
     }

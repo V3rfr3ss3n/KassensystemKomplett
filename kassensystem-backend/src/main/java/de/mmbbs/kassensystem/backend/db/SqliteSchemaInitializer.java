@@ -3,6 +3,7 @@ package de.mmbbs.kassensystem.backend.db;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
+import org.springframework.core.annotation.Order;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -17,6 +18,7 @@ import java.sql.SQLException;
  * dieselbe Datenbankdatei verwenden koennen.</p>
  */
 @Component
+@Order(0)
 public class SqliteSchemaInitializer implements ApplicationRunner {
     private final DataSource dataSource;
 
@@ -72,6 +74,44 @@ public class SqliteSchemaInitializer implements ApplicationRunner {
             ensureColumn(statement, "bon_positionen", "einheit", "TEXT");
             execute(statement, "UPDATE bon_positionen SET produkt_name = (SELECT name FROM produkte WHERE id = produkt_id) WHERE produkt_name IS NULL");
             execute(statement, "UPDATE bon_positionen SET einheit = COALESCE((SELECT einheit FROM produkte WHERE id = produkt_id), 'STUECK') WHERE einheit IS NULL");
+            execute(statement, """
+                    CREATE TABLE IF NOT EXISTS benutzer (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        login TEXT NOT NULL UNIQUE,
+                        anzeigename TEXT NOT NULL,
+                        passwort_hash TEXT NOT NULL,
+                        aktiv INTEGER NOT NULL DEFAULT 1,
+                        passwortwechsel_noetig INTEGER NOT NULL DEFAULT 0,
+                        version INTEGER NOT NULL DEFAULT 1,
+                        erstellt_am TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """);
+            execute(statement, """
+                    CREATE TABLE IF NOT EXISTS benutzer_rollen (
+                        benutzer_id INTEGER NOT NULL,
+                        rolle TEXT NOT NULL,
+                        PRIMARY KEY (benutzer_id, rolle),
+                        FOREIGN KEY (benutzer_id) REFERENCES benutzer(id) ON DELETE CASCADE
+                    )
+                    """);
+            execute(statement, """
+                    CREATE TABLE IF NOT EXISTS benutzer_rechte (
+                        benutzer_id INTEGER NOT NULL,
+                        recht TEXT NOT NULL,
+                        erlaubt INTEGER NOT NULL,
+                        PRIMARY KEY (benutzer_id, recht),
+                        FOREIGN KEY (benutzer_id) REFERENCES benutzer(id) ON DELETE CASCADE
+                    )
+                    """);
+            execute(statement, """
+                    CREATE TABLE IF NOT EXISTS benutzer_audit (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        admin_login TEXT NOT NULL,
+                        ziel_login TEXT NOT NULL,
+                        aktion TEXT NOT NULL,
+                        zeitpunkt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """);
         }
     }
 

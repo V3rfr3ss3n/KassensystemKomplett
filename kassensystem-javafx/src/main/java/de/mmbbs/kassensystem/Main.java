@@ -9,6 +9,7 @@ import de.mmbbs.kassensystem.repository.ApiProduktRepository;
 import de.mmbbs.kassensystem.service.KassenService;
 import de.mmbbs.kassensystem.service.ProduktService;
 import de.mmbbs.kassensystem.ui.AdminWebView;
+import de.mmbbs.kassensystem.ui.AlertUtil;
 import de.mmbbs.kassensystem.ui.HauptmenuView;
 import de.mmbbs.kassensystem.ui.KassenView;
 import de.mmbbs.kassensystem.ui.LoginDialog;
@@ -17,6 +18,8 @@ import javafx.beans.binding.Bindings;
 import javafx.application.Application;
 import javafx.application.ConditionalFeature;
 import javafx.application.Platform;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
@@ -46,8 +49,11 @@ import javafx.scene.layout.Region;
 import javafx.scene.input.KeyCode;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import javafx.util.Duration;
 
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Startpunkt der JavaFX-Kassenanwendung.
@@ -63,6 +69,8 @@ public class Main extends Application {
     private Stage primaryStage;
     private AdminWebView verwaltungAnsicht;
     private boolean erweiterteTitelleiste;
+    private Timeline accountHeartbeat;
+    private final AtomicBoolean accountCheckRunning = new AtomicBoolean();
 
     /**
      * Baut das Hauptfenster nach erfolgreicher Anmeldung auf.
@@ -134,7 +142,7 @@ public class Main extends Application {
         KassenService kassenService = benutzer.darfKassieren()
                 ? new KassenService(repository, new ApiBonHistorieRepository(api)) : null;
 
-        Parent root = erstelleAppShell(benutzer, produktService, kassenService);
+        Parent root = erstelleAppShell(benutzer, produktService, kassenService, api);
         ThemeManager.applyToRoot(root);
 
         Scene scene = new Scene(root, 1200, 720);
@@ -147,14 +155,15 @@ public class Main extends Application {
                 + (build.isEmpty() ? "" : " · " + build));
         primaryStage.setScene(scene);
         primaryStage.show();
+        starteKontopruefung(api, benutzer);
     }
 
     private BorderPane erstelleAppShell(Benutzer benutzer,
                                         ProduktService produktService,
-                                        KassenService kassenService) {
+                                        KassenService kassenService, ApiClient api) {
         BorderPane shell = new BorderPane();
         shell.getStyleClass().add("app-shell");
-        shell.setCenter(erstelleAnsicht(benutzer, produktService, kassenService));
+        shell.setCenter(erstelleAnsicht(benutzer, produktService, kassenService, api));
         shell.setTop(erstelleKopfzeile(benutzer));
         return shell;
     }
@@ -163,7 +172,7 @@ public class Main extends Application {
         Label appLabel = new Label("Kassensystem");
         appLabel.getStyleClass().add("app-title-label");
 
-        Label roleLabel = new Label(benutzer.benutzername() + " - " + benutzer.rolle().getAnzeigename());
+        Label roleLabel = new Label(benutzer.anzeigename() + " - " + benutzer.rollenText());
         roleLabel.getStyleClass().add("role-label");
 
         Region spacer = new Region();
@@ -273,13 +282,51 @@ public class Main extends Application {
     }
 
     private void logout() {
+        if (accountHeartbeat != null) accountHeartbeat.stop();
         primaryStage.hide();
         zeigeLogin();
     }
 
+    private void starteKontopruefung(ApiClient api, Benutzer benutzer) {
+        if (accountHeartbeat != null) accountHeartbeat.stop();
+        accountHeartbeat = new Timeline(new KeyFrame(Duration.seconds(15), event -> {
+            if (!accountCheckRunning.compareAndSet(false, true)) return;
+            Thread.ofVirtual().start(() -> {
+                try {
+                    var session = api.get("/api/session");
+                    var currentPermissions = new HashSet<String>();
+                    session.path("permissions").properties().forEach(entry -> {
+                        if (entry.getValue().asBoolean()) currentPermissions.add(entry.getKey());
+                    });
+                    var currentRoles = new HashSet<String>();
+                    session.path("roles").forEach(role -> currentRoles.add(role.asText()));
+                    if (!currentPermissions.equals(benutzer.rechte())
+                            || !currentRoles.equals(new HashSet<>(benutzer.rollen().stream().map(Enum::name).toList()))
+                            || session.path("mustChangePassword").asBoolean()) {
+                        Platform.runLater(() -> {
+                            AlertUtil.showInfo("Zugang geändert", "Rollen oder Rechte wurden geändert. Bitte erneut anmelden.");
+                            logout();
+                        });
+                    }
+                } catch (RuntimeException ex) {
+                    if (ex.getMessage() != null && ex.getMessage().contains("HTTP 401")) {
+                        Platform.runLater(() -> {
+                            AlertUtil.showInfo("Zugang beendet", "Der Zugang wurde gesperrt oder das Passwort geändert.");
+                            logout();
+                        });
+                    }
+                } finally {
+                    accountCheckRunning.set(false);
+                }
+            });
+        }));
+        accountHeartbeat.setCycleCount(Timeline.INDEFINITE);
+        accountHeartbeat.play();
+    }
+
     private TabPane erstelleAnsicht(Benutzer benutzer,
                                     ProduktService produktService,
-                                    KassenService kassenService) {
+                                    KassenService kassenService, ApiClient api) {
         verwaltungAnsicht = null;
         TabPane tabPane = new TabPane();
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
@@ -297,7 +344,7 @@ public class Main extends Application {
         AdminWebView verwaltung = null;
         if (benutzer.darfWebVerwaltungNutzen()) {
             String label = benutzer.istLagerist() ? "Warenzugang" : "Verwaltung";
-            verwaltung = new AdminWebView(benutzer, ThemeManager.darkModeProperty());
+            verwaltung = new AdminWebView(benutzer, api, ThemeManager.darkModeProperty());
             verwaltungAnsicht = verwaltung;
             verwaltungTab = new Tab(label, verwaltung);
             AdminWebView verwaltungAnsicht = verwaltung;
@@ -328,6 +375,13 @@ public class Main extends Application {
         }
         if (verwaltungTab != null) {
             tabPane.getTabs().add(verwaltungTab);
+        }
+        if (tabPane.getTabs().isEmpty()) {
+            Label hinweis = new Label("Für dieses Konto sind noch keine Ansichten freigegeben. "
+                    + "Bitte einen Administrator um die passenden Rechte bitten.");
+            hinweis.setWrapText(true);
+            hinweis.setPadding(new Insets(24));
+            tabPane.getTabs().add(new Tab("Zugang", hinweis));
         }
         if (!tabPane.getTabs().isEmpty()) {
             tabPane.getSelectionModel().selectFirst();

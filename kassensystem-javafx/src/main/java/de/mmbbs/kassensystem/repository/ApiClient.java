@@ -43,6 +43,7 @@ public class ApiClient {
             HttpRequest request = HttpRequest.newBuilder(URI.create(basis + path))
                     .timeout(Duration.ofSeconds(15))
                     .header("Authorization", authorization)
+                    .header("X-Kassensystem-Client", "JavaFX")
                     .header("Accept", "application/json")
                     .header("Content-Type", "application/json")
                     .method(methode, daten).build();
