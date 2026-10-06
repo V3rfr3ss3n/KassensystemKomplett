@@ -8,8 +8,7 @@ import java.util.Optional;
 /**
  * Abstraktion fuer die Produktdatenhaltung.
  *
- * <p>Services arbeiten gegen dieses Interface und sind dadurch unabhaengig
- * davon, ob Produkte im Speicher, in JSON oder in SQLite gespeichert werden.</p>
+ * <p>Die Kasse liest Produktdaten ausschließlich über die Backend-API.</p>
  */
 public interface ProduktRepository {
     /**
@@ -21,14 +20,4 @@ public interface ProduktRepository {
      * Sucht ein Produkt ueber seine Produktnummer.
      */
     Optional<Produkt> findeNachId(int id);
-
-    /**
-     * Speichert ein neues oder geaendertes Produkt.
-     */
-    Produkt speichern(Produkt produkt);
-
-    /**
-     * Entfernt ein Produkt aus der Datenhaltung.
-     */
-    void loeschen(int id);
 }

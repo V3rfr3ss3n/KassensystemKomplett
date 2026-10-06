@@ -9,6 +9,7 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class AccountMigrationTest {
     @TempDir Path temp;
@@ -29,6 +30,11 @@ class AccountMigrationTest {
         assertEquals("Apfel", jdbc.queryForObject("SELECT name FROM produkte WHERE id=1", String.class));
         assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM bons", Integer.class));
         assertEquals("Apfel", jdbc.queryForObject("SELECT produkt_name FROM bon_positionen WHERE id=1", String.class));
+        assertEquals("KS-P-000001", jdbc.queryForObject("SELECT scan_code FROM produkte WHERE id=1", String.class));
+        assertThrows(org.springframework.dao.DataAccessException.class,
+                () -> jdbc.update("INSERT INTO produkte(name,preis,lagerbestand,scan_code) VALUES('Kopie',1,1,'KS-P-000001')"));
+        new SqliteSchemaInitializer(source).run(null);
+        assertEquals("KS-P-000001", jdbc.queryForObject("SELECT scan_code FROM produkte WHERE id=1", String.class));
         assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM benutzer", Integer.class));
 
         var accounts = new AccountService(jdbc, new BCryptPasswordEncoder(), false, "EigenesStartpasswort123");
@@ -39,4 +45,5 @@ class AccountMigrationTest {
         accounts.run(null);
         assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM benutzer", Integer.class));
     }
+
 }

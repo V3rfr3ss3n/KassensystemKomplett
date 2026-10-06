@@ -71,7 +71,7 @@ try {
         Start-Sleep -Seconds 1
     }
     if (-not $bereit) {
-        throw "Die Verwaltung konnte nicht gestartet werden. Bei der ersten Einrichtung KASSENSYSTEM_AUTH_INITIAL_ADMIN_PASSWORD setzen. Details: $protokoll"
+        throw "Die Verwaltung konnte nicht gestartet werden. Details: $protokoll"
     }
     Write-Host 'Starte JavaFX-Kasse. Beim Schliessen der Kasse wird auch die Verwaltung beendet.'
     & $mavenPfad -pl kassensystem-javafx javafx:run

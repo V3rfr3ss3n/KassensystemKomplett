@@ -9,6 +9,7 @@ public record ProduktDto(
         String einheit,
         String einheitLabel,
         double steuerSatz,
-        String kategorie
+        String kategorie,
+        String scanCode
 ) {
 }

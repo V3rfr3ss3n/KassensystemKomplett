@@ -27,22 +27,12 @@
             <artifactId>javafx-web</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.xerial</groupId>
-            <artifactId>sqlite-jdbc</artifactId>
-            <version>3.53.1.0</version>
-            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
@@ -57,6 +47,25 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>coverage-gate</id>
+                        <configuration>
+                            <excludes>
+                                <exclude>de/mmbbs/kassensystem/ui/**</exclude>
+                                <exclude>de/mmbbs/kassensystem/Main*</exclude>
+                                <exclude>de/mmbbs/kassensystem/DesktopLauncher*</exclude>
+                            </excludes>
+                            <rules><rule><element>BUNDLE</element><limits><limit>
+                                <counter>LINE</counter><value>COVEREDRATIO</value><minimum>0.30</minimum>
+                            </limit></limits></rule></rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

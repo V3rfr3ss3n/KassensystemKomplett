@@ -1,6 +1,7 @@
 # Maven build output
 target/
 */target/
+dist/
 
 # Runtime data and local databases
 data/

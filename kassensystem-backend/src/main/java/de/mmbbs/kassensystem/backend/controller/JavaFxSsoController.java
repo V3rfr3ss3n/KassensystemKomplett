@@ -41,6 +41,7 @@ public class JavaFxSsoController {
     @GetMapping("/auth/javafx-login")
     public String login(@RequestParam("ticket") String ticket,
                         @RequestParam(name = "theme", defaultValue = "light") String theme,
+                        @RequestParam(name = "scan", defaultValue = "false") boolean scan,
                         HttpServletRequest request, HttpServletResponse response) {
         var consumed = tickets.consume(ticket)
                 .orElseThrow(() -> new ResponseStatusException(FORBIDDEN, "Anmeldeticket ist ungültig."));
@@ -56,6 +57,7 @@ public class JavaFxSsoController {
         context.setAuthentication(authentication);
         SecurityContextHolder.setContext(context);
         repository.saveContext(context, request, response);
-        return "redirect:/admin/index.html?theme=" + ("dark".equalsIgnoreCase(theme) ? "dark" : "light");
+        return "redirect:/admin/index.html?theme=" + ("dark".equalsIgnoreCase(theme) ? "dark" : "light")
+                + (scan ? "&scan=1" : "");
     }
 }

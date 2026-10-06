@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -108,7 +109,9 @@ class AccountSecurityIntegrationTest {
                 .header("X-Kassensystem-Client", "JavaFX"))
                 .andExpect(status().isOk()).andReturn();
         String token = json.readTree(issued.getResponse().getContentAsString()).path("ticket").asText();
-        mvc.perform(get("/auth/javafx-login").param("ticket", token)).andExpect(status().is3xxRedirection());
+        MvcResult scanWeiterleitung = mvc.perform(get("/auth/javafx-login").param("ticket", token)
+                .param("scan", "true")).andExpect(status().is3xxRedirection()).andReturn();
+        assertTrue(scanWeiterleitung.getResponse().getRedirectedUrl().contains("scan=1"));
         mvc.perform(get("/auth/javafx-login").param("ticket", token)).andExpect(status().isForbidden());
 
         String username = unique();

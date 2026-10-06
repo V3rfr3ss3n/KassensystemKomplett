@@ -3,11 +3,8 @@ package de.mmbbs.kassensystem.service;
 import de.mmbbs.kassensystem.model.Bon;
 import de.mmbbs.kassensystem.model.BonPosition;
 import de.mmbbs.kassensystem.model.Produkt;
-import de.mmbbs.kassensystem.repository.BonHistorieRepository;
-import de.mmbbs.kassensystem.repository.JsonBonHistorieRepository;
+import de.mmbbs.kassensystem.repository.KaufRepository;
 import de.mmbbs.kassensystem.repository.ProduktRepository;
-import de.mmbbs.kassensystem.repository.RemoteKaufRepository;
-import de.mmbbs.kassensystem.repository.TransaktionalerKaufRepository;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -17,29 +14,19 @@ import java.util.Map;
 /**
  * Fachlogik fuer Kassenvorgaenge.
  *
- * <p>Der Service verwaltet den Warenkorb, prueft Lagerbestaende, erzeugt Bons,
- * reduziert nach dem Kauf den Bestand und speichert die Bon-Historie.</p>
+ * <p>Der Service verwaltet den Warenkorb und prüft verfügbare Bestände.
+ * Das Backend speichert Bon und Lagerabbuchung gemeinsam.</p>
  */
 public class KassenService {
     private final ProduktRepository repository;
-    private final BonHistorieRepository bonHistorieRepository;
-    private final BonService bonService;
+    private final KaufRepository kaufRepository;
     private final List<BonPosition> warenkorb = new ArrayList<>();
     private final List<Bon> bonHistorie = new ArrayList<>();
 
-    public KassenService(ProduktRepository repository) {
-        this(repository, new JsonBonHistorieRepository());
-    }
-
-    public KassenService(ProduktRepository repository, BonHistorieRepository bonHistorieRepository) {
+    public KassenService(ProduktRepository repository, KaufRepository kaufRepository) {
         this.repository = repository;
-        this.bonHistorieRepository = bonHistorieRepository;
-        this.bonHistorie.addAll(bonHistorieRepository.ladeBonHistorie());
-        int naechsteBonNummer = this.bonHistorie.stream()
-                .mapToInt(Bon::getBonnummer)
-                .max()
-                .orElse(0) + 1;
-        this.bonService = new BonService(naechsteBonNummer);
+        this.kaufRepository = kaufRepository;
+        this.bonHistorie.addAll(kaufRepository.ladeBonHistorie());
     }
 
     public void positionHinzufuegen(int produktId, int menge) {
@@ -150,8 +137,8 @@ public class KassenService {
     /**
      * Schliesst den Kassenvorgang ab.
      *
-     * <p>Dabei werden alle benoetigten Lagerbestaende erneut geprueft, die
-     * Bestaende reduziert, ein Bon erzeugt und der Warenkorb geleert.</p>
+     * <p>Die Bestände werden vorab geprüft. Das Backend erzeugt Bon und
+     * Lagerabbuchung in einer Transaktion; erst nach Erfolg wird der Warenkorb geleert.</p>
      *
      * @return Erzeugter Bon des abgeschlossenen Kaufs.
      */
@@ -174,29 +161,8 @@ public class KassenService {
             }
         }
 
-        Bon bon;
-        if (bonHistorieRepository instanceof RemoteKaufRepository remote) {
-            bon = remote.schliesseKaufAb(benoetigteMengen);
-        } else {
-            bon = bonService.erstelleBon(new ArrayList<>(warenkorb));
-        }
-        if (bonHistorieRepository instanceof RemoteKaufRepository) {
-            // Der Server hat Bestand und Bon bereits in einer Transaktion gespeichert.
-        } else if (bonHistorieRepository instanceof TransaktionalerKaufRepository transaktional) {
-            transaktional.speichereKauf(bon, benoetigteMengen);
-        } else {
-            for (BonPosition position : warenkorb) {
-                Produkt produkt = repository.findeNachId(position.getProdukt().getId())
-                        .orElseThrow(() -> new IllegalArgumentException("Produkt nicht gefunden."));
-                produkt.bestandVerringern(position.getMenge());
-                repository.speichern(produkt);
-            }
-            List<Bon> neueHistorie = new ArrayList<>(bonHistorie);
-            neueHistorie.add(0, bon);
-            bonHistorieRepository.speichereBonHistorie(neueHistorie);
-        }
+        Bon bon = kaufRepository.schliesseKaufAb(benoetigteMengen);
         bonHistorie.add(0, bon);
-        if (!(bonHistorieRepository instanceof RemoteKaufRepository)) bonService.bonGespeichert();
         warenkorb.clear();
         return bon;
     }

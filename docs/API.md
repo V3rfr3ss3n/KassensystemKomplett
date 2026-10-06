@@ -1,6 +1,6 @@
 # Kassensystem REST-API
 
-Basis-URL: `http://localhost:8080/kassensystem`. JSON wird mit UTF-8 übertragen. Der JavaFX-Client nutzt HTTP Basic Auth mit `X-Kassensystem-Client: JavaFX`; die Webverwaltung nutzt eine Browser-Sitzung und sendet bei Schreibzugriffen den Token aus `GET /api/session` als Header `X-CSRF-TOKEN`. Bei einer Browser-Sitzung hat diese Vorrang vor zwischengespeicherten Basic-Zugangsdaten. Benutzer und BCrypt-Passwort-Hashes liegen in SQLite. Neue Installationen benötigen `KASSENSYSTEM_AUTH_INITIAL_ADMIN_PASSWORD` für den ersten Admin; der Passwortwechsel ist beim ersten Login Pflicht. Demo-Konten mit `1234` gibt es nur bei `KASSENSYSTEM_AUTH_DEMO=true` und leerer Benutzertabelle.
+Basis-URL: `http://localhost:8080/kassensystem`. JSON wird mit UTF-8 übertragen. Der JavaFX-Client nutzt HTTP Basic Auth mit `X-Kassensystem-Client: JavaFX`; die Webverwaltung nutzt eine Browser-Sitzung und sendet bei Schreibzugriffen den Token aus `GET /api/session` als Header `X-CSRF-TOKEN`. Bei einer Browser-Sitzung hat diese Vorrang vor zwischengespeicherten Basic-Zugangsdaten. Benutzer und BCrypt-Passwort-Hashes liegen in SQLite. Bei leerer Benutzertabelle wird der erste Admin angelegt. Ohne gesetztes `KASSENSYSTEM_AUTH_INITIAL_ADMIN_PASSWORD` erzeugt das Backend ein zufälliges einmaliges Startpasswort und protokolliert es beim Start; beim ersten Login muss es geändert werden. Demo-Konten mit `1234` gibt es nur bei `KASSENSYSTEM_AUTH_DEMO=true` und leerer Benutzertabelle.
 
 | Methode | Pfad | Admin | Kassierer | Lagerist |
 |---|---|---:|---:|---:|
@@ -30,6 +30,12 @@ Die Tabelle zeigt die Standardrechte der Rollen. Einzelrechte können diese pro 
 `POST /api/bilder` erwartet `multipart/form-data` mit dem Feld `datei` (PNG, JPEG oder GIF, höchstens 5 MB und 5000 × 5000 Pixel). Die Antwort enthält `url`, beispielsweise `api/bilder/550e8400-e29b-41d4-a716-446655440000.png`. Diesen Wert im Feld `bildPfad` des Produkts speichern. Der Server verkleinert große Bilder und legt sie neben der Datenbank im Verzeichnis `images` ab. Das Bild kann über die zurückgegebene URL ohne Anmeldung angezeigt werden, damit es auch in der JavaFX-Kasse erscheint.
 
 Produktdaten enthalten das optionale Feld `kategorie`. Erlaubte Werte sind `Obst`, `Gemüse`, `Backwaren`, `Lebensmittel`, `Getränke`, `Elektronik`, `Haushalt`, `Hygiene` und `Sonstiges`. Andere Werte beantwortet die API mit HTTP 400. Fehlt das Feld, verwendet der Server „Sonstiges“. Beim Start ergänzt die SQLite-Migration das Feld auch bei vorhandenen Produkten. Ältere frei eingegebene Kategorien bleiben in SQLite erhalten und werden in der API als „Sonstiges“ angezeigt, bis das Produkt erneut gespeichert wird.
+
+Produkte besitzen außerdem `scanCode`. Bei der Anlage ohne Code erzeugt das Backend nach Vergabe der ID einen stabilen Wert wie `KS-P-000123`; alte Produkte erhalten ihn bei der Migration. Ein manuell angegebener Code wird getrimmt, muss 1–128 druckbare ASCII-Zeichen enthalten und ist exakt eindeutig (Duplikat: HTTP 409). Beim Aktualisieren erhält ein fehlender oder leerer Wert den vorhandenen Code. Produktlisten und Einzelabruf liefern `scanCode` zurück.
+
+`POST /api/produkte/etiketten` akzeptiert `{ "produktIds": [1, 2] }` und liefert einen A4-PDF-Bogen mit 24 QR-Etiketten pro Seite (`application/pdf`). Doppelte IDs ergeben nur ein Etikett; leere Auswahl wird mit HTTP 400 und unbekannte IDs mit HTTP 404 beantwortet. Der Endpunkt benötigt `products.manage` und im Browser einen CSRF-Token.
+
+`POST /api/produkte/scan-bild` akzeptiert ein einzelnes JPEG- oder PNG-Bild (höchstens 1 MB und 4 Megapixel) und liefert bei erkanntem QR-, EAN- oder Code-128-Wert `{ "scanCode": "..." }`. Ohne erkannten Code antwortet er mit HTTP 204, bei ungültigem Bild mit HTTP 400 und bei zu großem Bild mit HTTP 413. Er benötigt `products.read` und im Browser einen CSRF-Token. Kamerabilder werden nur für die Erkennung verarbeitet und nicht gespeichert. Die Handy-Webseite benötigt HTTPS für den Kamerazugriff.
 
 ## Beispiel: Verkauf
 

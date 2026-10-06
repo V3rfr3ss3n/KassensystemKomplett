@@ -14,8 +14,8 @@ import java.sql.SQLException;
 /**
  * Legt beim Start des Spring-Backends das SQLite-Schema an.
  *
- * <p>Das Backend benoetigt dieselben Tabellen wie JavaFX, damit beide Teile
- * dieselbe Datenbankdatei verwenden koennen.</p>
+ * <p>Das Backend ist die einzige produktive Datenquelle. JavaFX greift ueber
+ * die REST-API auf diese Tabellen zu.</p>
  */
 @Component
 @Order(0)
@@ -38,6 +38,7 @@ public class SqliteSchemaInitializer implements ApplicationRunner {
                         lagerbestand REAL NOT NULL,
                         bildPfad TEXT,
                         kategorie TEXT NOT NULL DEFAULT 'Sonstiges',
+                        scan_code TEXT,
                         einheit TEXT NOT NULL DEFAULT 'STUECK',
                         steuerSatz REAL NOT NULL DEFAULT 19.0,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -68,6 +69,9 @@ public class SqliteSchemaInitializer implements ApplicationRunner {
                     """);
             ensureColumn(statement, "produkte", "einheit", "TEXT NOT NULL DEFAULT 'STUECK'");
             ensureColumn(statement, "produkte", "kategorie", "TEXT NOT NULL DEFAULT 'Sonstiges'");
+            ensureColumn(statement, "produkte", "scan_code", "TEXT");
+            execute(statement, "UPDATE produkte SET scan_code = printf('KS-P-%06d', id) WHERE scan_code IS NULL OR trim(scan_code) = ''");
+            execute(statement, "CREATE UNIQUE INDEX IF NOT EXISTS idx_produkte_scan_code ON produkte(scan_code)");
             ensureColumn(statement, "produkte", "steuerSatz", "REAL NOT NULL DEFAULT 19.0");
             ensureColumn(statement, "bon_positionen", "steuerSatz", "REAL NOT NULL DEFAULT 19.0");
             ensureColumn(statement, "bon_positionen", "produkt_name", "TEXT");

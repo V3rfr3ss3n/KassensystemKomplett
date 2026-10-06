@@ -47,6 +47,7 @@
         </div>
         <div class="toolbar">
             <input id="searchInput" type="search" aria-label="Produkte suchen" placeholder="Produkte suchen …">
+            <button id="cameraScanButton" type="button">QR-Code scannen</button>
             <select id="unitFilter" aria-label="Einheit filtern">
                 <option value="">Alle Einheiten</option>
                 <option value="STUECK">Stück</option>
@@ -77,12 +78,20 @@
             </label>
         </div>
 
+        <p id="cameraScanStatus" class="camera-scan-status" role="status" hidden></p>
+        <div id="cameraScanPanel" class="camera-scan-panel" hidden>
+            <video id="cameraScanVideo" autoplay muted playsinline aria-label="Kamerabild"></video>
+            <button id="cameraScanClose" type="button">Scan beenden</button>
+        </div>
+
         <div class="table-wrap">
             <table>
                 <thead>
                 <tr>
+                    <th><input id="selectVisibleProducts" type="checkbox" aria-label="Sichtbare Produkte auswählen"></th>
                     <th>ID</th>
                     <th>Name</th>
+                    <th>Scan-Code</th>
                     <th>Kategorie</th>
                     <th>Preis</th>
                     <th>Lagerbestand</th>
@@ -93,6 +102,7 @@
                 <tbody id="productRows"></tbody>
             </table>
         </div>
+        <button id="downloadLabelsButton" type="button" hidden>QR-Etiketten als PDF</button>
     </section>
 
     <aside class="editor" aria-label="Verwaltung">
@@ -104,6 +114,10 @@
                 <label>
                     Name
                     <input id="nameInput" name="name" required>
+                </label>
+                <label>
+                    Scan-Code (leer = automatisch)
+                    <input id="scanCodeInput" name="scanCode" maxlength="128" autocomplete="off">
                 </label>
                 <label>
                     Kategorie
@@ -220,6 +234,6 @@
     </form>
 </dialog>
 
-<script src="admin.js?v=20261002-2"></script>
+<script type="module" src="admin.js?v=20261006-1"></script>
 </body>
 </html>

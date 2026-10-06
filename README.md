@@ -2,20 +2,25 @@
 
 Grafisches Kassensystem für einen kleinen Laden. Die JavaFX-App nutzt die REST-API des Spring-Boot-Backends für Produkte, Verkäufe und Bons. Nur das Backend greift auf SQLite zu.
 
+Produkte können einen eindeutigen Scan-Code besitzen. Ein USB-Scanner im Tastaturmodus gibt den Code in der Kasse ein und schließt mit Enter ab: Stück/Packung landen sofort im Warenkorb, bei kg/l folgt die Mengeneingabe. Die Verwaltung kann für ausgewählte Produkte A4-Bögen mit QR-Etiketten als PDF speichern. EAN-Werte können als Scan-Code hinterlegt werden; gedruckte Etiketten verwenden QR.
+
 ## Schnellstart mit Docker
 
 Unter Windows Docker Desktop installieren: `winget install -e --id Docker.DockerDesktop` (in UniGetUI nach `Docker.DockerDesktop` suchen). Docker Desktop starten. JDK 24 und Maven 3.9+ werden für den lokalen Build benötigt:
 
 ```powershell
 mvn verify
-$env:KASSENSYSTEM_AUTH_INITIAL_ADMIN_PASSWORD = 'EinEigenesStartpasswort123'
 docker compose up --build -d
 mvn -pl kassensystem-javafx javafx:run
 ```
 
-Beim ersten Start wird damit `admin` angelegt. Dieses Startpasswort muss beim ersten Login geändert werden. Die Umgebungsvariable kann nach der Einrichtung entfernt werden. Für eine reine Entwicklungsdatenbank sind die alten Testkonten nur mit `KASSENSYSTEM_AUTH_DEMO=true` aktivierbar; niemals für eine normale Installation verwenden.
+Beim ersten Start wird `admin` angelegt. Ohne gesetztes `KASSENSYSTEM_AUTH_INITIAL_ADMIN_PASSWORD` erzeugt das Backend ein zufälliges einmaliges Startpasswort und gibt es in den Backend-Logs aus (`docker compose logs backend`). Mit gesetzter Variable wird stattdessen das eigene Startpasswort verwendet. Beim ersten Login muss das Startpasswort geändert werden; danach wird das neue Passwort dauerhaft in der Datenbank verwendet. Für eine reine Entwicklungsdatenbank sind die alten Testkonten nur mit `KASSENSYSTEM_AUTH_DEMO=true` aktivierbar; niemals für eine normale Installation verwenden.
 
-Die Verwaltung ist unter `http://127.0.0.1:8080/kassensystem/admin/` erreichbar. Die Daten liegen im Docker-Volume `kassensystem-data`. `docker compose down` stoppt das Backend und erhält die Daten. Die Kasse erreicht das Backend standardmäßig über `127.0.0.1:8080`; eine Hotspot-Verbindung ändert diese lokale Adresse nicht. Die Server-Wurzel `/` zeigt keine Seite.
+Die Verwaltung ist unter `http://127.0.0.1:8080/kassensystem/` erreichbar; diese Adresse führt zum Adminbereich und bei Bedarf zur Anmeldung. Die Daten liegen im Docker-Volume `kassensystem-data`. `docker compose down` stoppt das Backend und erhält die Daten. Die Kasse erreicht das Backend standardmäßig über `127.0.0.1:8080`; eine Hotspot-Verbindung ändert diese lokale Adresse nicht.
+
+**QR-Codes mit dem Handy scannen:** Die Web-Verwaltung im Handy-Browser öffnen und in der Produktliste „QR-Code scannen“ antippen. Nach Kamerafreigabe wird das passende Produkt gesucht und geöffnet; der Scan bucht keinen Bestand. Die Kamera wird nach einem Treffer oder beim Schließen ausgeschaltet. Auf dem Handy muss die Seite über **HTTPS mit einem vom Handy vertrauten Zertifikat** erreichbar sein (etwa über einen HTTPS-Reverse-Proxy). Die lokale HTTP-Adresse oben funktioniert nur für den Browser am selben Rechner als Entwicklungseinstieg; über `http://<LAN-IP>:8080` erlaubt der Handy-Browser keinen Kamerazugriff. Auf dem Handy die Web-Verwaltung statt der JavaFX-WebView verwenden.
+
+In der eingebetteten JavaFX-Verwaltung öffnet „QR-Code im Browser scannen“ den Standardbrowser mit einer einmaligen Anmeldung und startet dort den Kamerascan direkt. Das Kamerabild erscheint unter der Produktsuche; bei verweigertem Zugriff oder fehlender Kamera steht dort nur ein kurzer Hinweis. Nach einer geänderten Browserfreigabe startet ein erneuter Klick auf „QR-Code scannen“ den nächsten Versuch.
 
 Für ein anderes Backend `KASSENSYSTEM_API_URL` oder `-Dkassensystem.api.url=<URL>` setzen. Die URL enthält den Kontextpfad, etwa `http://localhost:8080/kassensystem`. Bei einer Release-ZIP die App mit `Kassensystem.exe` starten; Docker/Backend muss zuvor laufen.
 
@@ -27,15 +32,13 @@ Nach einem Tag wie `v1.0.0` veröffentlicht der Release-Workflow die ZIP `Kassen
 
 ```powershell
 $release = 'v0.1.0-rc.17'
-$env:KASSENSYSTEM_AUTH_INITIAL_ADMIN_PASSWORD = 'EinEigenesStartpasswort123'
 docker run --detach --rm --name kassensystem-test -p 127.0.0.1:8080:8080 `
   -e KASSENSYSTEM_DB_PATH=/data/kassensystem.db `
-  -e KASSENSYSTEM_AUTH_INITIAL_ADMIN_PASSWORD `
   -v kassensystem-test-data:/data `
   "ghcr.io/v3rfr3ss3n/kassensystemkomplett/backend:$release"
 ```
 
-Danach die EXE **derselben Version** starten, als `admin` mit dem selbst gewählten Startpasswort anmelden und es auf Aufforderung ändern. Die Testdaten bleiben im separaten Docker-Volume `kassensystem-test-data`. Nach dem Test `docker stop kassensystem-test` ausführen. `1234` gilt nur für ausdrücklich aktivierte Demo-Konten.
+Das automatisch erzeugte Startpasswort steht mit `docker logs kassensystem-test` im Container-Log. Danach die EXE **derselben Version** starten, als `admin` mit diesem Startpasswort anmelden und es auf Aufforderung ändern. Die Testdaten bleiben im separaten Docker-Volume `kassensystem-test-data`. Nach dem Test `docker stop kassensystem-test` ausführen. `1234` gilt nur für ausdrücklich aktivierte Demo-Konten.
 
 ## Voraussetzungen und Start
 
@@ -44,7 +47,7 @@ Danach die EXE **derselben Version** starten, als `admin` mit dem selbst gewähl
 - Windows für das bereitgestellte Startskript; unter anderen Systemen die Maven-Befehle verwenden.
 
 Unter Windows `start-kassensystem.cmd` im Projektordner ausführen. Das Skript prüft JDK und Maven, startet das Backend im Hintergrund und danach die JavaFX-Kasse. Die Startmeldungen des Backends stehen in `data/backend-start.log`. Dies ist die Entwicklung ohne Docker.
-Vor dem ersten Start ein eigenes Startpasswort setzen: `$env:KASSENSYSTEM_AUTH_INITIAL_ADMIN_PASSWORD = 'EinEigenesStartpasswort123'`.
+Beim ersten Start ohne gesetzte Variable wird ein einmaliges Startpasswort erzeugt und nach `data/backend-start.log` geschrieben. Alternativ kann vor dem Start ein eigenes Passwort in `KASSENSYSTEM_AUTH_INITIAL_ADMIN_PASSWORD` gesetzt werden.
 
 Alternativ in zwei Terminals aus dem Projektordner starten:
 
@@ -79,7 +82,7 @@ mvn verify
 
 Die Tests prüfen Kassenlogik, Transaktions-Rollback, historische Bons, PDF-Inhalt, API und Rollen. Für die manuelle Abnahme einen Testkauf durchführen, den Bestand prüfen, die Anwendung neu starten und denselben Bon erneut öffnen sowie als PDF und TXT speichern.
 
-Der Quality Gate prüft alle Tests und verlangt mindestens 20 % Zeilenabdeckung pro Modul. GitHub Actions prüft außerdem das Browser-JavaScript und baut das Docker-Image. Die API-Endpunkte und Beispiele stehen in [docs/API.md](docs/API.md).
+Der Quality Gate prüft alle Tests und verlangt mindestens 30 % Zeilenabdeckung für den testbaren JavaFX-Kern und 70 % für das Backend. GitHub Actions prüft außerdem das Browser-JavaScript und baut das Docker-Image. Die API-Endpunkte und Beispiele stehen in [docs/API.md](docs/API.md).
 
 ## Screenshot-Plätze für die Abgabe
 

@@ -6,7 +6,6 @@ import de.mmbbs.kassensystem.model.Verkaufseinheit;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public class ApiProduktRepository implements ProduktRepository {
@@ -24,22 +23,12 @@ public class ApiProduktRepository implements ProduktRepository {
         return findeAlle().stream().filter(p -> p.getId() == id).findFirst();
     }
 
-    @Override public Produkt speichern(Produkt produkt) {
-        Map<String, Object> daten = Map.of("name", produkt.getName(), "preis", produkt.getPreis(),
-                "lagerbestand", produkt.getLagerbestand(), "bildPfad", produkt.getBildPfad() == null ? "" : produkt.getBildPfad(),
-                "einheit", produkt.getEinheit().name(), "steuerSatz", produkt.getSteuerSatz(),
-                "kategorie", produkt.getKategorie());
-        return lese(produkt.getId() == 0 ? api.post("/api/produkte", daten)
-                : api.put("/api/produkte/" + produkt.getId(), daten));
-    }
-
-    @Override public void loeschen(int id) { api.delete("/api/produkte/" + id); }
-
     private static Produkt lese(JsonNode node) {
         Produkt produkt = new Produkt(node.path("id").asInt(), node.path("name").asText(), node.path("preis").asDouble(),
                 node.path("lagerbestand").asDouble(), node.path("bildPfad").asText(null),
                 Verkaufseinheit.valueOf(node.path("einheit").asText("STUECK")), node.path("steuerSatz").asDouble(19));
         produkt.setKategorie(node.path("kategorie").asText("Sonstiges"));
+        produkt.setScanCode(node.path("scanCode").asText(null));
         return produkt;
     }
 }

@@ -7,6 +7,7 @@ public record ProduktRequest(
         String bildPfad,
         String einheit,
         Double steuerSatz,
-        String kategorie
+        String kategorie,
+        String scanCode
 ) {
 }

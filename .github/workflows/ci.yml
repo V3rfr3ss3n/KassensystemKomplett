@@ -18,7 +18,9 @@ jobs:
       - name: Tests und Coverage-Gate
         run: mvn -B verify
       - name: Browser-JavaScript pruefen
-        run: node --check kassensystem-backend/src/main/resources/static/admin/admin.js
+        run: |
+          for file in kassensystem-backend/src/main/resources/static/admin/*.js; do node --check "$file"; done
+          node --test kassensystem-backend/src/test/js/*.test.mjs
       - name: Docker-Image bauen
         run: docker build -t kassensystem-backend:ci .
       - name: Coverage-Berichte archivieren

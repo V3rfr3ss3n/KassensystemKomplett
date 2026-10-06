@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class ApiBonHistorieRepository implements BonHistorieRepository, RemoteKaufRepository {
+public class ApiBonHistorieRepository implements KaufRepository {
     private final ApiClient api;
 
     public ApiBonHistorieRepository(ApiClient api) { this.api = api; }
@@ -20,10 +20,6 @@ public class ApiBonHistorieRepository implements BonHistorieRepository, RemoteKa
         List<Bon> bons = new ArrayList<>();
         for (JsonNode node : api.get("/api/bons")) bons.add(lese(node));
         return bons;
-    }
-
-    @Override public void speichereBonHistorie(List<Bon> bonHistorie) {
-        throw new UnsupportedOperationException("Bons werden nur ueber den Kaufabschluss gespeichert.");
     }
 
     @Override public Bon schliesseKaufAb(Map<Integer, Double> mengen) {

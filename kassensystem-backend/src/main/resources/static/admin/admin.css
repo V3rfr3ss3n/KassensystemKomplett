@@ -244,6 +244,11 @@ body.dark-mode button.danger:hover {
     min-width: 190px;
 }
 
+.camera-scan-status { margin: 8px 14px; color: var(--muted); }
+.camera-scan-panel { margin: 8px 14px 14px; max-width: 440px; }
+.camera-scan-panel video { display: block; width: 100%; max-height: 60vh; background: #111; border-radius: 8px; }
+.camera-scan-panel button { margin-top: 8px; }
+
 .checkbox-line {
     display: inline-flex;
     align-items: center;
@@ -261,6 +266,10 @@ body.dark-mode button.danger:hover {
     overflow: auto;
     max-height: calc(100vh - 280px);
 }
+
+.label-selection { width: 36px; text-align: center; }
+.label-selection input, #selectVisibleProducts { width: 16px; height: 16px; cursor: pointer; }
+#downloadLabelsButton { margin-top: 12px; }
 
 table {
     width: 100%;

@@ -12,8 +12,12 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -24,6 +28,8 @@ import java.util.Set;
 @Service
 @Order(1)
 public class AccountService implements UserDetailsService, ApplicationRunner {
+    private static final Logger LOG = LoggerFactory.getLogger(AccountService.class);
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     public static final List<String> PERMISSIONS = List.of(
             "products.read", "products.manage", "stock.book", "sales.create", "receipts.read", "users.manage");
     public static final List<String> ROLES = List.of("ADMIN", "KASSIERER", "LAGERIST");
@@ -55,8 +61,20 @@ public class AccountService implements UserDetailsService, ApplicationRunner {
             seed("lagerist", "Lagerist", "LAGERIST");
             return;
         }
-        validatePassword(initialPassword);
-        insert("admin", "Admin", initialPassword, true, List.of("ADMIN"));
+        String startPasswort = initialPassword == null || initialPassword.isBlank()
+                ? generiereStartpasswort() : initialPassword;
+        validatePassword(startPasswort);
+        insert("admin", "Admin", startPasswort, true, List.of("ADMIN"));
+        if (initialPassword == null || initialPassword.isBlank()) {
+            LOG.warn("Ersteinrichtung: Ein einmaliges Admin-Startpasswort wurde erzeugt. " +
+                    "Jetzt als 'admin' anmelden und das Passwort ändern: {}", startPasswort);
+        }
+    }
+
+    private String generiereStartpasswort() {
+        byte[] zufall = new byte[24];
+        SECURE_RANDOM.nextBytes(zufall);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(zufall);
     }
 
     private void seed(String login, String displayName, String role) {

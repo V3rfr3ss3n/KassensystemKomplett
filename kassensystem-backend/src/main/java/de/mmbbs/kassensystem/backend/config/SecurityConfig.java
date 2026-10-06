@@ -38,6 +38,8 @@ public class SecurityConfig {
                             .hasAnyAuthority("PERM_products.manage", "PERM_stock.book", "PERM_users.manage")
                         .requestMatchers("/api/admin/**").hasAuthority("PERM_users.manage")
                         .requestMatchers(HttpMethod.GET, "/api/produkte/**").hasAuthority("PERM_products.read")
+                        .requestMatchers(HttpMethod.POST, "/api/produkte/scan-bild").hasAuthority("PERM_products.read")
+                        .requestMatchers(HttpMethod.POST, "/api/produkte/etiketten").hasAuthority("PERM_products.manage")
                         .requestMatchers(HttpMethod.POST, "/api/produkte/*/warenzugang").hasAuthority("PERM_stock.book")
                         .requestMatchers("/api/produkte/**", "/api/bilder/**").hasAuthority("PERM_products.manage")
                         .requestMatchers("/api/bons/**").hasAuthority("PERM_receipts.read")

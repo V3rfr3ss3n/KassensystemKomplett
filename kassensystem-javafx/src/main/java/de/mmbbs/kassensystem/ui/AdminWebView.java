@@ -1,18 +1,27 @@
 package de.mmbbs.kassensystem.ui;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import de.mmbbs.kassensystem.auth.Benutzer;
 import de.mmbbs.kassensystem.repository.ApiClient;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.concurrent.Worker;
+import javafx.animation.PauseTransition;
 import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.web.WebView;
+import javafx.application.Platform;
+import javafx.stage.FileChooser;
+import javafx.util.Duration;
+import netscape.javascript.JSObject;
 
 import java.awt.Desktop;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Eingebetteter Zugriff auf den Spring-Adminbereich.
@@ -31,6 +40,7 @@ public class AdminWebView extends BorderPane {
     private final Label statusLabel = new Label("Verwaltung wird geladen …");
     private boolean geladen;
     private String zielNachLaden;
+    private final AdminBridge adminBridge = new AdminBridge();
 
     public AdminWebView(Benutzer benutzer, ApiClient api, ReadOnlyBooleanProperty darkModeProperty) {
         this.benutzer = benutzer;
@@ -47,16 +57,10 @@ public class AdminWebView extends BorderPane {
 
         webView.getEngine().getLoadWorker().stateProperty().addListener((obs, oldState, state) -> {
             if (state == Worker.State.SUCCEEDED) {
-                synchronisiereWebTheme();
-                statusLabel.setText("Verwaltung geladen für " + benutzer.benutzername() + ".");
-                statusLabel.setVisible(false);
                 if (istAdminseite()) {
-                    webView.getEngine().executeScript("document.querySelector('.settings-menu').hidden = true");
-                    if (zielNachLaden != null) {
-                        navigiereZu(zielNachLaden);
-                    } else {
-                        aktualisiereProdukte();
-                    }
+                    JSObject fenster = (JSObject) webView.getEngine().executeScript("window");
+                    fenster.setMember("kassensystemBridge", adminBridge);
+                    warteAufAdminSkripte(0);
                 }
             } else if (state == Worker.State.FAILED) {
                 geladen = false;
@@ -65,6 +69,30 @@ public class AdminWebView extends BorderPane {
             }
         });
         darkModeProperty.addListener((obs, oldValue, newValue) -> synchronisiereWebTheme());
+    }
+
+    private void warteAufAdminSkripte(int versuch) {
+        if (!istAdminseite()) return;
+        Object bereit = webView.getEngine().executeScript(
+                "typeof window.focusAdminArea === 'function' && typeof window.refreshProducts === 'function'");
+        if (Boolean.TRUE.equals(bereit)) {
+            synchronisiereWebTheme();
+            statusLabel.setText("Verwaltung geladen für " + benutzer.benutzername() + ".");
+            statusLabel.setVisible(false);
+            webView.getEngine().executeScript("document.querySelector('.settings-menu').hidden = true");
+            if (zielNachLaden != null) navigiereZu(zielNachLaden);
+            else aktualisiereProdukte();
+            return;
+        }
+        if (versuch >= 100) {
+            geladen = false;
+            statusLabel.setText("Verwaltungsskripte konnten nicht geladen werden.");
+            statusLabel.setVisible(true);
+            return;
+        }
+        PauseTransition pause = new PauseTransition(Duration.millis(100));
+        pause.setOnFinished(event -> warteAufAdminSkripte(versuch + 1));
+        pause.play();
     }
 
     public void ladeWennNoetig() {
@@ -91,7 +119,17 @@ public class AdminWebView extends BorderPane {
 
     private boolean istAdminseite() {
         String url = webView.getEngine().getLocation();
-        return url != null && url.contains("/admin/");
+        if (url == null) return false;
+        try {
+            URI aktuell = URI.create(url);
+            URI erlaubt = URI.create(ADMIN_URL);
+            return aktuell.getScheme().equalsIgnoreCase(erlaubt.getScheme())
+                    && aktuell.getHost().equalsIgnoreCase(erlaubt.getHost())
+                    && aktuell.getPort() == erlaubt.getPort()
+                    && aktuell.getPath().startsWith(erlaubt.getPath());
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
     }
 
     private void ladeAdminseite() {
@@ -109,9 +147,13 @@ public class AdminWebView extends BorderPane {
     }
 
     public void oeffneImBrowser() {
+        oeffneImBrowser(false);
+    }
+
+    private void oeffneImBrowser(boolean scannerStarten) {
         try {
             if (Desktop.isDesktopSupported()) {
-                Desktop.getDesktop().browse(new URI(erstelleSsoUrl()));
+                Desktop.getDesktop().browse(new URI(erstelleSsoUrl(scannerStarten)));
             } else {
                 AlertUtil.showInfo("Adminbereich", "Admin-Webadresse: " + ADMIN_URL);
             }
@@ -121,9 +163,14 @@ public class AdminWebView extends BorderPane {
     }
 
     private String erstelleSsoUrl() {
+        return erstelleSsoUrl(false);
+    }
+
+    private String erstelleSsoUrl(boolean scannerStarten) {
         String ticket = URLEncoder.encode(api.post("/api/auth/browser-ticket", null).path("ticket").asText(), StandardCharsets.UTF_8);
         String theme = darkModeProperty.get() ? "dark" : "light";
-        return SSO_LOGIN_URL + "?ticket=" + ticket + "&theme=" + theme;
+        return SSO_LOGIN_URL + "?ticket=" + ticket + "&theme=" + theme
+                + (scannerStarten ? "&scan=true" : "");
     }
 
     private String verwaltungsTitel() {
@@ -141,6 +188,47 @@ public class AdminWebView extends BorderPane {
             webView.getEngine().executeScript("window.setThemeFromJavaFx && window.setThemeFromJavaFx('" + theme + "')");
         } catch (Exception ignored) {
             // Die Seite kann noch im Spring-Login oder Fehlerzustand sein.
+        }
+    }
+
+    public final class AdminBridge {
+        public void openScannerInBrowser() {
+            if (!istAdminseite()) return;
+            Platform.runLater(() -> oeffneImBrowser(true));
+        }
+
+        public void saveLabels(String idsJson) {
+            try {
+                if (!istAdminseite()) throw new IllegalStateException("Etiketten sind nur in der Verwaltung verfügbar.");
+                var wurzel = new ObjectMapper().readTree(idsJson);
+                if (!wurzel.isArray() || wurzel.isEmpty() || wurzel.size() > 1000) {
+                    throw new IllegalArgumentException("Ungültige Produktauswahl.");
+                }
+                List<Integer> ids = new java.util.ArrayList<>();
+                for (var eintrag : wurzel) {
+                    if (!eintrag.isIntegralNumber() || eintrag.asInt() <= 0) throw new IllegalArgumentException("Ungültige Produkt-ID.");
+                    ids.add(eintrag.asInt());
+                }
+                Platform.runLater(() -> {
+                    FileChooser dialog = new FileChooser();
+                    dialog.setTitle("QR-Etiketten speichern");
+                    dialog.setInitialFileName("qr-etiketten.pdf");
+                    dialog.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF", "*.pdf"));
+                    var datei = dialog.showSaveDialog(getScene().getWindow());
+                    if (datei == null) return;
+                    Thread.ofVirtual().name("qr-etiketten-download").start(() -> {
+                        try {
+                            byte[] pdf = api.postBytes("/api/produkte/etiketten", Map.of("produktIds", ids));
+                            Files.write(datei.toPath(), pdf);
+                            Platform.runLater(() -> AlertUtil.showInfo("QR-Etiketten", "PDF wurde gespeichert."));
+                        } catch (Exception ex) {
+                            Platform.runLater(() -> AlertUtil.showError("QR-Etiketten", ex.getMessage()));
+                        }
+                    });
+                });
+            } catch (Exception ex) {
+                Platform.runLater(() -> AlertUtil.showError("QR-Etiketten", ex.getMessage()));
+            }
         }
     }
 }

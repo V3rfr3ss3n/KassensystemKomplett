@@ -26,6 +26,7 @@ public class Produkt {
     private double lagerbestand;
     private String bildPfad;
     private String kategorie = "Sonstiges";
+    private String scanCode;
     private Verkaufseinheit einheit;
     private double steuerSatz;
 
@@ -129,6 +130,14 @@ public class Produkt {
 
     public void setKategorie(String kategorie) {
         this.kategorie = kategorie == null || kategorie.isBlank() ? "Sonstiges" : kategorie.trim();
+    }
+
+    public String getScanCode() {
+        return scanCode;
+    }
+
+    public void setScanCode(String scanCode) {
+        this.scanCode = scanCode;
     }
 
     public void setLagerbestand(double lagerbestand) {

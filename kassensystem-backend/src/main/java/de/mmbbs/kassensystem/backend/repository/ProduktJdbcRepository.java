@@ -3,6 +3,7 @@ package de.mmbbs.kassensystem.backend.repository;
 import de.mmbbs.kassensystem.backend.model.ProduktDto;
 import de.mmbbs.kassensystem.backend.model.ProduktRequest;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -14,15 +15,17 @@ import java.sql.Statement;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 /**
  * JDBC-Repository fuer Produkte im Spring-Backend.
  *
- * <p>Die Klasse arbeitet direkt auf der SQLite-Tabelle `produkte`, damit das
- * Backend exakt dieselbe Datenstruktur nutzt wie die JavaFX-Kasse.</p>
+ * <p>Die Klasse arbeitet direkt auf der SQLite-Tabelle `produkte`; die
+ * JavaFX-Kasse verwendet ausschliesslich die REST-API des Backends.</p>
  */
 @Repository
 public class ProduktJdbcRepository {
+    private static final Pattern DRUCKBAR = Pattern.compile("^[\\x20-\\x7E]{1,128}$");
     private static final List<String> ERLAUBTE_EINHEITEN = List.of("STUECK", "KILOGRAMM", "LITER", "PACKUNG");
     private static final List<String> ERLAUBTE_KATEGORIEN = List.of(
             "Obst", "Gemüse", "Backwaren", "Lebensmittel", "Getränke",
@@ -39,7 +42,8 @@ public class ProduktJdbcRepository {
                 einheit,
                 einheitLabel(einheit),
                 normalisiereSteuersatz(rs.getDouble("steuerSatz")),
-                anzeigeKategorie(rs.getString("kategorie"))
+                anzeigeKategorie(rs.getString("kategorie")),
+                rs.getString("scan_code")
         );
     };
 
@@ -52,7 +56,7 @@ public class ProduktJdbcRepository {
      */
     public List<ProduktDto> findeAlle() {
         return jdbcTemplate.query("""
-                SELECT id, name, preis, lagerbestand, bildPfad, einheit, steuerSatz, kategorie
+                SELECT id, name, preis, lagerbestand, bildPfad, einheit, steuerSatz, kategorie, scan_code
                 FROM produkte
                 ORDER BY name COLLATE NOCASE
                 """, produktMapper);
@@ -61,7 +65,7 @@ public class ProduktJdbcRepository {
     public Optional<ProduktDto> findeNachId(int id) {
         try {
             ProduktDto produkt = jdbcTemplate.queryForObject("""
-                    SELECT id, name, preis, lagerbestand, bildPfad, einheit, steuerSatz, kategorie
+                    SELECT id, name, preis, lagerbestand, bildPfad, einheit, steuerSatz, kategorie, scan_code
                     FROM produkte
                     WHERE id = ?
                     """, produktMapper, id);
@@ -74,14 +78,16 @@ public class ProduktJdbcRepository {
     /**
      * Validiert und speichert ein neues Produkt.
      */
+    @Transactional
     public ProduktDto erstellen(ProduktRequest request) {
         ProduktRequest daten = validiere(request, true);
         Integer id = jdbcTemplate.execute((ConnectionCallback<Integer>) connection -> {
             try (PreparedStatement statement = connection.prepareStatement("""
-                    INSERT INTO produkte (name, preis, lagerbestand, bildPfad, einheit, steuerSatz, kategorie)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO produkte (name, preis, lagerbestand, bildPfad, einheit, steuerSatz, kategorie, scan_code)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """)) {
-                fuelleStatement(statement, daten, 1);
+                fuelleStatement(statement, daten);
+                statement.setString(8, daten.scanCode());
                 statement.executeUpdate();
             }
 
@@ -97,18 +103,22 @@ public class ProduktJdbcRepository {
         if (id == null) {
             throw new IllegalStateException("Produkt-ID konnte nicht ermittelt werden.");
         }
+        if (daten.scanCode() == null) {
+            jdbcTemplate.update("UPDATE produkte SET scan_code = printf('KS-P-%06d', id) WHERE id = ?", id);
+        }
         return findeNachId(id).orElseThrow();
     }
 
     public ProduktDto aktualisieren(int id, ProduktRequest request) {
-        findeNachId(id).orElseThrow(() -> new NoSuchElementException("Produkt nicht gefunden."));
+        ProduktDto bisher = findeNachId(id).orElseThrow(() -> new NoSuchElementException("Produkt nicht gefunden."));
         ProduktRequest daten = validiere(request, true);
         jdbcTemplate.update("""
                 UPDATE produkte
-                SET name = ?, preis = ?, lagerbestand = ?, bildPfad = ?, einheit = ?, steuerSatz = ?, kategorie = ?
+                SET name = ?, preis = ?, lagerbestand = ?, bildPfad = ?, einheit = ?, steuerSatz = ?, kategorie = ?, scan_code = ?
                 WHERE id = ?
                 """, daten.name().trim(), daten.preis(), daten.lagerbestand(), blankToNull(daten.bildPfad()),
-                normalisiereEinheit(daten.einheit()), normalisiereSteuersatz(daten.steuerSatz()), daten.kategorie(), id);
+                normalisiereEinheit(daten.einheit()), normalisiereSteuersatz(daten.steuerSatz()), daten.kategorie(),
+                daten.scanCode() == null ? bisher.scanCode() : daten.scanCode(), id);
         return findeNachId(id).orElseThrow();
     }
 
@@ -159,18 +169,19 @@ public class ProduktJdbcRepository {
                 blankToNull(request.bildPfad()),
                 normalisiereEinheit(request.einheit()),
                 normalisiereSteuersatz(request.steuerSatz()),
-                normalisiereKategorie(request.kategorie())
+                normalisiereKategorie(request.kategorie()),
+                normalisiereScanCode(request.scanCode())
         );
     }
 
-    private void fuelleStatement(PreparedStatement statement, ProduktRequest daten, int offset) throws java.sql.SQLException {
-        statement.setString(offset, daten.name().trim());
-        statement.setDouble(offset + 1, daten.preis());
-        statement.setDouble(offset + 2, daten.lagerbestand());
-        statement.setString(offset + 3, blankToNull(daten.bildPfad()));
-        statement.setString(offset + 4, normalisiereEinheit(daten.einheit()));
-        statement.setDouble(offset + 5, normalisiereSteuersatz(daten.steuerSatz()));
-        statement.setString(offset + 6, daten.kategorie());
+    private void fuelleStatement(PreparedStatement statement, ProduktRequest daten) throws java.sql.SQLException {
+        statement.setString(1, daten.name().trim());
+        statement.setDouble(2, daten.preis());
+        statement.setDouble(3, daten.lagerbestand());
+        statement.setString(4, blankToNull(daten.bildPfad()));
+        statement.setString(5, normalisiereEinheit(daten.einheit()));
+        statement.setDouble(6, normalisiereSteuersatz(daten.steuerSatz()));
+        statement.setString(7, daten.kategorie());
     }
 
     private static String normalisiereKategorie(String kategorie) {
@@ -232,5 +243,14 @@ public class ProduktJdbcRepository {
 
     private static String blankToNull(String text) {
         return text == null || text.isBlank() ? null : text.trim();
+    }
+
+    private static String normalisiereScanCode(String code) {
+        if (code == null || code.isBlank()) return null;
+        String wert = code.trim();
+        if (!DRUCKBAR.matcher(wert).matches()) {
+            throw new IllegalArgumentException("Scan-Code muss 1 bis 128 druckbare ASCII-Zeichen enthalten.");
+        }
+        return wert;
     }
 }

@@ -4,7 +4,7 @@
 
 Grundlage ist das Lastenheft "Entwicklung eines Kassenprogramms". Das Programm soll die wichtigsten Arbeitsablaeufe einer kleinen Ladenkasse abbilden: Produkte verwalten, Kassenvorgaenge durchfuehren, Wareneingaenge buchen, Lagerbestaende anzeigen und Bons ausgeben.
 
-Das bestehende Projekt setzt diese Anforderungen als JavaFX-Desktopanwendung um. Administrative Funktionen fuer Produkte und Lager koennen zusaetzlich ueber ein Spring-Boot-Backend mit Browseroberflaeche genutzt werden. JavaFX und Spring Boot verwenden dieselbe SQLite-Datenbank.
+Das bestehende Projekt setzt diese Anforderungen als JavaFX-Desktopanwendung mit Spring-Boot-Backend um. Administrative Funktionen fuer Produkte und Lager stehen in der Browseroberflaeche bereit. Nur das Backend verwendet die SQLite-Datenbank; JavaFX greift per REST-API darauf zu.
 
 ## 2. Zielbestimmung
 

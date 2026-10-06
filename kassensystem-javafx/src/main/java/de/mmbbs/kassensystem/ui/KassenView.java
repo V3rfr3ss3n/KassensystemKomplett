@@ -5,10 +5,10 @@ import de.mmbbs.kassensystem.model.BonPosition;
 import de.mmbbs.kassensystem.model.Produkt;
 import de.mmbbs.kassensystem.model.Steuersatz;
 import de.mmbbs.kassensystem.model.Verkaufseinheit;
-import de.mmbbs.kassensystem.service.BonService;
-import de.mmbbs.kassensystem.service.BonPdfService;
 import de.mmbbs.kassensystem.service.KassenService;
 import de.mmbbs.kassensystem.service.ProduktService;
+import de.mmbbs.kassensystem.service.ScanEntscheidung;
+import de.mmbbs.kassensystem.service.ProduktFilter;
 import de.mmbbs.kassensystem.util.GeldFormatter;
 import de.mmbbs.kassensystem.util.ImageUtil;
 import de.mmbbs.kassensystem.util.MengenFormatter;
@@ -28,21 +28,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.HashMap;
 import java.util.prefs.Preferences;
-import java.nio.file.Files;
-import java.nio.charset.StandardCharsets;
-
-import java.time.format.DateTimeFormatter;
-import java.io.File;
-import javafx.stage.FileChooser;
 
 public class KassenView extends VBox {
-    private static final DateTimeFormatter BON_HISTORIE_FORMAT = DateTimeFormatter.ofPattern("dd.MM. HH:mm");
     private static final int PRODUKTE_PRO_SEITE = 18;
     private static final int SCHNELLPLAETZE = 5;
     private final ProduktService produktService;
     private final KassenService kassenService;
-    private final BonService bonFormatService = new BonService();
-    private final BonPdfService bonPdfService = new BonPdfService();
 
     private final FlowPane produktGrid = new FlowPane();
     private final FlowPane schnellauswahl = new FlowPane(8, 8);
@@ -67,9 +58,9 @@ public class KassenView extends VBox {
     private List<Produkt> produktKatalog = List.of();
     private int produktSeite;
     private final ListView<BonPosition> warenkorbListe = new ListView<>();
-    private final ListView<Bon> bonHistorieListe = new ListView<>();
     private final Label gesamtPreisLabel = new Label("Gesamtpreis: " + GeldFormatter.formatiereBetrag(0));
     private final TextField produktSucheField = new TextField();
+    private final ScannerEingabe scanner = new ScannerEingabe(this::verarbeiteScan);
     private final ComboBox<String> einheitFilterBox = new ComboBox<>();
     private final ComboBox<String> kategorieFilterBox = new ComboBox<>();
     private final ComboBox<String> steuerFilterBox = new ComboBox<>();
@@ -77,15 +68,13 @@ public class KassenView extends VBox {
     private final TextField preisBisField = new TextField();
     private final CheckBox nurVerfuegbarCheck = new CheckBox("Nur verfügbar");
     private final TextField mengeField = new TextField();
-    private final TextArea bonArea = new TextArea();
     private final Label statusLabel = new Label();
+    private final BonHistorieView bonView = new BonHistorieView(statusLabel::setText);
     private final Button checkoutButton = new Button("Kauf abschließen");
 
     private Produkt selectedProdukt = null;
-    private Bon angezeigterBon;
     private ScrollPane seitenScroll;
     private boolean abschlussLaeuft;
-    private final Button speichernButton = new Button("Speichern");
 
     public KassenView(ProduktService produktService, KassenService kassenService) {
         this.produktService = produktService;
@@ -96,7 +85,6 @@ public class KassenView extends VBox {
         }
 
         // Listener registrieren für automatische Aktualisierung
-        produktService.addListener(this::ladeProdukte);
 
         // root setup
         setSpacing(0);
@@ -205,7 +193,7 @@ public class KassenView extends VBox {
 
         warenkorbListe.setPrefHeight(150);
         warenkorbListe.getStyleClass().add("cart-area");
-        warenkorbListe.setCellFactory(list -> new WarenkorbCell());
+        warenkorbListe.setCellFactory(list -> new WarenkorbCell(kassenService, this::aktualisiereWarenkorb, statusLabel::setText));
 
         gesamtPreisLabel.getStyleClass().add("section-label");
         gesamtPreisLabel.setText("Gesamtpreis: " + GeldFormatter.formatiereBetrag(0));
@@ -215,59 +203,14 @@ public class KassenView extends VBox {
         checkoutButton.setPrefWidth(220);
         checkoutButton.setPrefHeight(44);
 
-        // Bottom Info Box
-        VBox infoBox = new VBox();
-        infoBox.getStyleClass().add("info-box");
-
-        bonArea.setEditable(false);
-        bonArea.setPrefHeight(340);
-        bonArea.setPrefWidth(320);
-        bonArea.setPromptText("Der erzeugte Bon erscheint hier nach dem Kaufabschluss.");
-        bonArea.getStyleClass().add("info-box-text");
-        bonArea.setWrapText(false);
-        bonArea.setStyle("-fx-font-family: 'Consolas', 'Courier New', monospace;");
-
-        infoBox.getChildren().add(bonArea);
-
-        speichernButton.getStyleClass().add("secondary-button");
-        speichernButton.setDisable(true);
-        speichernButton.setOnAction(event -> exportiereBon());
-        HBox bonAktionen = new HBox(8, speichernButton);
-
-        Label bonLabel = new Label("Bon");
-        bonLabel.getStyleClass().add("section-label");
-
-        Label historieLabel = new Label("Bon-Historie");
-        historieLabel.getStyleClass().add("section-label");
-        bonHistorieListe.setPrefHeight(170);
-        bonHistorieListe.setCellFactory(list -> new ListCell<>() {
-            @Override
-            protected void updateItem(Bon bon, boolean empty) {
-                super.updateItem(bon, empty);
-                if (empty || bon == null) {
-                    setText(null);
-                    return;
-                }
-                setText("Bon " + bon.getBonnummer() + " · "
-                        + BON_HISTORIE_FORMAT.format(bon.getDatumUhrzeit()) + " · "
-                        + GeldFormatter.formatiereBetrag(bon.getGesamtpreis()));
-            }
-        });
-        bonHistorieListe.getSelectionModel().selectedItemProperty().addListener((obs, oldBon, bon) -> {
-            if (bon != null) {
-                zeigeBon(bon);
-            }
-        });
-
         Label schnellTitel = new Label("Schnellauswahl");
         schnellTitel.getStyleClass().add("section-label");
-        VBox leftContent = new VBox(16, prodLabel, auswahlAktionen, schnellTitel, schnellauswahl, auswahlBox, controls,
+        VBox leftContent = new VBox(16, scanner, prodLabel, auswahlAktionen, schnellTitel, schnellauswahl, auswahlBox, controls,
                 cartLabel, warenkorbListe, gesamtPreisLabel, checkoutRow);
         leftContent.setPrefWidth(700);
         HBox.setHgrow(leftContent, Priority.ALWAYS);
 
-        VBox rightContent = new VBox(10, bonLabel, infoBox, bonAktionen, historieLabel, bonHistorieListe);
-        rightContent.setPrefWidth(340);
+        VBox rightContent = bonView;
 
         HBox arbeitsbereich = new HBox(24, leftContent, rightContent);
         arbeitsbereich.setAlignment(Pos.TOP_LEFT);
@@ -294,17 +237,51 @@ public class KassenView extends VBox {
         getChildren().add(ansicht);
         VBox.setVgrow(ansicht, Priority.ALWAYS);
         aktualisiereWarenkorb();
-        aktualisiereBonHistorie();
+        bonView.aktualisiere(kassenService);
+        Platform.runLater(scanner::fokussieren);
+    }
+
+    private void verarbeiteScan(String code) {
+        if (abschlussLaeuft) return;
+        ScanEntscheidung.Ergebnis ergebnis = ScanEntscheidung.pruefe(produktKatalog, code);
+        switch (ergebnis.aktion()) {
+            case UNBEKANNT -> statusLabel.setText("Unbekannter Scan-Code: " + code);
+            case NICHT_VERFUEGBAR -> statusLabel.setText("Produkt nicht verfügbar: " + ergebnis.produkt().getName());
+            case MENGE_EINGEBEN -> {
+                selectedProdukt = ergebnis.produkt();
+                aktualisiereAuswahl();
+                mengeField.clear();
+                statusLabel.setText("Menge für " + selectedProdukt.getName() + " eingeben.");
+                Platform.runLater(mengeField::requestFocus);
+                return;
+            }
+            case HINZUFUEGEN -> {
+                try {
+                    kassenService.positionHinzufuegen(ergebnis.produkt().getId(), 1);
+                    aktualisiereWarenkorb();
+                    statusLabel.setText(ergebnis.produkt().getName() + " hinzugefügt.");
+                } catch (IllegalArgumentException ex) {
+                    statusLabel.setText(ex.getMessage());
+                }
+            }
+        }
+        Platform.runLater(scanner::fokussieren);
     }
 
     private void aktualisiereProduktGrid() {
         produktGrid.getChildren().clear();
-        List<Produkt> passend = produktKatalog.stream().filter(this::matchesProduktSuche).toList();
+        ProduktFilter filter = new ProduktFilter(produktSucheField.getText(), einheitFilterBox.getValue(),
+                kategorieFilterBox.getValue(), steuerFilterBox.getValue(), preisVonField.getText(),
+                preisBisField.getText(), nurVerfuegbarCheck.isSelected());
+        List<Produkt> passend = produktKatalog.stream().filter(filter::passt).toList();
         int seiten = Math.max(1, (passend.size() + PRODUKTE_PRO_SEITE - 1) / PRODUKTE_PRO_SEITE);
         produktSeite = Math.min(produktSeite, seiten - 1);
         int beginn = produktSeite * PRODUKTE_PRO_SEITE;
         for (Produkt p : passend.subList(beginn, Math.min(beginn + PRODUKTE_PRO_SEITE, passend.size()))) {
-            produktGrid.getChildren().add(createProductCard(p));
+            produktGrid.getChildren().add(new ProduktKarte(p, favoriten.contains(p.getId()), produkt -> {
+                waehleProdukt(produkt);
+                schliesseProduktauswahl();
+            }, () -> wechsleFavorit(p.getId())));
         }
         if (passend.isEmpty()) produktGrid.getChildren().add(new Label("Keine passenden Produkte gefunden."));
         ergebnisLabel.setText(passend.size() + " Produkte");
@@ -346,7 +323,7 @@ public class KassenView extends VBox {
     public void aktualisiereDaten() {
         if (abschlussLaeuft) return;
         ladeProdukte();
-        aktualisiereBonHistorie();
+        bonView.aktualisiere(kassenService);
     }
 
     private void aktualisiereSchnellauswahl() {
@@ -473,7 +450,7 @@ public class KassenView extends VBox {
         abschlussSpeichernButton.getStyleClass().add("secondary-button");
         abschlussSpeichernButton.setOnAction(event -> {
             schliesseAbschlussOverlay();
-            exportiereBon();
+            bonView.exportiereBon();
         });
         abschlussAktionen.getChildren().addAll(abschlussWeiterButton, abschlussSpeichernButton);
         abschlussAktionen.setAlignment(Pos.CENTER_RIGHT);
@@ -494,91 +471,7 @@ public class KassenView extends VBox {
         abschlussOverlay.setVisible(false);
         abschlussOverlay.setManaged(false);
         seitenScroll.setDisable(false);
-    }
-
-    private boolean matchesProduktSuche(Produkt produkt) {
-        String suche = produktSucheField.getText();
-        if (suche != null && !suche.isBlank()) {
-            String text = (produkt.getId() + " " + produkt.getName() + " "
-                    + produkt.getKategorie() + " "
-                    + produkt.getEinheitLabel() + " "
-                    + GeldFormatter.formatiereBetrag(produkt.getPreis())).toLowerCase();
-            if (!text.contains(suche.toLowerCase().trim())) {
-                return false;
-            }
-        }
-
-        String einheitFilter = einheitFilterBox.getValue();
-        if (einheitFilter != null && !"Alle Einheiten".equals(einheitFilter)
-                && !produkt.getEinheitLabel().equals(einheitFilter)) {
-            return false;
-        }
-
-        String kategorieFilter = kategorieFilterBox.getValue();
-        if (kategorieFilter != null && !"Alle Kategorien".equals(kategorieFilter)
-                && !produkt.getKategorie().equals(kategorieFilter)) return false;
-
-        String steuerFilter = steuerFilterBox.getValue();
-        if (steuerFilter != null && !"Alle Steuersätze".equals(steuerFilter)
-                && !String.format("%.0f %%", produkt.getSteuerSatz()).equals(steuerFilter)) {
-            return false;
-        }
-
-        double preisVon = parseOptionalDouble(preisVonField.getText());
-        double preisBis = parseOptionalDouble(preisBisField.getText());
-        if (!Double.isNaN(preisVon) && produkt.getPreis() < preisVon) {
-            return false;
-        }
-        if (!Double.isNaN(preisBis) && produkt.getPreis() > preisBis) {
-            return false;
-        }
-
-        return !nurVerfuegbarCheck.isSelected() || produkt.getLagerbestand() > 0;
-    }
-
-    private VBox createProductCard(Produkt p) {
-        VBox card = new VBox(8);
-        card.getStyleClass().add("product-card");
-        card.setAlignment(Pos.TOP_LEFT);
-        card.setPrefWidth(188);
-        card.setMinWidth(188);
-        card.setMaxWidth(188);
-
-        boolean hatBild = p.getBildPfad() != null && !p.getBildPfad().isBlank();
-        ImageView imageView = new ImageView(hatBild ? ImageUtil.loadProductImage(p.getBildPfad()) : null);
-        imageView.setFitWidth(158);
-        imageView.setFitHeight(126);
-        imageView.setPreserveRatio(true);
-        StackPane bildRahmen = new StackPane(hatBild ? imageView : new Label("Kein Bild"));
-        bildRahmen.getStyleClass().add("product-picker-image");
-        bildRahmen.setMinHeight(135);
-        bildRahmen.setMaxHeight(135);
-
-        Label nameLabel = new Label(p.getName());
-        nameLabel.getStyleClass().add("product-card-name");
-        nameLabel.setWrapText(true);
-        nameLabel.setMaxWidth(175);
-        Label preisLabel = new Label(GeldFormatter.formatiereBetrag(p.getPreis()) + "/" + p.getEinheitLabel());
-        preisLabel.getStyleClass().add("product-card-price");
-        Label kategorieLabel = new Label(p.getKategorie());
-        kategorieLabel.getStyleClass().add("product-card-details");
-        Label bestandLabel = new Label("Lagerbestand: "
-                + MengenFormatter.formatiereMenge(p.getLagerbestand(), p.getEinheitLabel()));
-        bestandLabel.getStyleClass().add("product-card-details");
-
-        Button waehlenButton = new Button("Auswählen");
-        waehlenButton.getStyleClass().add("primary-button");
-        waehlenButton.setMaxWidth(Double.MAX_VALUE);
-        waehlenButton.setDisable(p.getLagerbestand() <= 0);
-        waehlenButton.setOnAction(event -> {
-            waehleProdukt(p);
-            schliesseProduktauswahl();
-        });
-        Button favoritenButton = new Button(favoriten.contains(p.getId()) ? "★ Favorit" : "☆ Merken");
-        favoritenButton.setOnAction(event -> wechsleFavorit(p.getId()));
-        card.getChildren().addAll(bildRahmen, nameLabel, kategorieLabel, preisLabel, bestandLabel, waehlenButton, favoritenButton);
-        if (p.getLagerbestand() <= 0) card.getStyleClass().add("product-card-unavailable");
-        return card;
+        Platform.runLater(scanner::fokussieren);
     }
 
     private void waehleProdukt(Produkt produkt) {
@@ -606,6 +499,7 @@ public class KassenView extends VBox {
             aktualisiereWarenkorb();
             statusLabel.setText("Produkt zum Warenkorb hinzugefügt.");
             mengeField.clear();
+            Platform.runLater(scanner::fokussieren);
         } catch (IllegalArgumentException ex) {
             statusLabel.setText(ex.getMessage());
         }
@@ -636,9 +530,8 @@ public class KassenView extends VBox {
             abschlussLaeuft = false;
             Bon bon = kauf.getValue();
             aktualisiereWarenkorb();
-            aktualisiereBonHistorie();
-            bonHistorieListe.getSelectionModel().select(bon);
-            zeigeBon(bon);
+            bonView.aktualisiere(kassenService);
+            bonView.zeigeBon(bon);
             abschlussTitel.setText("Kauf abgeschlossen");
             abschlussDetails.setText("Bon Nr. " + bon.getBonnummer() + " · Gesamtpreis: "
                     + GeldFormatter.formatiereBetrag(bon.getGesamtpreis()));
@@ -684,39 +577,6 @@ public class KassenView extends VBox {
         Thread.ofVirtual().name("kasse-produkte-aktualisieren").start(laden);
     }
 
-    private void zeigeBon(Bon bon) {
-        angezeigterBon = bon;
-        bonArea.setText(bonFormatService.formatiereBon(bon));
-        speichernButton.setDisable(false);
-    }
-
-    private void exportiereBon() {
-        if (angezeigterBon == null) {
-            return;
-        }
-        FileChooser chooser = new FileChooser();
-        chooser.setTitle("Bon speichern");
-        chooser.setInitialFileName("bon-" + angezeigterBon.getBonnummer());
-        FileChooser.ExtensionFilter pdfFilter = new FileChooser.ExtensionFilter("PDF-Datei (*.pdf)", "*.pdf");
-        FileChooser.ExtensionFilter txtFilter = new FileChooser.ExtensionFilter("Textdatei (*.txt)", "*.txt");
-        chooser.getExtensionFilters().addAll(pdfFilter, txtFilter);
-        File ziel = chooser.showSaveDialog(getScene().getWindow());
-        if (ziel == null) {
-            return;
-        }
-        try {
-            String dateiname = ziel.getName().toLowerCase(java.util.Locale.ROOT);
-            boolean text = dateiname.endsWith(".txt") || (!dateiname.endsWith(".pdf") && chooser.getSelectedExtensionFilter() == txtFilter);
-            File datei = dateiname.endsWith(".txt") || dateiname.endsWith(".pdf") ? ziel
-                    : new File(ziel.getParentFile(), ziel.getName() + (text ? ".txt" : ".pdf"));
-            if (text) Files.writeString(datei.toPath(), bonFormatService.formatiereBon(angezeigterBon), StandardCharsets.UTF_8);
-            else bonPdfService.exportiere(angezeigterBon, datei.toPath());
-            statusLabel.setText("Bon " + angezeigterBon.getBonnummer() + " gespeichert: " + datei.getName());
-        } catch (Exception ex) {
-            statusLabel.setText("Bon konnte nicht gespeichert werden: " + ex.getMessage());
-        }
-    }
-
     private void aktualisiereWarenkorb() {
         warenkorbListe.getItems().setAll(kassenService.getWarenkorb());
         gesamtPreisLabel.setText("Gesamtpreis: " + GeldFormatter.formatiereBetrag(kassenService.berechneGesamtpreis()));
@@ -739,10 +599,6 @@ public class KassenView extends VBox {
         } catch (IllegalArgumentException ex) {
             statusLabel.setText(ex.getMessage());
         }
-    }
-
-    private void aktualisiereBonHistorie() {
-        bonHistorieListe.getItems().setAll(kassenService.getBonHistorie());
     }
 
     private VBox erstelleErweiterteFilter() {
@@ -794,17 +650,6 @@ public class KassenView extends VBox {
         aktualisiereProduktGrid();
     }
 
-    private double parseOptionalDouble(String text) {
-        if (text == null || text.isBlank()) {
-            return Double.NaN;
-        }
-        try {
-            return Double.parseDouble(text.trim().replace(",", "."));
-        } catch (NumberFormatException ex) {
-            return Double.NaN;
-        }
-    }
-
     private void zeigeProduktDetails(Produkt produkt) {
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Produktdetails");
@@ -835,57 +680,4 @@ public class KassenView extends VBox {
         dialog.showAndWait();
     }
 
-    private final class WarenkorbCell extends ListCell<BonPosition> {
-        private final Label text = new Label();
-        private final Button minusButton = new Button("-");
-        private final Button plusButton = new Button("+");
-        private final Button removeButton = new Button("Entfernen");
-        private final HBox content = new HBox(8, text, minusButton, plusButton, removeButton);
-
-        private WarenkorbCell() {
-            text.setMaxWidth(Double.MAX_VALUE);
-            HBox.setHgrow(text, Priority.ALWAYS);
-            content.setAlignment(Pos.CENTER_LEFT);
-            minusButton.getStyleClass().add("secondary-button");
-            plusButton.getStyleClass().add("secondary-button");
-            removeButton.getStyleClass().add("secondary-button");
-
-            minusButton.setOnAction(event -> {
-                BonPosition position = getItem();
-                if (position != null) {
-                    kassenService.positionVerringern(position);
-                    aktualisiereWarenkorb();
-                }
-            });
-            plusButton.setOnAction(event -> {
-                BonPosition position = getItem();
-                if (position != null) {
-                    try {
-                        kassenService.positionErhoehen(position);
-                        aktualisiereWarenkorb();
-                    } catch (IllegalArgumentException ex) {
-                        statusLabel.setText(ex.getMessage());
-                    }
-                }
-            });
-            removeButton.setOnAction(event -> {
-                BonPosition position = getItem();
-                if (position != null) {
-                    kassenService.positionEntfernen(position);
-                    aktualisiereWarenkorb();
-                }
-            });
-        }
-
-        @Override
-        protected void updateItem(BonPosition position, boolean empty) {
-            super.updateItem(position, empty);
-            if (empty || position == null) {
-                setGraphic(null);
-                return;
-            }
-            text.setText(position.toString());
-            setGraphic(content);
-        }
-    }
 }

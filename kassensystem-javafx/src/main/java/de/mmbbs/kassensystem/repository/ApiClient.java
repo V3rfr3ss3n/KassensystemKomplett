@@ -36,6 +36,31 @@ public class ApiClient {
     public JsonNode put(String path, Object body) { return sende("PUT", path, body); }
     public void delete(String path) { sende("DELETE", path, null); }
 
+    public byte[] postBytes(String path, Object body) {
+        try {
+            HttpRequest request = HttpRequest.newBuilder(URI.create(basis + path))
+                    .timeout(Duration.ofSeconds(30))
+                    .header("Authorization", authorization)
+                    .header("X-Kassensystem-Client", "JavaFX")
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "application/pdf")
+                    .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(body))).build();
+            HttpResponse<byte[]> antwort = http.send(request, HttpResponse.BodyHandlers.ofByteArray());
+            if (antwort.statusCode() >= 400) {
+                String meldung = new String(antwort.body(), StandardCharsets.UTF_8);
+                try { meldung = mapper.readTree(meldung).path("message").asText(meldung); }
+                catch (Exception ignored) { }
+                throw new IllegalStateException("Backend (HTTP " + antwort.statusCode() + "): " + meldung);
+            }
+            return antwort.body();
+        } catch (IOException e) {
+            throw new IllegalStateException("Backend nicht erreichbar: " + basis, e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Anfrage wurde unterbrochen.", e);
+        }
+    }
+
     private JsonNode sende(String methode, String path, Object body) {
         try {
             HttpRequest.BodyPublisher daten = body == null ? HttpRequest.BodyPublishers.noBody()
